@@ -4,17 +4,17 @@ export CGO_ENABLED=0
 .DEFAULT_GOAL := deploy
 
 deploy:
-	go build -o globalentry
-	zip -r globalentry.zip globalentry
+	go build -o bootstrap
+	zip -r bootstrap.zip bootstrap
 	aws iam create-role --role-name lambda-basic-execution --assume-role-policy-document file://lambda-trust-policy.json	
 	aws iam attach-role-policy --role-name lambda-basic-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 	sleep 5
-	aws lambda create-function --function-name "GlobalEntry" --handler globalentry --zip-file fileb://globalentry.zip \
+	aws lambda create-function --function-name "GlobalEntry" --handler globalentry --zip-file fileb://bootstrap.zip \
 	--region="us-east-1" \
 	--environment '{"Variables":{"TWILIO_ACCOUNT_SID":"${TWILIO_ACCOUNT_SID}","TWILIO_AUTH_TOKEN":"${TWILIO_AUTH_TOKEN}",\
 				   "LOCATIONID":"${LOCATIONID}","TWILIOFROM":"${TWILIOFROM}","TWILIOTO":"${TWILIOTO}"}}' \
 	--role "arn:aws:iam::${AWS_ACCOUNT_ID}:role/lambda-basic-execution" \
-	--runtime go1.x
+	--runtime provided.al2023
 	aws events put-rule \
 	--name GlobalEntryCron \
 	--region="us-east-1" \
@@ -32,6 +32,6 @@ deploy:
 	'{"Id":"1","Arn":"arn:aws:lambda:us-east-1:${AWS_ACCOUNT_ID}:function:GlobalEntry"}'
 
 redeploy:
-	go build -o globalentry
-	zip -r globalentry.zip globalentry
-	aws lambda update-function-code --function-name "GlobalEntry" --zip-file fileb://globalentry.zip --region="us-east-1"
+	go build -o bootstrap
+	zip -r bootstrap.zip bootstrap
+	aws lambda update-function-code --function-name "GlobalEntry" --zip-file fileb://bootstrap.zip --region="us-east-1"

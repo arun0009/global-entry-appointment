@@ -17,7 +17,7 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 
-globalentry
-globalentry.zip
+bootstrap
+bootstrap.zip
 
 .DS_Store

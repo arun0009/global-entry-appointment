@@ -1,11 +1,11 @@
-module github.com/global-entry-appointmentt
+module github.com/arun0009/global-entry-appointment
 
-go 1.18
+go 1.21.1
 
 require (
-	github.com/aws/aws-lambda-go v1.40.0
+	github.com/aws/aws-lambda-go v1.46.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/twilio/twilio-go v1.6.0
+	github.com/twilio/twilio-go v1.19.0
 )
 
 require (
