@@ -9,10 +9,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	
-	"github.com/kelseyhightower/envconfig"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/kelseyhightower/envconfig"
 
 	"github.com/twilio/twilio-go"
 	api "github.com/twilio/twilio-go/rest/api/v2010"
