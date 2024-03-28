@@ -1,6 +1,6 @@
 module github.com/arun0009/global-entry-appointment
 
-go 1.21.1
+go 1.22
 
 require (
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.134.0
