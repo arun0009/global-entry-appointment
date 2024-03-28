@@ -7,6 +7,7 @@ Alerts are sent as SMS via [Twilio API](https://www.twilio.com/docs/sms/quicksta
 
 1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. [Free Twilio Account](https://www.twilio.com/try-twilio)
+3. Install aws-cdk `npm install -g aws-cdk`
 
 ### ENV
 
