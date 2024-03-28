@@ -8,25 +8,28 @@ Alerts are sent as SMS via [Twilio API](https://www.twilio.com/docs/sms/quicksta
 1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. [Free Twilio Account](https://www.twilio.com/try-twilio)
 
-### ENV Variables
+### ENV
 
-Set below environment variables, pick a location Id where you need appointment from below table, and Twilio Phone Number
-formats are "+19252005000".
+Set below environment variables in `env.json`, pick a location Id where you need appointment from below table, and Twilio Phone Number formats are "+19252005000".
  
- ```bash
-export AWS_ACCOUNT_ID=YOUR_AWS_ACCOUNT_ID
-export TWILIO_ACCOUNT_SID=YOUR_ACCOUNT_SID
-export TWILIO_AUTH_TOKEN=YOUR_TOKEN
-export LOCATIONID=YOUR_APPOINTMENT_LOCATION_ID
-export TWILIOFROM=YOUR_TWILIO_FROM_NUMBER
-export TWILIOTO=YOUR_NUMBER_WHERE_YOU_WANT_NOTIFICATIONS
+ ```json
+{
+    "Parameters" : {
+        "TWILIO_ACCOUNT_SID": "<TWILIO_ACCOUNT_SID>",
+        "TWILIO_AUTH_TOKEN": "<TWILIO_AUTH_TOKEN>",
+        "LOCATIONID": "<LOCATIONID>",
+        "TWILIOFROM": "<TWILIOFROM>",
+        "TWILIOTO": "<TWILIOTO>"
+    }
+}
 ```
 
 ### Deploy to AWS
 
+Update `Makefile` `AWS_ACCOUNT` and `AWS_REGION`
+
 ```bash 
 make deploy
-make redeploy (updates to Lambda are redeployed)
 ```
 
 ###### Pick your LOCATIONID from below to use as environment variable (above)

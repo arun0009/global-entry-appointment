@@ -1,37 +1,32 @@
-export GOOS=linux
-export GOARCH=amd64
-export CGO_ENABLED=0
-.DEFAULT_GOAL := deploy
+BUILD_TO_DIR := .bin
+GO_LINUX := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
+
+export AWS_ACCOUNT=808475159191
+export AWS_REGION=us-west-1
+
+clean:
+	rm -rf .aws-sam
+
+develop-clean:
+	rm -rf $(BUILD_TO_DIR)
+	mkdir -p $(BUILD_TO_DIR)
+
+develop: develop-clean
+	go fmt ./...
+	$(GO_LINUX) go build -o $(BUILD_TO_DIR)/bootstrap ./lambda/main.go;
+
+invoke: develop
+	sam local start-api --env-vars env.json --template globalentry.yaml --region ${AWS_REGION} --port 9070 --docker-network host --invoke-image amazon/aws-sam-cli-emulation-image-go1.x --skip-pull-image --log-file /dev/stdout
+
+#run output of this command so environment variables are set.
+update-creds:	
+	export $(shell printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" \
+	$(shell aws sts assume-role \
+	--profile ${AWS_ACCOUNT}_AdministratorAccess \
+	--role-arn arn:aws:iam::${AWS_ACCOUNT}:role/AdminRole \
+	--role-session-name AWSCLI-Session \
+	--query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+	--output text))
 
 deploy:
-	go build -o bootstrap
-	zip -r bootstrap.zip bootstrap
-	aws iam create-role --role-name lambda-basic-execution --assume-role-policy-document file://lambda-trust-policy.json	
-	aws iam attach-role-policy --role-name lambda-basic-execution --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-	sleep 5
-	aws lambda create-function --function-name "GlobalEntry" --handler globalentry --zip-file fileb://bootstrap.zip \
-	--region="us-east-1" \
-	--environment '{"Variables":{"TWILIO_ACCOUNT_SID":"${TWILIO_ACCOUNT_SID}","TWILIO_AUTH_TOKEN":"${TWILIO_AUTH_TOKEN}",\
-				   "LOCATIONID":"${LOCATIONID}","TWILIOFROM":"${TWILIOFROM}","TWILIOTO":"${TWILIOTO}"}}' \
-	--role "arn:aws:iam::${AWS_ACCOUNT_ID}:role/lambda-basic-execution" \
-	--runtime provided.al2023
-	aws events put-rule \
-	--name GlobalEntryCron \
-	--region="us-east-1" \
-	--state 'ENABLED' \
-	--schedule-expression 'rate(1 minute)'
-	aws lambda add-permission \
-	--region="us-east-1" \
-	--function-name GlobalEntry \
-	--statement-id GlobalEntryEvent \
-	--action 'lambda:InvokeFunction' \
-	--principal 'events.amazonaws.com' \
-	--source-arn "arn:aws:events:us-east-1:${AWS_ACCOUNT_ID}:rule/GlobalEntryCron"
-	aws events put-targets --rule GlobalEntryCron --targets \
-	--region="us-east-1" \
-	'{"Id":"1","Arn":"arn:aws:lambda:us-east-1:${AWS_ACCOUNT_ID}:function:GlobalEntry"}'
-
-redeploy:
-	go build -o bootstrap
-	zip -r bootstrap.zip bootstrap
-	aws lambda update-function-code --function-name "GlobalEntry" --zip-file fileb://bootstrap.zip --region="us-east-1"
+	cdk deploy
