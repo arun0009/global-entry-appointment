@@ -30,3 +30,6 @@ update-creds:
 
 deploy:
 	cdk deploy
+
+destroy:
+	cdk destroy	
