@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  globalentry
+  SAM Template for globalentry
+
+Globals:
+  Function:
+    Timeout: 60
+    Environment:
+      Variables:
+        TWILIO_ACCOUNT_SID:
+        TWILIO_AUTH_TOKEN:
+        LOCATIONID:
+        TWILIOFROM:
+        TWILIOTO:     
+
+Resources:
+  ImageGatewayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: local
+      BinaryMediaTypes:
+        - multipart-1form-data
+
+  LocalServer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: .bin/bootstrap
+      Runtime: provided.al2023
+      Tracing: Active
+      Events:
+        GlobalEntry:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET                   
