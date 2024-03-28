@@ -97,7 +97,6 @@ func main() {
 	var config Config
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Println("paniced in envconfig")
 		panic(err)
 	}
 
