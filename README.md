@@ -23,10 +23,15 @@ Set below environment variables in `env.json`, pick a location Id where you need
     }
 }
 ```
+Update `Makefile` `AWS_ACCOUNT` and `AWS_REGION`
+
+### Test Locally
+
+```bash 
+make invoke
+```
 
 ### Deploy to AWS
-
-Update `Makefile` `AWS_ACCOUNT` and `AWS_REGION`
 
 ```bash 
 make deploy
