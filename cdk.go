@@ -21,7 +21,7 @@ const (
 	MaxDuration  = 60
 	CodePath     = ".bin/"
 	Handler      = "main.Handler"
-	ScheduleRate = 15
+	ScheduleRate = 1
 	EnvFilePath  = "env.json"
 )
 

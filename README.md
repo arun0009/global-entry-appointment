@@ -1,5 +1,5 @@
 # Global Entry Appointment Scanner
-This Repo runs a AWS Lambda that scans for [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appoinment (every 1 min, change in `Makefile` if you want a different schedule). 
+This Repo runs a AWS Lambda that scans for [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appoinment (every 1 min, change in `cdk.go` if you want a different schedule). 
 
 Alerts are sent as SMS via [Twilio API](https://www.twilio.com/docs/sms/quickstart/go)
 
