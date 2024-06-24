@@ -18,6 +18,9 @@ develop: develop-clean
 invoke: develop
 	sam local start-api --env-vars env.json --template globalentry.yaml --region ${AWS_REGION} --port 9070 --docker-network host --invoke-image amazon/aws-sam-cli-emulation-image-go1.x --skip-pull-image --log-file /dev/stdout
 
+aws-login:
+	aws sso login --profile ${AWS_ACCOUNT}_AdministratorAccess
+
 #run output of this command so environment variables are set.
 update-creds:	
 	export $(shell printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" \

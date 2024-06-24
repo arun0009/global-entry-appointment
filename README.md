@@ -9,6 +9,14 @@ Alerts are sent as SMS via [Twilio API](https://www.twilio.com/docs/sms/quicksta
 2. [Free Twilio Account](https://www.twilio.com/try-twilio)
 3. Install aws-cdk `npm install -g aws-cdk`
 
+### Configure [AWS CLI](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html) in terminal 
+
+```bash
+export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
+export AWS_DEFAULT_REGION=YOUR_AWS_REGION
+```
+
 ### ENV
 
 Set below environment variables in `env.json`, pick a location Id where you need appointment from below table, and Twilio Phone Number formats are "+19252005000".
@@ -24,7 +32,6 @@ Set below environment variables in `env.json`, pick a location Id where you need
     }
 }
 ```
-Update `Makefile` `AWS_ACCOUNT` and `AWS_REGION`
 
 ### Test Locally
 
@@ -36,6 +43,12 @@ make invoke
 
 ```bash 
 make deploy
+```
+
+### Destroy Stack
+
+```bash
+make destroy
 ```
 
 ###### Pick your LOCATIONID from below to use as environment variable (above)
