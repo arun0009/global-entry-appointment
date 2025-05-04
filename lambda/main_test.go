@@ -107,7 +107,8 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	// Invoke handler
 	resp, err := handler.HandleRequest(ctx, eventJSON)
 	assert.NoError(t, err)
-	assert.Nil(t, resp)
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.JSONEq(t, `{"message": "cloudwatch event processed"}`, resp.Body)
 
 	// Verify ntfy calls
 	assert.Equal(t, 2, ntfyCalls, "Expected two ntfy notifications")
@@ -118,12 +119,21 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Create API Gateway request
+	// Create API Gateway V2 request
 	req := SubscriptionRequest{Action: "subscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
 	body, _ := json.Marshal(req)
-	apiReq := events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Body:       string(body),
+	apiReq := events.APIGatewayV2HTTPRequest{
+		Version:  "2.0",
+		RouteKey: "POST /subscriptions",
+		RawPath:  "/subscriptions",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: "POST",
+				Path:   "/subscriptions",
+			},
+		},
+		Body:            string(body),
+		IsBase64Encoded: false,
 	}
 	eventJSON, _ := json.Marshal(apiReq)
 
@@ -132,10 +142,8 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify response
-	apiResp, ok := resp.(events.APIGatewayProxyResponse)
-	assert.True(t, ok)
-	assert.Equal(t, 200, apiResp.StatusCode)
-	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, apiResp.Body)
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, resp.Body)
 
 	// Verify subscription in database
 	count, err := coll.CountDocuments(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"})
@@ -156,12 +164,21 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	// Create API Gateway request
+	// Create API Gateway V2 request
 	req := SubscriptionRequest{Action: "unsubscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
 	body, _ := json.Marshal(req)
-	apiReq := events.APIGatewayProxyRequest{
-		HTTPMethod: "POST",
-		Body:       string(body),
+	apiReq := events.APIGatewayV2HTTPRequest{
+		Version:  "2.0",
+		RouteKey: "POST /subscriptions",
+		RawPath:  "/subscriptions",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: "POST",
+				Path:   "/subscriptions",
+			},
+		},
+		Body:            string(body),
+		IsBase64Encoded: false,
 	}
 	eventJSON, _ := json.Marshal(apiReq)
 
@@ -170,10 +187,8 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify response
-	apiResp, ok := resp.(events.APIGatewayProxyResponse)
-	assert.True(t, ok)
-	assert.Equal(t, 200, apiResp.StatusCode)
-	assert.JSONEq(t, `{"message": "Unsubscribed successfully"}`, apiResp.Body)
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.JSONEq(t, `{"message": "Unsubscribed successfully"}`, resp.Body)
 
 	// Verify subscription removed
 	count, err := coll.CountDocuments(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"})
@@ -194,10 +209,8 @@ func TestHandleRequest_InvalidEvent(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify response
-	apiResp, ok := resp.(events.APIGatewayProxyResponse)
-	assert.True(t, ok)
-	assert.Equal(t, 400, apiResp.StatusCode)
-	assert.JSONEq(t, `{"error": "unsupported event type"}`, apiResp.Body)
+	assert.Equal(t, 400, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "unsupported event type"}`, resp.Body)
 }
 
 func TestCheckAvailabilityAndNotify_Success(t *testing.T) {

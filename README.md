@@ -1,76 +1,68 @@
-# Global Entry Appointment Scanner
-This Repo runs AWS Lambda that scans for [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appointment every minute.
+<h1 align="center">Global Entry Appointment Scanner</h1>
 
-Alerts are sent as push notifications via [Ntfy](https://ntfy.sh/), download `nfty` app on App Store or Play Store and create a topic.
+<p align="center">
+   <img src="./global_entry.png" alt="Global Entry"/><img src="./global_entry.png" alt="Global Entry"/><img src="./global_entry.png" alt="Global Entry"/>
+</p>
 
-NOTE: You will only get notifications for 30 days (if there is an appointment available) after which you will be unsubscribed automatically.
+**🚀 Instantly Get Notified When Global Entry Appointments Open Near You!**
+
+Tired of endlessly checking for Global Entry interview availability? 
+
+**This free and open-source tool scans appointment slots every minute** and sends real-time push notifications right to your phone.**
+
+✨ **Absolutely FREE**  
+⚡ **Super Simple – Just 2 Steps!**  
+🔔 **Get Notified Instantly with Ntfy App**
+
+---
+
+### 🔧 How It Works
+
+Every minute, an AWS Lambda function checks for open [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appointments. If an available slot is found at your selected location, you'll get a push notification via [Ntfy](https://ntfy.sh/).
+
+✅ No login required  
+✅ No account creation  
+✅ No phone number required  
+✅ No spam — auto-unsubscribes after 30 days
+
+---
+
+### 📲 **Get Started in 2 Easy Steps**
+
+#### 1. **Install the Free Ntfy App & subscribe to a topic (create your own random one)**
+- [📱 App Store (iOS)](https://apps.apple.com/app/ntfy/id1625396347)
+- [🤖 Play Store (Android)](https://play.google.com/store/apps/details?id=io.heckel.ntfy&hl=en_US)
+
+#### 2. **Subscribe with One Command**
+
+Pick your **location ID** from the table below (e.g. `5446` for SFO ✈︎), your topic name (e.g. `my-global-entry-alerts`), then run:
+
+```bash
+curl -X POST https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions \
+  -H "Content-Type: application/json" \
+  -d '{"action":"subscribe","location":"5446","ntfyTopic":"my-global-entry-alerts"}'
+```
+
+✅ That’s it! You’ll now receive alerts when appointments become available for the next 30 days.
+
+### ❌ Unsubscribe Anytime
+
+To unsubscribe before the 30 days are up:
+
+```bash
+curl -X POST https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions \
+  -H "Content-Type: application/json" \
+  -d '{"action":"unsubscribe","location":"5446","ntfyTopic":"my-global-entry-alerts"}'
+```
+### ☕ Like This Project?
+
+If this tool saved you hours of frustration, consider buying me a coffee to support ongoing development:
 
 <a href="https://www.buymeacoffee.com/arun0009" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
 
-## Subscribe
+### 📍 Pick Your Location ID
 
-Note: Update location where you want to find an appointment(look for your location ID from table below) and update your ntfy topic accordingly.
-
-```bash
-curl -X POST https://2lwuzcwupmpw7473cen4v47tzi0jchec.lambda-url.us-east-1.on.aws/subscriptions \
--H "Content-Type: application/json" \
--d '{"action":"subscribe","location":"5446","ntfyTopic":"your-ntfy-topic-here"}'
-```
-
-## Unsubscribe
-
-If you want to unsubscribe manually, use below cURL but update your location and topic accordingly.
-
-```bash
-curl -X POST https://2lwuzcwupmpw7473cen4v47tzi0jchec.lambda-url.us-east-1.on.aws/subscriptions \
--H "Content-Type: application/json" \
--d '{"action":"unsubscribe","location":"5446","ntfyTopic":"your-ntfy-topic-here"}'
-```
-
-### Prerequisites (For Development ONLY)
-
-1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-2. Install aws-cdk `npm install -g aws-cdk`
-
-### Configure [AWS CLI](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html) in terminal 
-
-```bash
-export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
-export AWS_DEFAULT_REGION=YOUR_AWS_REGION
-```
-
-### ENV
-
-Set below environment variables in `env.json` (mongodb password)
- 
- ```json
-{
-    "Parameters" : {
-        "MONGODB_PASSWORD": "<MONGODB_PASSWORD>"
-    }
-}
-```
-
-### Test Locally
-
-```bash 
-make invoke
-```
-
-### Deploy to AWS
-
-```bash 
-make deploy
-```
-
-### Destroy Stack
-
-```bash
-make destroy
-```
-
-###### Pick your LOCATION ID from below to use in cURL subscription above
+Pick your LOCATION ID from below to use in cURL (above)
 
 | ID   | Enrollment Center Name                                    |
 |------|--------------------------------------------------------|
@@ -200,3 +192,51 @@ make destroy
 
 Note: If you don't find your location above, please look at the updated [list](https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry
 )
+
+### 👨‍💻 Developers: Want to Contribute or Run It Yourself?
+
+Prerequisites
+[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)    
+[AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html):  
+`npm install -g aws-cdk`
+
+#### Set AWS Credentials
+
+```bash
+export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
+export AWS_REGION=YOUR_AWS_REGION
+export AWS_ACCOUNT=YOUR_AWS_ACCOUNT_ID
+```
+
+#### Setup Env
+
+Add your MongoDB password in file called `env.json`:
+
+```json
+{
+  "Parameters": {
+    "MONGODB_PASSWORD": "<your-password>"
+  }
+}
+```
+
+#### Run Locally
+```bash
+make develop
+make invoke
+```
+
+#### Deploy to AWS
+```bash
+make deploy
+```
+
+#### Destroy Stack
+```bash
+make destroy
+```
+
+### 📄 License
+
+MIT © 2025 Arun

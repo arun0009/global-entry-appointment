@@ -158,7 +158,7 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 // handleExpiringSubscriptions deletes subscriptions exactly 30 days old and notifies
 func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *mongo.Collection) error {
 	now := time.Now().UTC()
-	// Calculate the 1-minute window for subscriptions exactly 30 days old
+	// Calculate the 5-minute window for subscriptions exactly 30 days old
 	ttlThreshold := now.Add(-30 * 24 * time.Hour)         // 30 days ago
 	expireStart := ttlThreshold.Truncate(5 * time.Minute) // Start of the 5-minute block
 	expireEnd := expireStart.Add(5 * time.Minute)         // End of the 5-minute block
@@ -290,16 +290,15 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 }
 
 // HandleRequest handles Scheduled Events and API requests
-func (h *LambdaHandler) HandleRequest(ctx context.Context, event interface{}) (events.APIGatewayV2HTTPResponse, error) {
+func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage) (events.APIGatewayV2HTTPResponse, error) {
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
 	// Log raw event
-	eventJSON, _ := json.Marshal(event)
-	slog.Info("Received event", "event", string(eventJSON))
+	slog.Info("Received event", "event", string(event))
 
 	// Parse event as JSON map
 	var eventMap map[string]interface{}
-	if err := json.Unmarshal(eventJSON, &eventMap); err != nil {
+	if err := json.Unmarshal(event, &eventMap); err != nil {
 		slog.Error("Failed to parse event as JSON", "error", err)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
@@ -366,43 +365,80 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event interface{}) (e
 		}, nil
 	}
 
-	// Handle Lambda Function URL event (HTTP)
-	rawPath, _ := eventMap["rawPath"].(string)
-	requestContext, _ := eventMap["requestContext"].(map[string]interface{})
-	http, _ := requestContext["http"].(map[string]interface{})
-	method, _ := http["method"].(string)
-	body, _ := eventMap["body"].(string)
+	// Handle API Gateway V2 HTTP event
+	if rawPath, ok := eventMap["rawPath"].(string); ok {
+		requestContext, ok := eventMap["requestContext"].(map[string]interface{})
+		if !ok {
+			slog.Error("Missing requestContext in event")
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Body:       `{"error": "invalid event format"}`,
+			}, nil
+		}
+		httpInfo, ok := requestContext["http"].(map[string]interface{})
+		if !ok {
+			slog.Error("Missing http info in requestContext")
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Body:       `{"error": "invalid event format"}`,
+			}, nil
+		}
+		method, ok := httpInfo["method"].(string)
+		if !ok {
+			slog.Error("Missing method in http info")
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Body:       `{"error": "invalid event format"}`,
+			}, nil
+		}
+		body, _ := eventMap["body"].(string)
 
-	slog.Info("Parsed as HTTP event", "rawPath", rawPath, "method", method, "body", body)
+		slog.Info("Parsed as HTTP event", "rawPath", rawPath, "method", method, "body", body)
 
-	if rawPath != "" && method == "POST" && strings.HasSuffix(rawPath, "/subscriptions") {
-		if body == "" {
-			slog.Error("Invalid request: missing body")
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 400,
-				Body:       `{"error": "missing request body"}`,
-			}, nil
+		if method == "POST" && strings.HasSuffix(rawPath, "/subscriptions") {
+			if body == "" {
+				slog.Error("Invalid request: missing body")
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 400,
+					Body:       `{"error": "missing request body"}`,
+				}, nil
+			}
+			var subReq SubscriptionRequest
+			if err := json.Unmarshal([]byte(body), &subReq); err != nil {
+				slog.Error("Failed to parse request body", "body", body, "error", err)
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 400,
+					Body:       `{"error": "invalid request body"}`,
+				}, nil
+			}
+			if subReq.Action == "" || subReq.Location == "" || subReq.NtfyTopic == "" {
+				slog.Error("Invalid subscription request: missing required fields")
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 400,
+					Body:       `{"error": "missing required fields"}`,
+				}, nil
+			}
+			slog.Info("Calling handleSubscription", "action", subReq.Action, "location", subReq.Location)
+			resp, err := h.handleSubscription(ctx, coll, subReq)
+			if err != nil {
+				return resp, err
+			}
+			// Ensure response body is JSON string
+			if resp.Body != "" {
+				var bodyMap interface{}
+				if json.Unmarshal([]byte(resp.Body), &bodyMap) == nil {
+					b, err := json.Marshal(bodyMap)
+					if err != nil {
+						slog.Error("Failed to marshal response body", "body", body, "error", err)
+					}
+					resp.Body = string(b)
+				}
+			}
+			return resp, nil
 		}
-		var subReq SubscriptionRequest
-		if err := json.Unmarshal([]byte(body), &subReq); err != nil {
-			slog.Error("Failed to parse request body", "body", body, "error", err)
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 400,
-				Body:       `{"error": "invalid request body"}`,
-			}, nil
-		}
-		if subReq.Action == "" || subReq.Location == "" || subReq.NtfyTopic == "" {
-			slog.Error("Invalid subscription request: missing required fields")
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 400,
-				Body:       `{"error": "missing required fields"}`,
-			}, nil
-		}
-		slog.Info("Calling handleSubscription", "action", subReq.Action, "location", subReq.Location)
-		return h.handleSubscription(ctx, coll, subReq)
 	}
 
-	slog.Error("Unsupported event type", "event", string(eventJSON))
+	slog.Error("Unsupported event type", "event", string(event))
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 400,
 		Body:       `{"error": "unsupported event type"}`,
