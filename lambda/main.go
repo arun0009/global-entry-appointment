@@ -21,6 +21,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+var corsHeaders = map[string]string{
+	"Access-Control-Allow-Origin":      "https://arun0009.github.io",
+	"Access-Control-Allow-Methods":     "GET, POST, OPTIONS",
+	"Access-Control-Allow-Headers":     "Content-Type",
+	"Access-Control-Allow-Credentials": "true",
+}
+
 type (
 	// Config holds environment variables
 	Config struct {
@@ -231,6 +238,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 	if req.Location == "" || req.NtfyTopic == "" {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
+			Headers:    corsHeaders,
 			Body:       `{"error": "location and ntfyTopic are required"}`,
 		}, nil
 	}
@@ -245,6 +253,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		if count > 0 {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
+				Headers:    corsHeaders,
 				Body:       `{"error": "subscription already exists"}`,
 			}, nil
 		}
@@ -261,6 +270,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		slog.Info("Added subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 200,
+			Headers:    corsHeaders,
 			Body:       `{"message": "Subscribed successfully"}`,
 		}, nil
 
@@ -272,18 +282,21 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		if result.DeletedCount == 0 {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 404,
+				Headers:    corsHeaders,
 				Body:       `{"error": "subscription not found"}`,
 			}, nil
 		}
 		slog.Info("Removed subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 200,
+			Headers:    corsHeaders,
 			Body:       `{"message": "Unsubscribed successfully"}`,
 		}, nil
 
 	default:
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
+			Headers:    corsHeaders,
 			Body:       `{"error": "invalid action, use subscribe or unsubscribe"}`,
 		}, nil
 	}
@@ -302,8 +315,20 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		slog.Error("Failed to parse event as JSON", "error", err)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
+			Headers:    corsHeaders,
 			Body:       `{"error": "invalid event format"}`,
 		}, nil
+	}
+
+	//handle front end OPTIONS request
+	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
+		if method, ok := req["http"].(map[string]interface{})["method"].(string); ok && method == "OPTIONS" {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    corsHeaders,
+				Body:       "",
+			}, nil
+		}
 	}
 
 	// Check for CloudWatch Event
@@ -372,6 +397,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing requestContext in event")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
+				Headers:    corsHeaders,
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -380,6 +406,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing http info in requestContext")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
+				Headers:    corsHeaders,
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -388,6 +415,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing method in http info")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
+				Headers:    corsHeaders,
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -400,6 +428,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Invalid request: missing body")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
+					Headers:    corsHeaders,
 					Body:       `{"error": "missing request body"}`,
 				}, nil
 			}
@@ -408,6 +437,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to parse request body", "body", body, "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
+					Headers:    corsHeaders,
 					Body:       `{"error": "invalid request body"}`,
 				}, nil
 			}
@@ -415,6 +445,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Invalid subscription request: missing required fields")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
+					Headers:    corsHeaders,
 					Body:       `{"error": "missing required fields"}`,
 				}, nil
 			}
@@ -441,6 +472,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 	slog.Error("Unsupported event type", "event", string(event))
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 400,
+		Headers:    corsHeaders,
 		Body:       `{"error": "unsupported event type"}`,
 	}, nil
 }

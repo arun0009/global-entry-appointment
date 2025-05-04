@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Global Entry Alerts</title>
+    <title>Global Entry Appointment</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center px-4">
 <div class="max-w-xl w-full bg-white p-8 rounded-xl shadow-md">
-    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Global Entry Alerts</h1>
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Global Entry Appointment</h1>
 
     <form id="alert-form" class="space-y-5">
         <div>
@@ -28,11 +28,11 @@
             <span class="block font-semibold mb-1">Action</span>
             <div class="flex gap-6">
                 <label class="inline-flex items-center">
-                    <input type="radio" name="action" value="subscribe" checked class="mr-2">
+                    <input type="radio" id="subscribe" name="action" value="subscribe" checked class="mr-2">
                     Subscribe
                 </label>
                 <label class="inline-flex items-center">
-                    <input type="radio" name="action" value="unsubscribe" class="mr-2">
+                    <input type="radio" id="unsubscribe" name="action" value="unsubscribe" class="mr-2">
                     Unsubscribe
                 </label>
             </div>
@@ -45,6 +45,28 @@
 
         <p id="status" class="text-center font-semibold mt-2 text-sm"></p>
     </form>
+
+    <div class="mt-8 p-4 border border-gray-300 rounded-lg bg-gray-50">
+        <h2 class="text-lg font-semibold mb-2">📱 How to Get Push Notifications</h2>
+        <p class="mb-2">
+            This app uses <a href="https://ntfy.sh" target="_blank" class="text-blue-600 underline">ntfy.sh</a> for push notifications.
+            To receive alerts:
+        </p>
+        <ul class="list-disc list-inside mb-2">
+            <li><a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" class="text-blue-600 underline">Download ntfy for iOS</a></li>
+            <li><a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" class="text-blue-600 underline">Download ntfy for Android</a></li>
+        </ul>
+        <p class="mb-2">
+            After installing, open the app and create a topic name (e.g. <code>my-global-entry-alerts</code>).
+            Enter that topic above to subscribe for appointment alerts.
+        </p>
+        <p>
+            You can test your topic at:
+            <a href="https://ntfy.sh/my-global-entry-alerts" target="_blank" class="text-blue-600 underline">
+                https://ntfy.sh/my-global-entry-alerts
+            </a>
+        </p>
+    </div>
 </div>
 
 <script>
@@ -53,7 +75,6 @@
             const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
             const locations = await res.json();
 
-            // Sort alphabetically by name
             locations.sort((a, b) => a.name.localeCompare(b.name));
 
             const select = document.getElementById("location");
@@ -99,6 +120,14 @@
             document.getElementById("status").textContent = text || "Request successful!";
         } catch {
             document.getElementById("status").textContent = "Error submitting request.";
+        }
+    });
+
+    // Handle auto-check unsubscribe radio if query param is present
+    window.addEventListener("DOMContentLoaded", () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("subscriptions") === "unsubscribe") {
+            document.getElementById("unsubscribe").checked = true;
         }
     });
 
