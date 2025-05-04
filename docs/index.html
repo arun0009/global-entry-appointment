@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Global Entry Alerts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center px-4">
+<div class="max-w-xl w-full bg-white p-8 rounded-xl shadow-md">
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Global Entry Alerts</h1>
+
+    <form id="alert-form" class="space-y-5">
+        <div>
+            <label for="location" class="block font-semibold mb-1">Enrollment Center</label>
+            <select id="location" required class="w-full p-2 border border-gray-300 rounded">
+                <option value="">Loading locations...</option>
+            </select>
+        </div>
+
+        <div>
+            <label for="topic" class="block font-semibold mb-1">Ntfy Topic</label>
+            <input type="text" id="topic" placeholder="e.g. my-topic-123" required
+                   class="w-full p-2 border border-gray-300 rounded" />
+        </div>
+
+        <div>
+            <span class="block font-semibold mb-1">Action</span>
+            <div class="flex gap-6">
+                <label class="inline-flex items-center">
+                    <input type="radio" name="action" value="subscribe" checked class="mr-2">
+                    Subscribe
+                </label>
+                <label class="inline-flex items-center">
+                    <input type="radio" name="action" value="unsubscribe" class="mr-2">
+                    Unsubscribe
+                </label>
+            </div>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+            Submit
+        </button>
+
+        <p id="status" class="text-center font-semibold mt-2 text-sm"></p>
+    </form>
+</div>
+
+<script>
+    async function fetchLocations() {
+        try {
+            const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
+            const locations = await res.json();
+
+            // Sort alphabetically by name
+            locations.sort((a, b) => a.name.localeCompare(b.name));
+
+            const select = document.getElementById("location");
+            select.innerHTML = '<option value="">-- Select a location --</option>';
+
+            locations.forEach(loc => {
+                const labelParts = [
+                    loc.name,
+                    loc.addressAdditional || loc.address,
+                    `${loc.city} ${loc.state} ${loc.postalCode}`
+                ];
+                const text = labelParts.filter(Boolean).join(" – ");
+                const option = new Option(text, loc.id);
+                select.add(option);
+            });
+        } catch {
+            document.getElementById("location").innerHTML = '<option>Error loading locations</option>';
+        }
+    }
+
+    document.getElementById("alert-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const location = document.getElementById("location").value;
+        const topic = document.getElementById("topic").value.trim();
+        const action = document.querySelector('input[name="action"]:checked').value;
+
+        if (!location || !topic) {
+            document.getElementById("status").textContent = "Please fill out all fields.";
+            return;
+        }
+
+        const payload = { action, location, ntfyTopic: topic };
+        const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const text = await res.text();
+            document.getElementById("status").textContent = text || "Request successful!";
+        } catch {
+            document.getElementById("status").textContent = "Error submitting request.";
+        }
+    });
+
+    fetchLocations();
+</script>
+</body>
+</html>
