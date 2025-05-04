@@ -21,3 +21,7 @@ bootstrap
 bootstrap.zip
 
 .DS_Store
+
+.idea
+*.iml
+env.json

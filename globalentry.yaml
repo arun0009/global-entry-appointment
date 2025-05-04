@@ -9,11 +9,7 @@ Globals:
     Timeout: 60
     Environment:
       Variables:
-        TWILIO_ACCOUNT_SID:
-        TWILIO_AUTH_TOKEN:
-        LOCATIONID:
-        TWILIOFROM:
-        TWILIOTO:     
+        MONGODB_PASSWORD:
 
 Resources:
   ImageGatewayApi:
@@ -34,4 +30,9 @@ Resources:
           Type: Api
           Properties:
             Path: /
-            Method: GET                   
+            Method: GET
+        SubscribeEndpoint:
+          Type: Api
+          Properties:
+            Path: /subscriptions
+            Method: POST

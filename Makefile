@@ -1,8 +1,9 @@
 BUILD_TO_DIR := .bin
 GO_LINUX := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 
-export AWS_ACCOUNT=808475159191
-export AWS_REGION=us-west-1
+export AWS_ACCOUNT=889453232531
+export AWS_REGION=us-east-1
+export JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1
 
 clean:
 	rm -rf .aws-sam

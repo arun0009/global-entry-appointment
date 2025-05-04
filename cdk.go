@@ -96,12 +96,21 @@ func NewLambdaCdkStack(scope constructs.Construct, id string, props *LambdaCdkSt
 	// Add Lambda function as a target for the rule
 	rule.AddTarget(awseventstargets.NewLambdaFunction(globalEntryFn, &awseventstargets.LambdaFunctionProps{}))
 
+	// Add a public Lambda Function URL
+	functionUrl := globalEntryFn.AddFunctionUrl(&awslambda.FunctionUrlOptions{
+		AuthType: awslambda.FunctionUrlAuthType_NONE,
+	})
+
+	// Output the public function URL
+	awscdk.NewCfnOutput(stack, jsii.String("LambdaFunctionURL"), &awscdk.CfnOutputProps{
+		Value: functionUrl.Url(),
+	})
+
 	return stack
 }
 
 func main() {
 	app := awscdk.NewApp(nil)
-	LoadEnvironmentVariables("env.json")
 
 	NewLambdaCdkStack(app, StackName, &LambdaCdkStackProps{
 		awscdk.StackProps{

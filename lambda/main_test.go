@@ -1,75 +1,371 @@
-// main_test.go
 package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/assert"
-	api "github.com/twilio/twilio-go/rest/api/v2010"
+	"github.com/testcontainers/testcontainers-go/modules/mongodb"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// MockTwilioClient is a mock implementation of the Twilio client interface.
-type MockTwilioClient struct {
-	// createMessageFunc holds a function that simulates the CreateMessage behavior.
-	createMessageFuncMock func(params *api.CreateMessageParams) (*api.ApiV2010Message, error)
+// setupTestHandler creates a LambdaHandler and MongoDB container for testing
+func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) {
+	t.Helper()
 
-	// Store parameters passed to CreateMessage for assertion
-	receivedCreateMessageParams *api.CreateMessageParams
-}
+	// Disable logging
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-func (m *MockTwilioClient) CreateMessage(params *api.CreateMessageParams) (*api.ApiV2010Message, error) {
-	// Store parameters for assertion
-	m.receivedCreateMessageParams = params
-
-	// Call the mock function to simulate behavior.
-	return m.createMessageFuncMock(params)
-}
-
-func TestHandler(t *testing.T) {
-
-	t.Setenv("AWS_ACCOUNT_ID", "808475159191")
-	t.Setenv("TWILIO_ACCOUNT_SID", "accountSid")
-	t.Setenv("TWILIO_AUTH_TOKEN", "authToken")
-	t.Setenv("LOCATIONID", "5002")
-	t.Setenv("TWILIOFROM", "+18176152689")
-	t.Setenv("TWILIOTO", "+14182005000")
-
-	// Mocking HTTP server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery), "/schedulerapi/slots?orderBy=soonest&limit=1&locationId=5002&minimum=1")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`[{"locationId":5002,"startTimestamp":"2024-04-01 02:00:00","endTimestamp":"2024-04-01 02:30:00","active":true,"duration":30,"remoteInd":false}]`))
-	}))
-	defer server.Close()
-
-	url := server.URL + "/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
-
-	var config Config
-	err := envconfig.Process("", &config)
+	// Start MongoDB container
+	ctx := context.Background()
+	mongodbContainer, err := mongodb.Run(ctx, "mongo:7")
 	if err != nil {
-		panic(err)
+		t.Fatalf("failed to start MongoDB container: %v", err)
 	}
 
-	// Mock Twilio client
-	mockTwilioClient := &MockTwilioClient{createMessageFuncMock: func(params *api.CreateMessageParams) (*api.ApiV2010Message, error) {
-		return &api.ApiV2010Message{}, nil
-	},
+	// Get connection string
+	connString, err := mongodbContainer.ConnectionString(ctx)
+	if err != nil {
+		t.Fatalf("failed to get MongoDB connection string: %v", err)
 	}
 
-	handler := &LambdaHandler{url, config, mockTwilioClient}
-	resp, err := handler.HandleRequest(context.Background(), events.APIGatewayProxyRequest{})
+	// Create MongoDB client
+	client, err := mongo.Connect(options.Client().ApplyURI(connString).SetConnectTimeout(10 * time.Second))
+	if err != nil {
+		t.Fatalf("failed to connect to MongoDB: %v", err)
+	}
+
+	// Create collection
+	coll := client.Database("global-entry-appointment-db").Collection("subscriptions")
+
+	// Configure handler
+	config := Config{
+		MongoDBPassword: "test",
+		NtfyServer:      "http://localhost", // Will be overridden by httptest
+	}
+	url := "http://localhost/%s" // Will be overridden by httptest
+	handler := NewLambdaHandler(config, url, client)
+
+	// Cleanup function
+	cleanup := func() {
+		client.Disconnect(ctx)
+		mongodbContainer.Terminate(ctx)
+	}
+
+	return handler, coll, cleanup
+}
+
+func TestHandleRequest_CloudWatchEvent(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test data
+	_, err := coll.InsertMany(ctx, []interface{}{
+		bson.M{"location": "JFK", "ntfyTopic": "user1-jfk", "createdAt": time.Now().UTC()},
+		bson.M{"location": "JFK", "ntfyTopic": "user2-jfk", "createdAt": time.Now().UTC()},
+	})
 	assert.NoError(t, err)
-	assert.Equal(t, resp.Body, `Success!`)
-	// Assert the message parameters passed to Twilio
-	assert.NotNil(t, mockTwilioClient.receivedCreateMessageParams)
-	assert.Equal(t, "There is a global entry appointment open at 5002", *mockTwilioClient.receivedCreateMessageParams.Body)
-	assert.Equal(t, "+18176152689", *mockTwilioClient.receivedCreateMessageParams.From)
-	assert.Equal(t, "+14182005000", *mockTwilioClient.receivedCreateMessageParams.To)
 
+	// Mock HTTP server for Global Entry API
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Appointment{
+			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+		})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
+		assert.Contains(t, payload["message"], "Appointment available at JFK")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Create CloudWatch event
+	event := events.CloudWatchEvent{Source: "aws.events"}
+	eventJSON, _ := json.Marshal(event)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+	assert.Nil(t, resp)
+
+	// Verify ntfy calls
+	assert.Equal(t, 2, ntfyCalls, "Expected two ntfy notifications")
+}
+
+func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Create API Gateway request
+	req := SubscriptionRequest{Action: "subscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
+	body, _ := json.Marshal(req)
+	apiReq := events.APIGatewayProxyRequest{
+		HTTPMethod: "POST",
+		Body:       string(body),
+	}
+	eventJSON, _ := json.Marshal(apiReq)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+
+	// Verify response
+	apiResp, ok := resp.(events.APIGatewayProxyResponse)
+	assert.True(t, ok)
+	assert.Equal(t, 200, apiResp.StatusCode)
+	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, apiResp.Body)
+
+	// Verify subscription in database
+	count, err := coll.CountDocuments(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+}
+
+func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription
+	_, err := coll.InsertOne(ctx, bson.M{
+		"location":  "JFK",
+		"ntfyTopic": "user1-jfk",
+		"createdAt": time.Now().UTC(),
+	})
+	assert.NoError(t, err)
+
+	// Create API Gateway request
+	req := SubscriptionRequest{Action: "unsubscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
+	body, _ := json.Marshal(req)
+	apiReq := events.APIGatewayProxyRequest{
+		HTTPMethod: "POST",
+		Body:       string(body),
+	}
+	eventJSON, _ := json.Marshal(apiReq)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+
+	// Verify response
+	apiResp, ok := resp.(events.APIGatewayProxyResponse)
+	assert.True(t, ok)
+	assert.Equal(t, 200, apiResp.StatusCode)
+	assert.JSONEq(t, `{"message": "Unsubscribed successfully"}`, apiResp.Body)
+
+	// Verify subscription removed
+	count, err := coll.CountDocuments(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+}
+
+func TestHandleRequest_InvalidEvent(t *testing.T) {
+	handler, _, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Invalid event
+	eventJSON := []byte(`{}`)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+
+	// Verify response
+	apiResp, ok := resp.(events.APIGatewayProxyResponse)
+	assert.True(t, ok)
+	assert.Equal(t, 400, apiResp.StatusCode)
+	assert.JSONEq(t, `{"error": "unsupported event type"}`, apiResp.Body)
+}
+
+func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
+	handler, _, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Mock Global Entry API
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Appointment{
+			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+		})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "user1-jfk", payload["topic"])
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, ntfyCalls)
+}
+
+func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
+	handler, _, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Mock Global Entry API
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Appointment{})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, ntfyCalls)
+}
+
+func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
+	handler, _, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Mock Global Entry API (failing)
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Server Error", http.StatusInternalServerError)
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "API returned status 500")
+}
+
+func TestHandleExpiringSubscriptions(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription (30 days old)
+	expireTime := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":       "123",
+		"location":  "JFK",
+		"ntfyTopic": "user1-jfk",
+		"createdAt": expireTime,
+	})
+	assert.NoError(t, err)
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "user1-jfk", payload["topic"])
+		assert.Equal(t, "Global Entry Subscription Expired", payload["title"])
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err = handler.handleExpiringSubscriptions(ctx, coll)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, ntfyCalls)
+
+	// Verify subscription removed
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": "123"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+}
+
+func TestHandleSubscription_InvalidInput(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Test missing location
+	req := SubscriptionRequest{Action: "subscribe", NtfyTopic: "user1-jfk"}
+	resp, err := handler.handleSubscription(ctx, coll, req)
+	assert.NoError(t, err)
+	assert.Equal(t, 400, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "location and ntfyTopic are required"}`, resp.Body)
+}
+
+func TestHandleSubscription_Duplicate(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert existing subscription
+	_, err := coll.InsertOne(ctx, bson.M{
+		"location":  "JFK",
+		"ntfyTopic": "user1-jfk",
+		"createdAt": time.Now().UTC(),
+	})
+	assert.NoError(t, err)
+
+	// Test duplicate subscription
+	req := SubscriptionRequest{Action: "subscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
+	resp, err := handler.handleSubscription(ctx, coll, req)
+	assert.NoError(t, err)
+	assert.Equal(t, 400, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "subscription already exists"}`, resp.Body)
+}
+
+func TestHandleSubscription_UnsubscribeNotFound(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Test unsubscribe not found
+	req := SubscriptionRequest{Action: "unsubscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
+	resp, err := handler.handleSubscription(ctx, coll, req)
+	assert.NoError(t, err)
+	assert.Equal(t, 404, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "subscription not found"}`, resp.Body)
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
 }

@@ -1,13 +1,36 @@
 # Global Entry Appointment Scanner
-This Repo runs a AWS Lambda that scans for [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appoinment (every 1 min, change in `cdk.go` if you want a different schedule). 
+This Repo runs AWS Lambda that scans for [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appointment every minute.
 
-Alerts are sent as SMS via [Twilio API](https://www.twilio.com/docs/sms/quickstart/go)
+Alerts are sent as push notifications via [Ntfy](https://ntfy.sh/), download `nfty` app on App Store or Play Store and create a topic.
 
-### Prerequisites
+NOTE: You will only get notifications for 30 days (if there is an appointment available) after which you will be unsubscribed automatically.
+
+<a href="https://www.buymeacoffee.com/arun0009" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
+## Subscribe
+
+Note: Update location where you want to find an appointment(look for your location ID from table below) and update your ntfy topic accordingly.
+
+```bash
+curl -X POST https://2lwuzcwupmpw7473cen4v47tzi0jchec.lambda-url.us-east-1.on.aws/subscriptions \
+-H "Content-Type: application/json" \
+-d '{"action":"subscribe","location":"5446","ntfyTopic":"your-ntfy-topic-here"}'
+```
+
+## Unsubscribe
+
+If you want to unsubscribe manually, use below cURL but update your location and topic accordingly.
+
+```bash
+curl -X POST https://2lwuzcwupmpw7473cen4v47tzi0jchec.lambda-url.us-east-1.on.aws/subscriptions \
+-H "Content-Type: application/json" \
+-d '{"action":"unsubscribe","location":"5446","ntfyTopic":"your-ntfy-topic-here"}'
+```
+
+### Prerequisites (For Development ONLY)
 
 1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-2. [Free Twilio Account](https://www.twilio.com/try-twilio)
-3. Install aws-cdk `npm install -g aws-cdk`
+2. Install aws-cdk `npm install -g aws-cdk`
 
 ### Configure [AWS CLI](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-envvars.html) in terminal 
 
@@ -19,16 +42,12 @@ export AWS_DEFAULT_REGION=YOUR_AWS_REGION
 
 ### ENV
 
-Set below environment variables in `env.json`, pick a location Id where you need appointment from below table, and Twilio Phone Number formats are "+19252005000".
+Set below environment variables in `env.json` (mongodb password)
  
  ```json
 {
     "Parameters" : {
-        "TWILIO_ACCOUNT_SID": "<TWILIO_ACCOUNT_SID>",
-        "TWILIO_AUTH_TOKEN": "<TWILIO_AUTH_TOKEN>",
-        "LOCATIONID": "<LOCATIONID>",
-        "TWILIOFROM": "<TWILIOFROM>",
-        "TWILIOTO": "<TWILIOTO>"
+        "MONGODB_PASSWORD": "<MONGODB_PASSWORD>"
     }
 }
 ```
@@ -51,7 +70,7 @@ make deploy
 make destroy
 ```
 
-###### Pick your LOCATIONID from below to use as environment variable (above)
+###### Pick your LOCATION ID from below to use in cURL subscription above
 
 | ID   | Enrollment Center Name                                    |
 |------|--------------------------------------------------------|
