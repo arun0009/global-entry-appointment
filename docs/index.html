@@ -13,9 +13,17 @@
     <form id="alert-form" class="space-y-5">
         <div>
             <label for="location" class="block font-semibold mb-1">Enrollment Center</label>
-            <select id="location" required class="w-full p-2 border border-gray-300 rounded">
-                <option value="">Loading locations...</option>
-            </select>
+            <!-- Custom Dropdown -->
+            <div class="relative">
+                <button id="dropdownButton" class="w-full p-2 border border-gray-300 rounded bg-white text-left">
+                    <span id="dropdownText">-- Select a location --</span>
+                    <span class="absolute right-3 top-3 text-gray-500">&#9662;</span>
+                </button>
+                <div id="dropdownMenu" class="absolute left-0 right-0 mt-1 hidden bg-white border border-gray-300 rounded shadow-lg z-10">
+                    <!-- Dropdown options will be dynamically populated -->
+                </div>
+            </div>
+            <input type="hidden" id="location" name="location" required /> <!-- Hidden input to store the selected location id -->
         </div>
 
         <div>
@@ -56,8 +64,8 @@
             // Sort alphabetically by name
             locations.sort((a, b) => a.name.localeCompare(b.name));
 
-            const select = document.getElementById("location");
-            select.innerHTML = '<option value="">-- Select a location --</option>';
+            const dropdownMenu = document.getElementById("dropdownMenu");
+            dropdownMenu.innerHTML = ''; // Clear any existing options
 
             locations.forEach(loc => {
                 const labelParts = [
@@ -66,13 +74,29 @@
                     `${loc.city} ${loc.state} ${loc.postalCode}`
                 ];
                 const text = labelParts.filter(Boolean).join(" – ");
-                const option = new Option(text, loc.id);
-                select.add(option);
+
+                const option = document.createElement("button");
+                option.type = "button";
+                option.textContent = text;
+                option.className = "w-full text-left p-2 hover:bg-gray-100 focus:outline-none";
+                option.onclick = () => selectLocation(loc.id, text);
+                dropdownMenu.appendChild(option);
             });
         } catch {
-            document.getElementById("location").innerHTML = '<option>Error loading locations</option>';
+            document.getElementById("dropdownMenu").innerHTML = '<div class="p-2">Error loading locations</div>';
         }
     }
+
+    function selectLocation(id, text) {
+        document.getElementById("dropdownText").textContent = text;
+        document.getElementById("dropdownMenu").classList.add("hidden");
+        document.getElementById("location").value = id; // Set the hidden input value to the location id
+    }
+
+    document.getElementById("dropdownButton").addEventListener("click", () => {
+        const dropdownMenu = document.getElementById("dropdownMenu");
+        dropdownMenu.classList.toggle("hidden");
+    });
 
     document.getElementById("alert-form").addEventListener("submit", async (e) => {
         e.preventDefault();
