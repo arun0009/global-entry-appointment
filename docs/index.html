@@ -9,6 +9,8 @@
     <meta property="og:description" content="Free push alerts via ntfy.sh when Global Entry slots open up." />
     <meta property="og:url" content="https://arun0009.github.io/global-entry-appointment" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://arun0009.github.io/global-entry-appointment/preview.png" />
+    <meta property="og:image" content="https://arun0009.github.io/global-entry-appointment/preview.png" />
     <meta name="theme-color" content="#2563eb" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" type="image/png" href="favicon.png">
@@ -24,7 +26,11 @@
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center px-4">
 <div class="max-w-xl w-full bg-white p-8 rounded-xl shadow-md">
-    <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">Global Entry Appointment</h1>
+    <h1 class="text-3xl font-bold text-center text-blue-600 mb-3">Global Entry Appointment</h1>
+
+    <p class="text-center text-sm text-gray-700 mb-6">
+        We continuously check for open Global Entry appointments and send you free push notifications via the ntfy app when one becomes available.
+    </p>
 
     <form id="alert-form" class="space-y-5">
         <div>
@@ -72,10 +78,18 @@
             <li><a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" class="text-blue-600 underline">Download ntfy for iOS</a></li>
             <li><a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" class="text-blue-600 underline">Download ntfy for Android</a></li>
         </ul>
-        <p class="mb-2">
+        <p class="mb-4">
             After installing, open the app and create a topic name (e.g. <code>my-global-entry-alerts</code>).
             Enter that topic above to subscribe for appointment alerts.
         </p>
+
+        <div class="flex justify-center">
+            <a href="https://www.buymeacoffee.com/arun0009" target="_blank">
+                <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png"
+                     alt="Buy Me A Coffee"
+                     style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" />
+            </a>
+        </div>
     </div>
 </div>
 

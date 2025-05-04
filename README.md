@@ -1,7 +1,7 @@
 <h1 align="center">Global Entry Appointment Scanner</h1>
 
 <p align="center">
-   <img src="./global_entry.png" alt="Global Entry"/><img src="./global_entry.png" alt="Global Entry"/><img src="./global_entry.png" alt="Global Entry"/>
+   <img src="./docs/favicon.png" alt="Global Entry"/><img src="./docs/favicon.png" alt="Global Entry"/><img src="./docs/favicon.png" alt="Global Entry"/>
 </p>
 
 **🚀 Instantly Get Notified When Global Entry Appointments Open Near You!**
