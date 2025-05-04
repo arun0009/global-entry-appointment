@@ -53,10 +53,11 @@ If this tool saved you hours of frustration, consider buying me a coffee to supp
 
 ### 👨‍💻 Developers: Want to Contribute or Run It Yourself?
 
-Prerequisites
-[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)    
-[AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html):  
-`npm install -g aws-cdk`
+Prerequisites:  
+1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)    
+2. [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html):  
+3. `npm install -g aws-cdk`
+4. [Docker](https://www.docker.com/get-started/)
 
 #### Set AWS Credentials
 
