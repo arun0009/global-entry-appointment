@@ -48,7 +48,10 @@
 
         <div>
             <label for="topic" class="block font-semibold mb-1">Ntfy Topic</label>
-            <input type="text" id="topic" placeholder="e.g. my-topic-123" required
+            <input type="text" id="topic" name="topic"
+                   placeholder="e.g. my-topic-123 (no spaces, no special chars)"
+                   required
+                   pattern="^[a-zA-Z0-9_-]+$"
                    class="w-full p-2 border border-gray-300 rounded" />
         </div>
 
