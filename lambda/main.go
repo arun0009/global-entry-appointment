@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,8 @@ var corsHeaders = map[string]string{
 	"Access-Control-Allow-Headers":     "Content-Type",
 	"Access-Control-Allow-Credentials": "true",
 }
+
+var validNtfyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type (
 	// Config holds environment variables
@@ -240,6 +243,14 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 			StatusCode: 400,
 			Headers:    corsHeaders,
 			Body:       `{"error": "location and ntfyTopic are required"}`,
+		}, nil
+	}
+
+	if !validNtfyPattern.MatchString(req.NtfyTopic) {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "Ntfy Topic must not contain spaces or special characters"}`,
 		}, nil
 	}
 
