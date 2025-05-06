@@ -306,9 +306,6 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage) (events.APIGatewayV2HTTPResponse, error) {
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
-	// Log raw event
-	slog.Info("Received event", "event", string(event))
-
 	// Parse event as JSON map
 	var eventMap map[string]interface{}
 	if err := json.Unmarshal(event, &eventMap); err != nil {
@@ -333,7 +330,6 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 	// Check for CloudWatch Event
 	if source, ok := eventMap["source"].(string); ok && source == "aws.events" {
-		slog.Info("Parsed as CloudWatch event", "source", source)
 		if err := h.handleExpiringSubscriptions(ctx, coll); err != nil {
 			slog.Error("Failed to handle expiring subscriptions", "error", err)
 			return events.APIGatewayV2HTTPResponse{
@@ -420,8 +416,6 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}, nil
 		}
 		body, _ := eventMap["body"].(string)
-
-		slog.Info("Parsed as HTTP event", "rawPath", rawPath, "method", method, "body", body)
 
 		if method == "POST" && strings.HasSuffix(rawPath, "/subscriptions") {
 			if body == "" {
