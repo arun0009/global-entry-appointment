@@ -23,7 +23,7 @@ Every minute, an AWS Lambda function checks for open [Global Entry](https://www.
 ✅ No login required  
 ✅ No account creation  
 ✅ No phone number required  
-✅ No spam — auto-unsubscribes after 7 days (1 week) unless you resubscribe
+✅ No spam — auto-unsubscribes after 30 days
 
 ---
 
@@ -37,11 +37,11 @@ Every minute, an AWS Lambda function checks for open [Global Entry](https://www.
 
 [Global Entry Appointment Subscribe](https://arun0009.github.io/global-entry-appointment/)
 
-✅ That’s it! You’ll now receive alerts when appointments become available for the next 7 days.
+✅ That’s it! You’ll now receive alerts when appointments become available for the next 30 days.
 
 ### ❌ Unsubscribe Anytime
 
-To unsubscribe before the 7 days are up:
+To unsubscribe before the 30 days are up:
 
 [Global Entry Appointment Unsubscribe](https://arun0009.github.io/global-entry-appointment/?subscriptions=unsubscribe)
 

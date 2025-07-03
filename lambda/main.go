@@ -165,11 +165,11 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 	return nil
 }
 
-// handleExpiringSubscriptions deletes subscriptions exactly 7 days old and notifies
+// handleExpiringSubscriptions deletes subscriptions exactly 30 days old and notifies
 func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *mongo.Collection) error {
 	now := time.Now().UTC()
-	// Calculate the 5-minute window for subscriptions exactly 7 days old
-	ttlThreshold := now.Add(-7 * 24 * time.Hour)          // 7 days ago
+	// Calculate the 5-minute window for subscriptions exactly 30 days old
+	ttlThreshold := now.Add(-30 * 24 * time.Hour)         // 30 days ago
 	expireStart := ttlThreshold.Truncate(5 * time.Minute) // Start of the 5-minute block
 	expireEnd := expireStart.Add(5 * time.Minute)         // End of the 5-minute block
 
@@ -504,7 +504,7 @@ func main() {
 	coll := client.Database("global-entry-appointment-db").Collection("subscriptions")
 	ttlIndex := mongo.IndexModel{
 		Keys:    bson.D{{Key: "createdAt", Value: 1}},
-		Options: options.Index().SetExpireAfterSeconds(7 * 24 * 60 * 60), // 7 days
+		Options: options.Index().SetExpireAfterSeconds(30 * 24 * 60 * 60), // 30 days
 	}
 
 	if _, err := coll.Indexes().CreateOne(ctx, ttlIndex); err != nil {
