@@ -19,6 +19,8 @@
 
     <meta name="theme-color" content="#2563eb" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.google.com/recaptcha/api.js?render=6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"></script>
+
     <link rel="icon" type="image/png" href="favicon.png">
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3BRX32YSZJ"></script>
@@ -29,6 +31,13 @@
 
         gtag('config', 'G-3BRX32YSZJ');
     </script>
+    <script>
+        function onSubmit(token) {
+            // Store the token in a hidden input or directly proceed with form submission
+            document.getElementById("recaptcha_token").value = token;
+            submitForm();
+        }
+    </script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex items-center justify-center px-4">
 <div class="max-w-xl w-full bg-white p-8 rounded-xl shadow-md">
@@ -37,6 +46,10 @@
     <p class="text-center text-sm text-gray-700 mb-6">
         We continuously check for open Global Entry appointments and send you free push notifications via the ntfy app when one becomes available.
     </p>
+
+    <div class="flex justify-center mb-6">
+        <a href="https://www.buymeacoffee.com/arun0009"><img src="https://img.buymeacoffee.com/button-api/?text=Support this project&emoji=&slug=arun0009&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
+    </div>
 
     <form id="alert-form" class="space-y-5">
         <div>
@@ -60,7 +73,7 @@
             <div class="flex gap-6">
                 <label class="inline-flex items-center">
                     <input type="radio" id="subscribe" name="action" value="subscribe" checked class="mr-2">
-                    Subscribe
+                    Subscribe(7 days)
                 </label>
                 <label class="inline-flex items-center">
                     <input type="radio" id="unsubscribe" name="action" value="unsubscribe" class="mr-2">
@@ -69,8 +82,12 @@
             </div>
         </div>
 
-        <button type="submit"
-                class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+        <input type="hidden" id="recaptcha_token" name="recaptcha_token" />
+        <button type="button"
+                class="g-recaptcha w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+                data-sitekey="6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"
+                data-callback="onSubmit"
+                data-action="submit">
             Submit
         </button>
 
@@ -93,20 +110,16 @@
         </p>
 
         <div class="flex justify-center">
-            <a href="https://www.buymeacoffee.com/arun0009" target="_blank">
-                <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png"
-                     alt="Buy Me A Coffee"
-                     style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" />
-            </a>
+            <a href="https://www.buymeacoffee.com/arun0009"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=arun0009&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a>
         </div>
         <!-- Social Media Logos -->
         <div class="flex justify-center gap-6 mt-6">
-            <a href="https://x.com/agopalpuri" target="_blank"  class="text-gray-700 hover:text-blue-600">
+            <a href="https://x.com/agopalpuri" target="_blank" class="text-gray-700 hover:text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-6 h-6 fill-current">
                     <path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"/>
                 </svg>
             </a>
-            <a href="https://www.reddit.com/user/arun0009/" target="_blank"  class="text-gray-700 hover:text-blue-600">
+            <a href="https://www.reddit.com/user/arun0009/" target="_blank" class="text-gray-700 hover:text-blue-600">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-6 h-6 fill-current">
                     <path d="M201.5 305.5c-13.8 0-24.9-11.1-24.9-24.6 0-13.8 11.1-24.9 24.9-24.9 13.6 0 24.6 11.1 24.6 24.9 0 13.6-11.1 24.6-24.6 24.6zM504 256c0 137-111 248-248 248S8 393 8 256 119 8 256 8s248 111 248 248zm-132.3-41.2c-9.4 0-17.7 3.9-23.8 10-22.4-15.5-52.6-25.5-86.1-26.6l17.4-78.3 55.4 12.5c0 13.6 11.1 24.6 24.6 24.6 13.8 0 24.9-11.3 24.9-24.9s-11.1-24.9-24.9-24.9c-9.7 0-18 5.8-22.1 13.8l-61.2-13.6c-3-.8-6.1 1.4-6.9 4.4l-19.1 86.4c-33.2 1.4-63.1 11.3-85.5 26.8-6.1-6.4-14.7-10.2-24.1-10.2-34.9 0-46.3 46.9-14.4 62.8-1.1 5-1.7 10.2-1.7 15.5 0 52.6 65.2 95.2 146.6 95.2 81.2 0 146.6-42.6 146.6-95.2 0-5.3-.6-10.5-1.7-15.5 31.7-15.9 20.4-62.8-14.4-62.8zM305.7 305.1c-13.6 0-24.6-11.1-24.6-24.9 0-13.6 11.1-24.6 24.6-24.6 13.6 0 24.6 11.1 24.6 24.6 0 13.6-11 24.9-24.6 24.9z"/>
                 </svg>
@@ -146,18 +159,18 @@
         }
     }
 
-    document.getElementById("alert-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
+    async function submitForm() {
         const location = document.getElementById("location").value;
         const topic = document.getElementById("topic").value.trim();
         const action = document.querySelector('input[name="action"]:checked').value;
+        const recaptchaToken = document.getElementById("recaptcha_token").value;
 
         if (!location || !topic) {
             document.getElementById("status").textContent = "Please fill out all fields.";
             return;
         }
 
-        const payload = { action, location, ntfyTopic: topic };
+        const payload = { action, location, ntfyTopic: topic, recaptchaToken };
         const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
 
         try {
@@ -172,6 +185,13 @@
         } catch {
             document.getElementById("status").textContent = "Error submitting request.";
         }
+    }
+
+    document.getElementById("alert-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        grecaptcha.execute('6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-', { action: 'submit' }).then(function(token) {
+            onSubmit(token);
+        });
     });
 
     // Handle auto-check unsubscribe radio if query param is present

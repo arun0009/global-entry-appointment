@@ -297,8 +297,8 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test subscription (30 days old)
-	expireTime := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	// Insert test subscription (7 days old)
+	expireTime := time.Now().UTC().Add(-7 * 24 * time.Hour)
 	_, err := coll.InsertOne(ctx, bson.M{
 		"_id":       "123",
 		"location":  "JFK",
