@@ -50,8 +50,10 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 
 	// Configure handler
 	config := Config{
-		MongoDBPassword: "test",
-		NtfyServer:      "http://localhost", // Will be overridden by httptest
+		MongoDBPassword:          "test",
+		NtfyServer:               "http://localhost", // Will be overridden by httptest
+		HTTPTimeout:              2 * time.Second,
+		NotificationCooldownTime: 60 * time.Minute, // Default to 60 minutes
 	}
 	url := "http://localhost/%s" // Will be overridden by httptest
 	handler := NewLambdaHandler(config, url, client)
@@ -72,8 +74,20 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 
 	// Insert test data
 	_, err := coll.InsertMany(ctx, []interface{}{
-		bson.M{"location": "JFK", "ntfyTopic": "user1-jfk", "createdAt": time.Now().UTC()},
-		bson.M{"location": "JFK", "ntfyTopic": "user2-jfk", "createdAt": time.Now().UTC()},
+		bson.M{
+			"_id":            bson.NewObjectID(),
+			"location":       "JFK",
+			"ntfyTopic":      "user1-jfk",
+			"createdAt":      time.Now().UTC(),
+			"lastNotifiedAt": time.Time{},
+		},
+		bson.M{
+			"_id":            bson.NewObjectID(),
+			"location":       "JFK",
+			"ntfyTopic":      "user2-jfk",
+			"createdAt":      time.Now().UTC(),
+			"lastNotifiedAt": time.Time{},
+		},
 	})
 	assert.NoError(t, err)
 
@@ -112,6 +126,16 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 
 	// Verify ntfy calls
 	assert.Equal(t, 2, ntfyCalls, "Expected two ntfy notifications")
+
+	// Verify lastNotifiedAt was updated for both subscriptions
+	var sub1, sub2 Subscription
+	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user1-jfk"}).Decode(&sub1)
+	assert.NoError(t, err)
+	assert.False(t, sub1.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be updated for user1-jfk")
+
+	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user2-jfk"}).Decode(&sub2)
+	assert.NoError(t, err)
+	assert.False(t, sub2.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be updated for user2-jfk")
 }
 
 func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
@@ -146,9 +170,13 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, resp.Body)
 
 	// Verify subscription in database
-	count, err := coll.CountDocuments(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"})
+	var sub Subscription
+	err = coll.FindOne(ctx, bson.M{"location": "JFK", "ntfyTopic": "user1-jfk"}).Decode(&sub)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), count)
+	assert.Equal(t, "JFK", sub.Location)
+	assert.Equal(t, "user1-jfk", sub.NtfyTopic)
+	assert.False(t, sub.CreatedAt.IsZero())
+	assert.True(t, sub.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be zero for new subscription")
 }
 
 func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
@@ -158,9 +186,11 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 
 	// Insert test subscription
 	_, err := coll.InsertOne(ctx, bson.M{
-		"location":  "JFK",
-		"ntfyTopic": "user1-jfk",
-		"createdAt": time.Now().UTC(),
+		"_id":            bson.NewObjectID(),
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": time.Time{},
 	})
 	assert.NoError(t, err)
 
@@ -214,9 +244,20 @@ func TestHandleRequest_InvalidEvent(t *testing.T) {
 }
 
 func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
-	handler, _, cleanup := setupTestHandler(t)
+	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
 	ctx := context.Background()
+
+	// Insert test subscription
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": time.Time{},
+	})
+	assert.NoError(t, err)
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -234,6 +275,8 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, "user1-jfk", payload["topic"])
+		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
+		assert.Contains(t, payload["message"], "Appointment available at JFK")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ntfyServer.Close()
@@ -241,15 +284,127 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
 
 	// Call function
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	err = handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
 	assert.NoError(t, err)
-	assert.Equal(t, 1, ntfyCalls)
+	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
+
+	// Verify lastNotifiedAt was updated
+	var sub Subscription
+	err = coll.FindOne(ctx, bson.M{"_id": id}).Decode(&sub)
+	assert.NoError(t, err)
+	assert.False(t, sub.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be updated")
+}
+
+func TestCheckAvailabilityAndNotify_Cooldown(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription with recent lastNotifiedAt
+	recentTime := time.Now().UTC().Add(-30 * time.Minute) // Within 60-minute cooldown
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": recentTime,
+	})
+	assert.NoError(t, err)
+
+	// Mock Global Entry API
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Appointment{
+			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+		})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err = handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications due to cooldown")
+}
+
+func TestCheckAvailabilityAndNotify_AfterCooldown(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription with lastNotifiedAt outside cooldown
+	pastTime := time.Now().UTC().Add(-61 * time.Minute) // Outside 60-minute cooldown
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": pastTime,
+	})
+	assert.NoError(t, err)
+
+	// Mock Global Entry API
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Appointment{
+			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+		})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "user1-jfk", payload["topic"])
+		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
+		assert.Contains(t, payload["message"], "Appointment available at JFK")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err = handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	assert.NoError(t, err)
+	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification after cooldown")
+
+	// Verify lastNotifiedAt was updated
+	var sub Subscription
+	err = coll.FindOne(ctx, bson.M{"_id": id}).Decode(&sub)
+	assert.NoError(t, err)
+	assert.False(t, sub.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be updated")
+	assert.True(t, sub.LastNotifiedAt.After(pastTime), "Expected lastNotifiedAt to be updated to a newer time")
 }
 
 func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
-	handler, _, cleanup := setupTestHandler(t)
+	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
 	ctx := context.Background()
+
+	// Insert test subscription
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": time.Time{},
+	})
+	assert.NoError(t, err)
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -268,15 +423,26 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
 
 	// Call function
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	err = handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
 	assert.NoError(t, err)
-	assert.Equal(t, 0, ntfyCalls)
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
 }
 
 func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
-	handler, _, cleanup := setupTestHandler(t)
+	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
 	ctx := context.Background()
+
+	// Insert test subscription
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": time.Time{},
+	})
+	assert.NoError(t, err)
 
 	// Mock Global Entry API (failing)
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +453,7 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
 
 	// Call function
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
+	err = handler.checkAvailabilityAndNotify(ctx, "JFK", []string{"user1-jfk"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API returned status 500")
 }
@@ -299,11 +465,13 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 
 	// Insert test subscription (30 days old)
 	expireTime := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	id := bson.NewObjectID()
 	_, err := coll.InsertOne(ctx, bson.M{
-		"_id":       "123",
-		"location":  "JFK",
-		"ntfyTopic": "user1-jfk",
-		"createdAt": expireTime,
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      expireTime,
+		"lastNotifiedAt": time.Time{},
 	})
 	assert.NoError(t, err)
 
@@ -324,10 +492,10 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	// Call function
 	err = handler.handleExpiringSubscriptions(ctx, coll)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, ntfyCalls)
+	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
 
 	// Verify subscription removed
-	count, err := coll.CountDocuments(ctx, bson.M{"_id": "123"})
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": id})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), count)
 }
@@ -351,10 +519,13 @@ func TestHandleSubscription_Duplicate(t *testing.T) {
 	ctx := context.Background()
 
 	// Insert existing subscription
+	id := bson.NewObjectID()
 	_, err := coll.InsertOne(ctx, bson.M{
-		"location":  "JFK",
-		"ntfyTopic": "user1-jfk",
-		"createdAt": time.Now().UTC(),
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      time.Now().UTC(),
+		"lastNotifiedAt": time.Time{},
 	})
 	assert.NoError(t, err)
 

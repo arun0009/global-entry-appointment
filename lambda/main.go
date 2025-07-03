@@ -34,17 +34,19 @@ var validNtfyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 type (
 	// Config holds environment variables
 	Config struct {
-		MongoDBPassword string        `envconfig:"MONGODB_PASSWORD" required:"true"`
-		NtfyServer      string        `envconfig:"NTFY_SERVER" default:"https://ntfy.sh/"`
-		HTTPTimeout     time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"20s"`
+		MongoDBPassword          string        `envconfig:"MONGODB_PASSWORD" required:"true"`
+		NtfyServer               string        `envconfig:"NTFY_SERVER" default:"https://ntfy.sh/"`
+		HTTPTimeout              time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"5s"`
+		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"60m"`
 	}
 
 	// Subscription represents a subscription document
 	Subscription struct {
-		ID        string    `bson:"_id"`
-		Location  string    `bson:"location"`
-		NtfyTopic string    `bson:"ntfyTopic"`
-		CreatedAt time.Time `bson:"createdAt"`
+		ID             bson.ObjectID `bson:"_id"`
+		Location       string        `bson:"location"`
+		NtfyTopic      string        `bson:"ntfyTopic"`
+		CreatedAt      time.Time     `bson:"createdAt"`
+		LastNotifiedAt time.Time     `bson:"lastNotifiedAt,omitempty"` // Optional, zero value if never notified
 	}
 
 	// LocationTopics represents aggregated data: location and its ntfyTopics array
@@ -93,6 +95,9 @@ func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHa
 
 // checkAvailabilityAndNotify checks appointment availability and notifies topics
 func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location string, topics []string) error {
+	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
+	now := time.Now().UTC()
+
 	// Retry logic for API call
 	for attempt := 1; attempt <= 3; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(h.URL, location), nil)
@@ -128,6 +133,20 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 
 		if len(appointments) > 0 && appointments[0].Active {
 			for _, topic := range topics {
+				// Check if notification can be sent based on cooldown
+				var sub Subscription
+				err := coll.FindOne(ctx, bson.M{"location": location, "ntfyTopic": topic}).Decode(&sub)
+				if err != nil {
+					slog.Error("Failed to fetch subscription", "location", location, "ntfyTopic", topic, "error", err)
+					continue
+				}
+
+				// Skip if last notification was sent within cooldown period
+				if !sub.LastNotifiedAt.IsZero() && now.Sub(sub.LastNotifiedAt) < h.Config.NotificationCooldownTime {
+					slog.Debug("Skipping notification due to cooldown", "location", location, "ntfyTopic", topic, "lastNotifiedAt", sub.LastNotifiedAt)
+					continue
+				}
+
 				message := fmt.Sprintf("Appointment available at %s on %s", location, appointments[0].StartTimestamp)
 				payload := map[string]string{
 					"topic":   topic,
@@ -147,7 +166,8 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 					if err != nil {
 						slog.Warn("Ntfy request error", "topic", topic, "attempt", ntfyAttempt, "error", err, "url", h.Config.NtfyServer)
 						if ntfyAttempt == 3 {
-							return fmt.Errorf("failed to send ntfy notification after %d attempts: %v", ntfyAttempt, err)
+							slog.Error("Failed to send ntfy notification after 3 attempts", "topic", topic, "error", err)
+							continue
 						}
 						time.Sleep(time.Duration(ntfyAttempt) * 100 * time.Millisecond)
 						continue
@@ -155,6 +175,18 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 					ntfyResp.Body.Close()
 					if ntfyResp.StatusCode == http.StatusOK {
 						slog.Info("Sent notification", "topic", topic, "location", location)
+
+						// Update lastNotifiedAt for the subscription
+						_, err = coll.UpdateOne(
+							ctx,
+							bson.M{"_id": sub.ID},
+							bson.M{"$set": bson.M{"lastNotifiedAt": now}},
+						)
+						if err != nil {
+							slog.Error("Failed to update lastNotifiedAt", "id", sub.ID, "error", err)
+						} else {
+							slog.Debug("Updated lastNotifiedAt", "id", sub.ID, "time", now)
+						}
 						break
 					}
 					slog.Warn("Non-OK status from ntfy", "topic", topic, "status", ntfyResp.StatusCode)
@@ -272,9 +304,11 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 
 		// Insert new subscription
 		_, err = coll.InsertOne(ctx, bson.M{
-			"location":  req.Location,
-			"ntfyTopic": req.NtfyTopic,
-			"createdAt": time.Now().UTC(),
+			"_id":            bson.NewObjectID(),
+			"location":       req.Location,
+			"ntfyTopic":      req.NtfyTopic,
+			"createdAt":      time.Now().UTC(),
+			"lastNotifiedAt": time.Time{}, // Explicitly set to zero value
 		})
 		if err != nil {
 			return events.APIGatewayV2HTTPResponse{StatusCode: 500}, fmt.Errorf("failed to insert subscription: %v", err)
@@ -329,7 +363,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}, nil
 	}
 
-	//handle front end OPTIONS request
+	// Handle front end OPTIONS request
 	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
 		if method, ok := req["http"].(map[string]interface{})["method"].(string); ok && method == "OPTIONS" {
 			return events.APIGatewayV2HTTPResponse{
@@ -455,7 +489,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					Body:       `{"error": "missing required fields"}`,
 				}, nil
 			}
-			slog.Info("Calling handleSubscription", "action", subReq.Action, "location", subReq.Location)
+			slog.Debug("Calling handleSubscription", "action", subReq.Action, "location", subReq.Location)
 			resp, err := h.handleSubscription(ctx, coll, subReq)
 			if err != nil {
 				return resp, err
@@ -498,7 +532,7 @@ func main() {
 		panic(fmt.Sprintf("failed to connect to MongoDB: %v", err))
 	}
 
-	// ✅ Ensure TTL index exists
+	// Ensure TTL index exists
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -512,6 +546,18 @@ func main() {
 		slog.Warn("Failed to create TTL index (maybe already exists)", "error", err)
 	} else {
 		slog.Info("TTL index on createdAt ensured")
+	}
+
+	// Initialize lastNotifiedAt for existing subscriptions
+	_, err = coll.UpdateMany(
+		ctx,
+		bson.M{"lastNotifiedAt": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"lastNotifiedAt": time.Time{}}},
+	)
+	if err != nil {
+		slog.Error("Failed to initialize lastNotifiedAt for existing subscriptions", "error", err)
+	} else {
+		slog.Info("Initialized lastNotifiedAt for existing subscriptions")
 	}
 
 	defer client.Disconnect(context.Background())
