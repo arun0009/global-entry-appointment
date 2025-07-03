@@ -34,8 +34,9 @@ var validNtfyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 type (
 	// Config holds environment variables
 	Config struct {
-		MongoDBPassword string `envconfig:"MONGODB_PASSWORD" required:"true"`
-		NtfyServer      string `envconfig:"NTFY_SERVER" default:"https://ntfy.sh"`
+		MongoDBPassword string        `envconfig:"MONGODB_PASSWORD" required:"true"`
+		NtfyServer      string        `envconfig:"NTFY_SERVER" default:"https://ntfy.sh/"`
+		HTTPTimeout     time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"20s"`
 	}
 
 	// Subscription represents a subscription document
@@ -85,7 +86,7 @@ func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHa
 		URL:    url,
 		Client: client,
 		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: config.HTTPTimeout,
 		},
 	}
 }
@@ -144,7 +145,7 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 
 					ntfyResp, err := h.HTTPClient.Do(ntfyReq)
 					if err != nil {
-						slog.Warn("Failed to send ntfy notification", "topic", topic, "attempt", ntfyAttempt, "error", err)
+						slog.Warn("Ntfy request error", "topic", topic, "attempt", ntfyAttempt, "error", err, "url", h.Config.NtfyServer)
 						if ntfyAttempt == 3 {
 							return fmt.Errorf("failed to send ntfy notification after %d attempts: %v", ntfyAttempt, err)
 						}
