@@ -32,8 +32,7 @@
   <div style="flex: 1; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     <h3>💰 Completely Free</h3>
     <ul>
-      <li>✅ No login or account needed</li>
-      <li>✅ No phone number required</li>
+      <li>✅ No login or phone number</li>
       <li>✅ No hidden fees or subscriptions</li>
       <li>✅ Open source & transparent</li>
     </ul>
@@ -44,37 +43,38 @@
 ## 📲 **Get Started in 2 Simple Steps**
 
 ### **Step 1: Install the Ntfy App**
-Download the free notification app on your phone:
 
-<p align="center">
-  <a href="https://apps.apple.com/app/ntfy/id1625396347">
-    <img src="https://img.shields.io/badge/Download-App_Store-000000?style=flat-square&logo=apple&logoColor=white" alt="App Store" height="50"/>
+<div align="center">
+  <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank">
+    <img src="https://img.shields.io/badge/App%20Store-Download-black?style=for-the-badge&logo=apple&logoColor=white" alt="App Store" />
   </a>
-  <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">
-    <img src="https://img.shields.io/badge/Download-Google_Play-3DDC84?style=flat-square&logo=google-play&logoColor=white" alt="Google Play" height="50"/>
+  &nbsp;
+  <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank">
+    <img src="https://img.shields.io/badge/Google%20Play-Download-3DDC84?style=for-the-badge&logo=google-play&logoColor=white" alt="Google Play" />
   </a>
-</p>
+</div>
 
 ### **Step 2: Set Up Your Alerts**
-Visit our web app and configure your preferred locations:
-
-<p align="center">
-<a href="https://arun0009.github.io/global-entry-appointment">
-<img src="https://img.shields.io/badge/🔔_Setup_Alerts-Visit_Web_App-blue?style=for-the-badge&logoColor=white" alt="Setup Alerts" height="60"/>
-</a>
-</p>
+Visit our web app and configure your preferred locations.
 
 **That's it!** You'll receive notifications for the next 30 days (auto-unsubscribes).
 
+<div align="center">
+  <a href="https://arun0009.github.io/global-entry-appointment" target="_blank">
+    <img src="https://img.shields.io/badge/🔔%20Set%20Up%20Alerts-Open%20Web%20App-blue?style=for-the-badge" alt="Setup Alerts" />
+  </a>
+</div>
+
+
 ---
 
-## **Love This Project?**
+## ❤️ Love This Project?
 
 <div align="center">
 
 ### **Help Keep This Service Running Free!**
 
-Your support helps cover AWS costs and keeps this tool free for everyone. ☕
+Your support helps cover AWS costs and keeps this tool free for everyone
 
 [![Support this project](https://img.buymeacoffee.com/button-api/?text=Support%20this%20project&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/arun0009)
 
