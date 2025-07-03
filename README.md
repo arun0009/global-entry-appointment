@@ -68,13 +68,7 @@ Visit our web app and configure your preferred locations:
 
 ---
 
-## 🛠️ **How It Works**
-
-Our AWS Lambda function continuously monitors Global Entry appointment availability. When slots open up at your selected locations, you get an instant push notification via [Ntfy](https://ntfy.sh/).
-
----
-
-## 💝 **Love This Project?**
+## **Love This Project?**
 
 <div align="center">
 
@@ -82,11 +76,7 @@ Our AWS Lambda function continuously monitors Global Entry appointment availabil
 
 Your support helps cover AWS costs and keeps this tool free for everyone. ☕
 
-<p>
-<a href="https://www.buymeacoffee.com/arun0009" target="_blank">
-<img src="https://img.shields.io/badge/☕_Buy_Me_A_Coffee-Support_Project-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" height="60"/>
-</a>
-</p>
+[![Support this project](https://img.buymeacoffee.com/button-api/?text=Support%20this%20project&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/arun0009)
 
 **🌟 Star this repo** if it saved you time!
 
