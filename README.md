@@ -1,101 +1,163 @@
-<h1 align="center">Global Entry Appointment Scanner</h1>
+<div align="center">
+
+# 🌍 Global Entry Appointment Scanner
+
+<img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Cost-FREE-blue?style=for-the-badge" alt="Cost"/>
+<img src="https://img.shields.io/badge/Setup-2_Steps-orange?style=for-the-badge" alt="Setup"/>
+
+### 🚀 **Never Miss a Global Entry Appointment Again!**
+
+**Stop refreshing the CBP website endlessly.** Get instant push notifications the moment appointment slots open up near you.
+
+[**🔔 Get Started in 2 Minutes →**](https://arun0009.github.io/global-entry-appointment/)
+
+</div>
+
+---
+
+## ✨ **Why Choose This Tool?**
+
+<div style="display: flex; justify-content: space-between; gap: 20px;">
+
+  <div style="flex: 1; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h3>🎯 Smart & Simple</h3>
+    <ul>
+      <li>⚡ <b>Real-time scanning</b> every minute</li>
+      <li>📱<b>Instant notifications</b> to your phone</li>
+      <li>🔒<b>No personal data</b> required</li>
+    </ul>
+  </div>
+
+  <div style="flex: 1; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <h3>💰 Completely Free</h3>
+    <ul>
+      <li>✅ No login or account needed</li>
+      <li>✅ No phone number required</li>
+      <li>✅ No hidden fees or subscriptions</li>
+      <li>✅ Open source & transparent</li>
+    </ul>
+  </div>
+
+</div>
+
+## 📲 **Get Started in 2 Simple Steps**
+
+### **Step 1: Install the Ntfy App**
+Download the free notification app on your phone:
 
 <p align="center">
-   <img src="./docs/favicon.png" alt="Global Entry"/><img src="./docs/favicon.png" alt="Global Entry"/><img src="./docs/favicon.png" alt="Global Entry"/>
+  <a href="https://apps.apple.com/app/ntfy/id1625396347">
+    <img src="https://img.shields.io/badge/Download-App_Store-000000?style=flat-square&logo=apple&logoColor=white" alt="App Store" height="50"/>
+  </a>
+  <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy">
+    <img src="https://img.shields.io/badge/Download-Google_Play-3DDC84?style=flat-square&logo=google-play&logoColor=white" alt="Google Play" height="50"/>
+  </a>
 </p>
 
-**🚀 Instantly Get Notified When Global Entry Appointments Open Near You!**
+### **Step 2: Set Up Your Alerts**
+Visit our web app and configure your preferred locations:
 
-Tired of endlessly checking for Global Entry interview availability? 
+<p align="center">
+<a href="https://arun0009.github.io/global-entry-appointment">
+<img src="https://img.shields.io/badge/🔔_Setup_Alerts-Visit_Web_App-blue?style=for-the-badge&logoColor=white" alt="Setup Alerts" height="60"/>
+</a>
+</p>
 
-**This free and open-source tool scans appointment slots every minute** and sends real-time push notifications right to your phone.**
-
-✨ **Absolutely FREE**  
-⚡ **Super Simple – Just 2 Steps!**  
-🔔 **Get Notified Instantly with Ntfy App**
-
----
-
-### 🔧 How It Works
-
-Every minute, an AWS Lambda function checks for open [Global Entry](https://www.cbp.gov/travel/trusted-traveler-programs/global-entry) appointments. If an available slot is found at your selected location, you'll get a push notification via [Ntfy](https://ntfy.sh/).
-
-✅ No login required  
-✅ No account creation  
-✅ No phone number required  
-✅ No spam — auto-unsubscribes after 30 days
+**That's it!** You'll receive notifications for the next 30 days (auto-unsubscribes).
 
 ---
 
-### 📲 **Get Started in 2 Easy Steps**
+## 🛠️ **How It Works**
 
-#### 1. **Install the Free Ntfy App & subscribe to a topic (create your own random one)**
-- [📱 App Store (iOS)](https://apps.apple.com/app/ntfy/id1625396347)
-- [🤖 Play Store (Android)](https://play.google.com/store/apps/details?id=io.heckel.ntfy&hl=en_US)
+Our AWS Lambda function continuously monitors Global Entry appointment availability. When slots open up at your selected locations, you get an instant push notification via [Ntfy](https://ntfy.sh/).
 
-#### 2. **Subscribe **
+---
 
-[Global Entry Appointment Subscribe](https://arun0009.github.io/global-entry-appointment/)
+## 💝 **Love This Project?**
 
-✅ That’s it! You’ll now receive alerts when appointments become available for the next 30 days.
+<div align="center">
 
-### ❌ Unsubscribe Anytime
+### **Help Keep This Service Running Free!**
 
-To unsubscribe before the 30 days are up:
+Your support helps cover AWS costs and keeps this tool free for everyone. ☕
 
-[Global Entry Appointment Unsubscribe](https://arun0009.github.io/global-entry-appointment/?subscriptions=unsubscribe)
+<p>
+<a href="https://www.buymeacoffee.com/arun0009" target="_blank">
+<img src="https://img.shields.io/badge/☕_Buy_Me_A_Coffee-Support_Project-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" height="60"/>
+</a>
+</p>
 
-### ☕ Like This Project?
+**🌟 Star this repo** if it saved you time!
 
-If this tool saved you hours of frustration, consider buying me a coffee to support ongoing development:
+<p>
+<a href="https://github.com/arun0009/global-entry-appointment/stargazers">
+<img src="https://img.shields.io/github/stars/arun0009/global-entry-appointment?style=social" alt="GitHub stars"/>
+</a>
+</p>
 
-<a href="https://www.buymeacoffee.com/arun0009" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+</div>
 
-### 👨‍💻 Developers: Want to Contribute or Run It Yourself?
+---
 
-Prerequisites:  
-1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)    
-2. [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html):  
-3. `npm install -g aws-cdk`
-4. [Docker](https://www.docker.com/get-started/)
+## 🔧 **For Developers**
 
-#### Set AWS Credentials
+### **Prerequisites for AWS Deployment**
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html)
+- [Docker](https://www.docker.com/get-started/)
 
 ```bash
+# Clone the repository
+git clone https://github.com/arun0009/global-entry-appointment.git
+cd global-entry-appointment
+```
+
+### **Environment Setup**
+
+```bash
+# Set AWS credentials
 export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
 export AWS_REGION=YOUR_AWS_REGION
 export AWS_ACCOUNT=YOUR_AWS_ACCOUNT_ID
 ```
 
-#### Setup Env
-
-Add your MongoDB password in file called `env.json`:
-
+Create `env.json`:
 ```json
 {
   "Parameters": {
-    "MONGODB_PASSWORD": "<your-password>"
+    "MONGODB_PASSWORD": "your-mongodb-password"
   }
 }
 ```
 
-#### Run Locally
+### **Commands**
+
 ```bash
+# Local development
 make develop
 make invoke
-```
 
-#### Deploy to AWS
-```bash
+# Deploy to AWS
 make deploy
-```
 
-#### Destroy Stack
-```bash
+# Clean up
 make destroy
 ```
 
-### 📄 License
+---
 
-MIT © 2025 Arun
+## 📄 **License**
+
+MIT © 2025 - Made with ❤️ for the Global Entry community
+
+---
+
+<div align="center">
+
+**🔥 Stop waiting. Start getting notified.**
+
+[**Get Started Now →**](https://arun0009.github.io/global-entry-appointment/)
+
+</div>
