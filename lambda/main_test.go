@@ -143,6 +143,21 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "user1-jfk", payload["topic"])
+		assert.Equal(t, "Global Entry Subscription Confirmation", payload["title"])
+		assert.Contains(t, payload["message"], "You're all set! We'll notify you when an appointment slot is available at JFK")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
 	// Create API Gateway V2 request
 	req := SubscriptionRequest{Action: "subscribe", Location: "JFK", NtfyTopic: "user1-jfk"}
 	body, _ := json.Marshal(req)
@@ -177,6 +192,9 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	assert.Equal(t, "user1-jfk", sub.NtfyTopic)
 	assert.False(t, sub.CreatedAt.IsZero())
 	assert.True(t, sub.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be zero for new subscription")
+
+	// Verify ntfy notification
+	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification for subscription confirmation")
 }
 
 func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
@@ -483,6 +501,7 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 		json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, "user1-jfk", payload["topic"])
 		assert.Equal(t, "Global Entry Subscription Expired", payload["title"])
+		assert.Contains(t, payload["message"], "Your Global Entry appointment subscription has expired")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ntfyServer.Close()

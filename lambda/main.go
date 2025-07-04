@@ -93,6 +93,43 @@ func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHa
 	}
 }
 
+// sendNtfyNotification sends a notification to the specified ntfy topic
+func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, message string) error {
+	payload := map[string]string{
+		"topic":   topic,
+		"message": message,
+		"title":   title,
+	}
+	payloadBytes, _ := json.Marshal(payload)
+
+	for attempt := 1; attempt <= 3; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.Config.NtfyServer, bytes.NewBuffer(payloadBytes))
+		if err != nil {
+			return fmt.Errorf("failed to create ntfy request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := h.HTTPClient.Do(req)
+		if err != nil {
+			slog.Warn("Failed to send ntfy notification", "topic", topic, "attempt", attempt, "error", err)
+			if attempt == 3 {
+				slog.Error("Failed to send ntfy notification after 3 attempts", "topic", topic, "error", err)
+				return fmt.Errorf("failed to send ntfy notification after 3 attempts: %v", err)
+			}
+			time.Sleep(time.Duration(attempt) * 100 * time.Millisecond)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			slog.Info("Sent ntfy notification", "topic", topic, "title", title, "message", message)
+			return nil
+		}
+		slog.Warn("Non-OK status from ntfy", "topic", topic, "status", resp.StatusCode)
+	}
+	return fmt.Errorf("failed to send ntfy notification after receiving non-OK status")
+}
+
 // checkAvailabilityAndNotify checks appointment availability and notifies topics
 func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location string, topics []string) error {
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
@@ -148,48 +185,21 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 				}
 
 				message := fmt.Sprintf("Appointment available at %s on %s", location, appointments[0].StartTimestamp)
-				payload := map[string]string{
-					"topic":   topic,
-					"message": message,
-					"title":   "Global Entry Appointment Notification",
+				if err := h.sendNtfyNotification(ctx, topic, "Global Entry Appointment Notification", message); err != nil {
+					slog.Error("Failed to send appointment notification", "topic", topic, "error", err)
+					continue
 				}
-				payloadBytes, _ := json.Marshal(payload)
 
-				for ntfyAttempt := 1; ntfyAttempt <= 3; ntfyAttempt++ {
-					ntfyReq, err := http.NewRequestWithContext(ctx, http.MethodPost, h.Config.NtfyServer, bytes.NewBuffer(payloadBytes))
-					if err != nil {
-						return fmt.Errorf("failed to create ntfy request: %v", err)
-					}
-					ntfyReq.Header.Set("Content-Type", "application/json")
-
-					ntfyResp, err := h.HTTPClient.Do(ntfyReq)
-					if err != nil {
-						slog.Warn("Ntfy request error", "topic", topic, "attempt", ntfyAttempt, "error", err, "url", h.Config.NtfyServer)
-						if ntfyAttempt == 3 {
-							slog.Error("Failed to send ntfy notification after 3 attempts", "topic", topic, "error", err)
-							continue
-						}
-						time.Sleep(time.Duration(ntfyAttempt) * 100 * time.Millisecond)
-						continue
-					}
-					ntfyResp.Body.Close()
-					if ntfyResp.StatusCode == http.StatusOK {
-						slog.Info("Sent notification", "topic", topic, "location", location)
-
-						// Update lastNotifiedAt for the subscription
-						_, err = coll.UpdateOne(
-							ctx,
-							bson.M{"_id": sub.ID},
-							bson.M{"$set": bson.M{"lastNotifiedAt": now}},
-						)
-						if err != nil {
-							slog.Error("Failed to update lastNotifiedAt", "id", sub.ID, "error", err)
-						} else {
-							slog.Debug("Updated lastNotifiedAt", "id", sub.ID, "time", now)
-						}
-						break
-					}
-					slog.Warn("Non-OK status from ntfy", "topic", topic, "status", ntfyResp.StatusCode)
+				// Update lastNotifiedAt for the subscription
+				_, err = coll.UpdateOne(
+					ctx,
+					bson.M{"_id": sub.ID},
+					bson.M{"$set": bson.M{"lastNotifiedAt": now}},
+				)
+				if err != nil {
+					slog.Error("Failed to update lastNotifiedAt", "id", sub.ID, "error", err)
+				} else {
+					slog.Debug("Updated lastNotifiedAt", "id", sub.ID, "time", now)
 				}
 			}
 		}
@@ -226,36 +236,8 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 	for _, sub := range subscriptions {
 		// Send expiration notification
 		message := "Your Global Entry appointment subscription has expired."
-		payload := map[string]string{
-			"topic":   sub.NtfyTopic,
-			"message": message,
-			"title":   "Global Entry Subscription Expired",
-		}
-		payloadBytes, _ := json.Marshal(payload)
-
-		for attempt := 1; attempt <= 3; attempt++ {
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.Config.NtfyServer, bytes.NewBuffer(payloadBytes))
-			if err != nil {
-				return fmt.Errorf("failed to create ntfy request: %v", err)
-			}
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := h.HTTPClient.Do(req)
-			if err != nil {
-				slog.Warn("Failed to send expiration notification", "topic", sub.NtfyTopic, "attempt", attempt, "error", err)
-				if attempt == 3 {
-					slog.Error("Failed to send expiration notification after 3 attempts", "topic", sub.NtfyTopic, "error", err)
-					continue
-				}
-				time.Sleep(time.Duration(attempt) * 100 * time.Millisecond)
-				continue
-			}
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				slog.Info("Sent expiration notification", "topic", sub.NtfyTopic)
-				break
-			}
-			slog.Warn("Non-OK status from ntfy", "topic", sub.NtfyTopic, "status", resp.StatusCode)
+		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message); err != nil {
+			slog.Error("Failed to send expiration notification", "topic", sub.NtfyTopic, "error", err)
 		}
 
 		// Delete the subscription
@@ -314,6 +296,14 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 			return events.APIGatewayV2HTTPResponse{StatusCode: 500}, fmt.Errorf("failed to insert subscription: %v", err)
 		}
 		slog.Info("Added subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
+
+		// Send confirmation notification
+		message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.Location)
+		if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
+			slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
+			// Don't fail the subscription if notification fails
+		}
+
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 200,
 			Headers:    corsHeaders,
@@ -363,7 +353,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}, nil
 	}
 
-	// Handle front end OPTIONS request
+	// Handle front end OPTIONS治安
 	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
 		if method, ok := req["http"].(map[string]interface{})["method"].(string); ok && method == "OPTIONS" {
 			return events.APIGatewayV2HTTPResponse{
