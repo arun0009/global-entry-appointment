@@ -44,41 +44,17 @@
                     },
                     colors: {
                         primary: {
-                            DEFAULT: 'hsl(217, 91%, 60%)',
-                            foreground: 'hsl(0, 0%, 98%)',
-                            glow: 'hsl(220, 100%, 75%)'
-                        },
-                        secondary: {
-                            DEFAULT: 'hsl(220, 14%, 96%)',
-                            foreground: 'hsl(230, 20%, 25%)'
-                        },
-                        muted: {
-                            DEFAULT: 'hsl(220, 14%, 96%)',
-                            foreground: 'hsl(220, 14%, 46%)'
-                        },
-                        accent: {
-                            DEFAULT: 'hsl(217, 91%, 95%)',
-                            foreground: 'hsl(217, 91%, 40%)'
-                        },
-                        success: {
-                            DEFAULT: 'hsl(142, 76%, 36%)',
-                            foreground: 'hsl(0, 0%, 98%)'
-                        },
-                        destructive: {
-                            DEFAULT: 'hsl(0, 84%, 60%)',
-                            foreground: 'hsl(0, 0%, 98%)'
-                        },
-                        border: 'hsl(220, 14%, 91%)',
-                        card: 'hsl(0, 0%, 100%)',
-                        background: 'hsl(240, 20%, 98%)',
-                        foreground: 'hsl(230, 20%, 15%)'
+                            DEFAULT: '#4F7FFF',
+                            50: '#F0F4FF',
+                            100: '#E0EAFF',
+                            500: '#4F7FFF',
+                            600: '#3B6AE6',
+                            700: '#2851CC'
+                        }
                     },
                     animation: {
                         'float': 'float 3s ease-in-out infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate'
-                    },
-                    backdropBlur: {
-                        'xs': '2px',
+                        'pulse-glow': 'pulse-glow 2s ease-in-out infinite alternate'
                     }
                 }
             }
@@ -91,127 +67,31 @@
             50% { transform: translateY(-10px); }
         }
 
-        @keyframes glow {
-            from { box-shadow: 0 0 20px hsl(217, 91%, 60%, 0.3); }
-            to { box-shadow: 0 0 30px hsl(217, 91%, 60%, 0.6), 0 0 40px hsl(220, 100%, 75%, 0.3); }
-        }
-
-        .gradient-primary {
-            background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(220, 100%, 75%));
-        }
-
-        .gradient-card {
-            background: linear-gradient(145deg, hsl(0, 0%, 100%), hsl(220, 20%, 99%));
-        }
-
-        .gradient-background {
-            background: linear-gradient(135deg, hsl(240, 20%, 98%), hsl(220, 100%, 98%));
-        }
-
-        .shadow-elegant {
-            box-shadow: 0 20px 40px -12px hsl(217, 91%, 60%, 0.12);
-        }
-
-        .shadow-glow {
-            box-shadow: 0 0 40px hsl(220, 100%, 75%, 0.3);
-        }
-
-        .transition-smooth {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-hero {
-            background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(220, 100%, 75%));
-            color: hsl(0, 0%, 98%);
-            font-weight: 600;
-            box-shadow: 0 20px 40px -12px hsl(217, 91%, 60%, 0.12);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-hero:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 40px hsl(220, 100%, 75%, 0.3);
-        }
-
-        .btn-outline {
-            background: hsl(0, 0%, 100%, 0.5);
-            backdrop-filter: blur(8px);
-            border: 1px solid hsl(220, 14%, 91%, 0.5);
-            color: hsl(230, 20%, 15%);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-outline:hover {
-            background: hsl(217, 91%, 95%);
-            border-color: hsl(217, 91%, 60%, 0.3);
-            color: hsl(217, 91%, 40%);
-        }
-
-        .btn-premium {
-            background: linear-gradient(to right, hsl(217, 91%, 60%), hsl(220, 100%, 75%), hsl(217, 91%, 60%));
-            color: hsl(0, 0%, 98%);
-            border: 1px solid hsl(220, 100%, 75%, 0.2);
-            box-shadow: 0 20px 40px -12px hsl(217, 91%, 60%, 0.12);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-premium:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 40px hsl(220, 100%, 75%, 0.3);
-        }
-
-        .input-enhanced {
-            background: hsl(0, 0%, 100%, 0.5);
-            backdrop-filter: blur(8px);
-            border: 1px solid hsl(220, 14%, 91%, 0.5);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .input-enhanced:focus {
-            background: hsl(0, 0%, 100%);
-            border-color: hsl(217, 91%, 60%, 0.5);
-            outline: none;
-            box-shadow: 0 0 0 3px hsl(217, 91%, 60%, 0.1);
-        }
-
-        .status-success {
-            color: hsl(142, 76%, 36%);
-        }
-
-        .status-error {
-            color: hsl(0, 84%, 60%);
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 20px rgba(79, 127, 255, 0.3); }
+            to { box-shadow: 0 0 30px rgba(79, 127, 255, 0.6), 0 0 40px rgba(79, 127, 255, 0.3); }
         }
 
         body {
             font-family: 'Inter', sans-serif;
         }
-
-        .hero-image {
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 576"><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23217ff1;stop-opacity:1" /><stop offset="100%" style="stop-color:%2360a3ff;stop-opacity:1" /></linearGradient></defs><rect width="1024" height="576" fill="url(%23grad1)"/><g transform="translate(512,288)"><g transform="scale(2)"><circle cx="-60" cy="-20" r="25" fill="white" opacity="0.1"/><rect x="-40" y="-35" width="80" height="50" rx="8" fill="white" opacity="0.15"/><path d="M-30,-10 L-10,-10 L-10,10 L10,10 L10,-10 L30,-10 L30,20 L-30,20 Z" fill="white" opacity="0.2"/><circle cx="40" cy="-20" r="15" fill="white" opacity="0.1"/><path d="M35,-25 L45,-25 L45,-15 L35,-15 Z M37,-23 L43,-23 L43,-17 L37,-17 Z" fill="white" opacity="0.3"/></g></g></svg>');
-            background-size: cover;
-            background-position: center;
-        }
     </style>
-
-    <script>
-        function onSubmit(token) {
-            document.getElementById("recaptcha_token").value = token;
-            submitForm();
-        }
-    </script>
 </head>
-<body class="gradient-background text-foreground min-h-screen font-inter">
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800 min-h-screen font-inter">
 <div class="min-h-screen py-8 px-4">
     <div class="max-w-4xl mx-auto space-y-8">
         <!-- Hero Section -->
         <div class="text-center space-y-6">
-            <div class="relative overflow-hidden rounded-2xl shadow-elegant">
-                <div class="hero-image w-full h-64 flex items-center justify-center relative">
-                    <div class="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary-glow/60"></div>
-                    <div class="relative text-center space-y-4 z-10">
+            <div class="relative overflow-hidden rounded-2xl shadow-2xl">
+                <img src="global-entry-banner.png"
+                     alt="Global Entry Appointment Service"
+                     class="w-full h-64 object-cover">
+                <div class="absolute inset-0 bg-gradient-to-r from-primary-600/80 to-primary-500/60 flex items-center justify-center">
+                    <div class="text-center space-y-4 z-10">
                         <div class="animate-float">
                             <svg class="w-16 h-16 text-white mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                             </svg>
                         </div>
                         <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">
@@ -224,8 +104,8 @@
                 </div>
             </div>
 
-            <p class="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Get instant push notifications via the <span class="font-semibold text-primary">ntfy</span> app
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                Get instant push notifications via the <span class="font-semibold text-primary-600">ntfy</span> app
                 when Global Entry appointment slots open up. Stay ahead with real-time alerts!
             </p>
         </div>
@@ -233,68 +113,69 @@
         <div class="grid lg:grid-cols-3 gap-8">
             <!-- Main Form -->
             <div class="lg:col-span-2">
-                <div class="gradient-card shadow-elegant rounded-2xl border-0">
+                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="text-center pb-6 pt-8 px-8">
-                        <h2 class="text-xl font-bold text-foreground mb-2">
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">
                             Setup Your Alerts
                         </h2>
-                        <p class="text-base text-muted-foreground">
+                        <p class="text-slate-600">
                             Configure notifications for your preferred enrollment center
                         </p>
                     </div>
                     <div class="px-8 pb-8">
                         <form id="alert-form" class="space-y-6">
                             <div class="space-y-2">
-                                <label for="location" class="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                <label for="location" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                                     </svg>
                                     Enrollment Center
                                 </label>
-                                <select id="location" required class="input-enhanced w-full p-3 rounded-lg text-foreground transition-smooth h-12">
+                                <select id="location" required class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12">
                                     <option value="">Loading locations...</option>
                                 </select>
                             </div>
 
                             <div class="space-y-2">
-                                <label for="topic" class="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                <label for="topic" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
                                     </svg>
                                     Ntfy Topic
                                 </label>
                                 <input type="text" id="topic" name="topic"
-                                       placeholder="e.g., my-global-entry-alerts"
+                                       placeholder="see setup instructions"
                                        required
                                        pattern="^[a-zA-Z0-9_-]+$"
-                                       class="input-enhanced w-full p-3 rounded-lg text-foreground transition-smooth h-12" />
-                                <p class="text-xs text-muted-foreground">
+                                       class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
+                                <p class="text-xs text-slate-500">
                                     Only letters, numbers, underscores, and hyphens are allowed
                                 </p>
                             </div>
 
                             <div class="space-y-3">
-                                <span class="block text-sm font-semibold text-foreground">Action</span>
+                                <span class="block text-sm font-semibold text-slate-700">Action</span>
                                 <div class="flex gap-8">
                                     <label class="inline-flex items-center cursor-pointer">
-                                        <input type="radio" id="subscribe" name="action" value="subscribe" checked class="mr-2 text-primary focus:ring-primary">
-                                        <span class="font-medium text-foreground">Subscribe (30 days)</span>
+                                        <input type="radio" id="subscribe" name="action" value="subscribe" checked class="mr-2 text-primary-500 focus:ring-primary-500">
+                                        <span class="font-medium text-slate-700">Subscribe (30 days)</span>
                                     </label>
                                     <label class="inline-flex items-center cursor-pointer">
-                                        <input type="radio" id="unsubscribe" name="action" value="unsubscribe" class="mr-2 text-primary focus:ring-primary">
-                                        <span class="font-medium text-foreground">Unsubscribe</span>
+                                        <input type="radio" id="unsubscribe" name="action" value="unsubscribe" class="mr-2 text-primary-500 focus:ring-primary-500">
+                                        <span class="font-medium text-slate-700">Unsubscribe</span>
                                     </label>
                                 </div>
                             </div>
 
                             <input type="hidden" id="recaptcha_token" name="recaptcha_token" />
                             <button type="button"
-                                    class="btn-hero g-recaptcha w-full py-4 rounded-lg text-base font-semibold text-white h-14 flex items-center justify-center gap-2"
+                                    class="w-full py-4 rounded-lg text-base font-semibold text-white h-14 flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 animate-pulse-glow g-recaptcha"
                                     data-sitekey="6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"
                                     data-callback="onSubmit"
                                     data-action="submit">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                                 </svg>
                                 Start Receiving Alerts
                             </button>
@@ -308,10 +189,10 @@
             <!-- Instructions Sidebar -->
             <div class="space-y-6">
                 <!-- Setup Instructions -->
-                <div class="gradient-card shadow-elegant rounded-2xl border-0">
+                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="pt-6 px-6 pb-2">
-                        <h3 class="text-xl font-bold flex items-center gap-2 text-foreground">
-                            <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                        <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
+                            <svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
                             </svg>
                             Setup Instructions
@@ -319,15 +200,15 @@
                     </div>
                     <div class="px-6 pb-6 space-y-4">
                         <div class="space-y-3">
-                            <h4 class="font-semibold text-sm text-foreground">📱 Download ntfy App</h4>
+                            <h4 class="font-semibold text-sm text-slate-700">📱 Download ntfy App</h4>
                             <div class="space-y-2">
                                 <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer" class="block">
-                                    <button class="btn-outline w-full p-3 rounded-lg text-left transition-smooth text-sm font-medium justify-start flex">
+                                    <button class="w-full p-3 rounded-lg text-left transition-all duration-300 text-sm font-medium justify-start flex bg-white/70 border border-slate-200 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700">
                                         📱 iOS App Store
                                     </button>
                                 </a>
                                 <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer" class="block">
-                                    <button class="btn-outline w-full p-3 rounded-lg text-left transition-smooth text-sm font-medium justify-start flex">
+                                    <button class="w-full p-3 rounded-lg text-left transition-all duration-300 text-sm font-medium justify-start flex bg-white/70 border border-slate-200 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700">
                                         🤖 Google Play Store
                                     </button>
                                 </a>
@@ -335,39 +216,40 @@
                         </div>
 
                         <div class="space-y-2">
-                            <h4 class="font-semibold text-sm text-foreground">🔔 Create Topic</h4>
-                            <p class="text-sm text-muted-foreground leading-relaxed">
-                                Open the ntfy app and create a unique topic name (e.g., <code class="bg-muted px-1 rounded text-xs">my-alerts-123</code>).
+                            <h4 class="font-semibold text-sm text-slate-700">🔔 Create Topic</h4>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Open the ntfy app and create a <b>unique</b> topic name (e.g., <code class="bg-slate-100 px-1 rounded text-xs">my-global-entry-alerts</code>).
                                 Use the same topic name in the form.
                             </p>
                         </div>
-
                     </div>
                 </div>
 
                 <!-- Support Section -->
-                <div class="gradient-card shadow-elegant rounded-2xl border-0">
+                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="pt-6 px-6 pb-6">
                         <div class="text-center space-y-4">
-                            <h4 class="font-semibold flex items-center justify-center gap-2 text-foreground">
-                                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
+                                <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
                                 </svg>
                                 Support This Project
                             </h4>
-                            <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
+                            <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center">
+                                <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" />
+                            </a>
                             <div class="flex justify-center gap-4 pt-4">
-                                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-primary transition-smooth">
+                                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
                                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                                     </svg>
                                 </a>
-                                <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-primary transition-smooth">
+                                <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
                                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
                                     </svg>
                                 </a>
-                                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-primary transition-smooth">
+                                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
                                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                                     </svg>
@@ -382,6 +264,11 @@
 </div>
 
 <script>
+    function onSubmit(token) {
+        document.getElementById("recaptcha_token").value = token;
+        submitForm();
+    }
+
     async function fetchLocations() {
         try {
             const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
@@ -412,12 +299,12 @@
         const topic = document.getElementById("topic").value.trim();
         const action = document.querySelector('input[name="action"]:checked').value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
-        const submitButton = document.querySelector('.btn-hero');
+        const submitButton = document.querySelector('.g-recaptcha');
         const status = document.getElementById("status");
 
         if (!location || !topic) {
             status.textContent = "Please fill out all fields.";
-            status.className = "text-center font-medium text-sm mt-4 status-error";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
         }
 
@@ -443,7 +330,7 @@
 
             const text = await res.text();
             status.textContent = text || "Request successful!";
-            status.className = "text-center font-medium text-sm mt-4 status-success";
+            status.className = "text-center font-medium text-sm mt-4 text-green-600";
 
             // Reset form on successful subscription
             if (action === 'subscribe') {
@@ -452,25 +339,21 @@
             }
         } catch {
             status.textContent = "Error submitting request.";
-            status.className = "text-center font-medium text-sm mt-4 status-error";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
         } finally {
             // Reset button
-            submitButton.innerHTML = `
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                    </svg>
-                    ${action === 'subscribe' ? 'Start Receiving Alerts' : 'Stop Alerts'}
-                `;
+            updateSubmitButton();
             submitButton.disabled = false;
         }
     }
 
-    // Update button text based on action selection
-    function updateButtonText() {
+    // Update submit button text based on action selection
+    function updateSubmitButton() {
         const action = document.querySelector('input[name="action"]:checked').value;
-        const submitButton = document.querySelector('.btn-hero');
+        const submitButton = document.querySelector('.g-recaptcha');
         const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
             </svg>`;
         submitButton.innerHTML = `${icon} ${action === 'subscribe' ? 'Start Receiving Alerts' : 'Stop Alerts'}`;
     }
@@ -485,7 +368,7 @@
     // Add event listeners for radio buttons
     document.addEventListener('change', function(e) {
         if (e.target.name === 'action') {
-            updateButtonText();
+            updateSubmitButton();
         }
     });
 
@@ -493,7 +376,7 @@
         const params = new URLSearchParams(window.location.search);
         if (params.get("subscriptions") === "unsubscribe") {
             document.getElementById("unsubscribe").checked = true;
-            updateButtonText();
+            updateSubmitButton();
         }
     });
 
