@@ -208,18 +208,15 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location
 	return nil
 }
 
-// handleExpiringSubscriptions deletes subscriptions exactly 30 days old and notifies
+// handleExpiringSubscriptions deletes subscriptions older than 30 days and notifies
 func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *mongo.Collection) error {
 	now := time.Now().UTC()
-	// Calculate the 5-minute window for subscriptions exactly 30 days old
-	ttlThreshold := now.Add(-30 * 24 * time.Hour)         // 30 days ago
-	expireStart := ttlThreshold.Truncate(5 * time.Minute) // Start of the 5-minute block
-	expireEnd := expireStart.Add(5 * time.Minute)         // End of the 5-minute block
+	ttlThreshold := now.Add(-30 * 24 * time.Hour) // 30 days ago
+	slog.Debug("Checking for expiring subscriptions", "now", now, "ttlThreshold", ttlThreshold)
 
 	filter := bson.M{
 		"createdAt": bson.M{
-			"$gte": expireStart,
-			"$lt":  expireEnd,
+			"$lte": ttlThreshold,
 		},
 	}
 	cursor, err := coll.Find(ctx, filter)
@@ -234,6 +231,7 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 	}
 
 	for _, sub := range subscriptions {
+		slog.Debug("Found expiring subscription", "id", sub.ID, "createdAt", sub.CreatedAt)
 		// Send expiration notification
 		message := "Your Global Entry appointment subscription has expired."
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message); err != nil {
@@ -353,7 +351,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}, nil
 	}
 
-	// Handle front end OPTIONS治安
+	// Handle front end OPTIONS request
 	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
 		if method, ok := req["http"].(map[string]interface{})["method"].(string); ok && method == "OPTIONS" {
 			return events.APIGatewayV2HTTPResponse{
@@ -464,7 +462,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}
 			var subReq SubscriptionRequest
 			if err := json.Unmarshal([]byte(body), &subReq); err != nil {
-				slog.Error("Failed to parse request body", "body", body, "error", err)
+				slog.Error("Failed to parse request body", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
 					Headers:    corsHeaders,
@@ -490,7 +488,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				if json.Unmarshal([]byte(resp.Body), &bodyMap) == nil {
 					b, err := json.Marshal(bodyMap)
 					if err != nil {
-						slog.Error("Failed to marshal response body", "body", body, "error", err)
+						slog.Error("Failed to marshal response body", "error", err)
 					}
 					resp.Body = string(b)
 				}
@@ -522,21 +520,10 @@ func main() {
 		panic(fmt.Sprintf("failed to connect to MongoDB: %v", err))
 	}
 
-	// Ensure TTL index exists
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	coll := client.Database("global-entry-appointment-db").Collection("subscriptions")
-	ttlIndex := mongo.IndexModel{
-		Keys:    bson.D{{Key: "createdAt", Value: 1}},
-		Options: options.Index().SetExpireAfterSeconds(30 * 24 * 60 * 60), // 30 days
-	}
-
-	if _, err := coll.Indexes().CreateOne(ctx, ttlIndex); err != nil {
-		slog.Warn("Failed to create TTL index (maybe already exists)", "error", err)
-	} else {
-		slog.Info("TTL index on createdAt ensured")
-	}
 
 	// Initialize lastNotifiedAt for existing subscriptions
 	_, err = coll.UpdateMany(

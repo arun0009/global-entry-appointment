@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -23,8 +22,8 @@ import (
 func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) {
 	t.Helper()
 
-	// Disable logging
-	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	// Enable debug logging for tests
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
 	// Start MongoDB container
 	ctx := context.Background()
@@ -481,8 +480,8 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test subscription (30 days old)
-	expireTime := time.Now().UTC().Add(-30 * 24 * time.Hour)
+	// Insert test subscription (older than 30 days)
+	expireTime := time.Now().UTC().Add(-31 * 24 * time.Hour)
 	id := bson.NewObjectID()
 	_, err := coll.InsertOne(ctx, bson.M{
 		"_id":            id,
@@ -516,7 +515,87 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	// Verify subscription removed
 	count, err := coll.CountDocuments(ctx, bson.M{"_id": id})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(0), count)
+	assert.Equal(t, int64(0), count, "Expected subscription to be removed")
+}
+
+func TestHandleExpiringSubscriptions_SpecificTime(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription (less than 30 days old)
+	expireTime := time.Now().UTC().Add(-29 * 24 * time.Hour)
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      expireTime,
+		"lastNotifiedAt": time.Time{},
+	})
+	assert.NoError(t, err)
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "user1-jfk", payload["topic"])
+		assert.Equal(t, "Global Entry Subscription Expired", payload["title"])
+		assert.Contains(t, payload["message"], "Your Global Entry appointment subscription has expired")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err = handler.handleExpiringSubscriptions(ctx, coll)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notification as subscription is not yet 30 days old")
+
+	// Verify subscription still exists
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": id})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count, "Expected subscription to remain as it is not yet 30 days old")
+}
+
+func TestHandleExpiringSubscriptions_NotYetExpired(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription (less than 30 days old)
+	createdTime := time.Now().UTC().Add(-29 * 24 * time.Hour)
+	id := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            id,
+		"location":       "JFK",
+		"ntfyTopic":      "user1-jfk",
+		"createdAt":      createdTime,
+		"lastNotifiedAt": time.Time{},
+	})
+	assert.NoError(t, err)
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = &http.Client{Timeout: 2 * time.Second}
+
+	// Call function
+	err = handler.handleExpiringSubscriptions(ctx, coll)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
+
+	// Verify subscription still exists
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": id})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count, "Expected subscription to remain")
 }
 
 func TestHandleSubscription_InvalidInput(t *testing.T) {
