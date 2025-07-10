@@ -43,11 +43,11 @@ type (
 		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"15m"`
 		MongoConnectTimeout      time.Duration `envconfig:"MONGO_CONNECT_TIMEOUT" default:"10s"`
 		SubscriptionTTL          time.Duration `envconfig:"SUBSCRIPTION_TTL_DAYS" default:"720h"` //30 days but need to be in hours for duration
-		MaxNotifications         int32         `envconfig:"MAX_NOTIFICATIONS" default:"30"`
+		MaxNotifications         int32         `envconfig:"MAX_NOTIFICATIONS" default:"10"`
 		MaxConcurrentGoroutines  int           `envconfig:"MAX_CONCURRENT_GOROUTINES" default:"10"`
 		RetryWaitMin             time.Duration `envconfig:"RETRY_WAIT_MIN" default:"100ms"`
 		RetryWaitMax             time.Duration `envconfig:"RETRY_WAIT_MAX" default:"300ms"`
-		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"3"`
+		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"1"`
 	}
 
 	// Subscription represents a subscription document
