@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -34,6 +35,8 @@ var corsHeaders = map[string]string{
 
 var validNtfyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
+var ErrMaxNtfyFailures = errors.New("maximum ntfy failures reached")
+
 type (
 	// Config holds environment variables
 	Config struct {
@@ -42,12 +45,13 @@ type (
 		HTTPTimeout              time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"5s"`
 		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"15m"`
 		MongoConnectTimeout      time.Duration `envconfig:"MONGO_CONNECT_TIMEOUT" default:"10s"`
-		SubscriptionTTL          time.Duration `envconfig:"SUBSCRIPTION_TTL_DAYS" default:"720h"` //30 days but need to be in hours for duration
+		SubscriptionTTL          time.Duration `envconfig:"SUBSCRIPTION_TTL_DAYS" default:"720h"`
 		MaxNotifications         int32         `envconfig:"MAX_NOTIFICATIONS" default:"10"`
 		MaxConcurrentGoroutines  int           `envconfig:"MAX_CONCURRENT_GOROUTINES" default:"10"`
 		RetryWaitMin             time.Duration `envconfig:"RETRY_WAIT_MIN" default:"100ms"`
-		RetryWaitMax             time.Duration `envconfig:"RETRY_WAIT_MAX" default:"300ms"`
+		RetryWaitMax             time.Duration `envconfig:"RETRY_WAIT_MAX" default:"200ms"`
 		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"1"`
+		MaxNtfyFailures          int32         `envconfig:"MAX_NTFY_FAILURES" default:"5"`
 	}
 
 	// Subscription represents a subscription document
@@ -84,10 +88,11 @@ type (
 
 	// LambdaHandler holds dependencies
 	LambdaHandler struct {
-		Config     Config
-		URL        string
-		Client     *mongo.Client
-		HTTPClient *retryablehttp.Client
+		Config          Config
+		URL             string
+		Client          *mongo.Client
+		HTTPClient      *retryablehttp.Client
+		failedNtfyCount int32 // Global counter for notification failures
 	}
 )
 
@@ -110,6 +115,12 @@ func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHa
 
 // fetchAppointments retrieves appointment slots from the API
 func (h *LambdaHandler) fetchAppointments(ctx context.Context, location string) ([]Appointment, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(h.URL, location), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
@@ -140,7 +151,20 @@ func (h *LambdaHandler) fetchAppointments(ctx context.Context, location string) 
 }
 
 // sendNtfyNotification sends a notification to the specified ntfy topic
-func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, message string) error {
+func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, message string, failureChan chan<- struct{}) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	// Check failure limit before sending
+	if atomic.LoadInt32(&h.failedNtfyCount) >= h.Config.MaxNtfyFailures {
+		slog.Error("Reached maximum ntfy failures before sending", "maxNtfyFailures", h.Config.MaxNtfyFailures)
+		failureChan <- struct{}{} // Signal failure limit reached
+		return ErrMaxNtfyFailures
+	}
+
 	payload := map[string]string{
 		"topic":   topic,
 		"message": message,
@@ -150,28 +174,43 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, h.Config.NtfyServer, bytes.NewBuffer(payloadBytes))
 	if err != nil {
+		atomic.AddInt32(&h.failedNtfyCount, 1)
+		failureChan <- struct{}{} // Signal failure
 		return fmt.Errorf("failed to create ntfy request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	// Perform the request
 	resp, err := h.HTTPClient.Do(req)
-	if err != nil {
-		slog.Warn("Failed to send ntfy notification", "topic", topic, "error", err)
-		return fmt.Errorf("failed to send ntfy notification: %v", err)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if err != nil {
+			slog.Warn("Failed to send ntfy notification", "topic", topic, "error", err)
+		} else {
+			slog.Warn("Non-OK status from ntfy", "topic", topic, "status", resp.StatusCode)
+			resp.Body.Close()
+		}
+		// Increment failure count only once per notification attempt
+		atomic.AddInt32(&h.failedNtfyCount, 1)
+		failureChan <- struct{}{} // Signal failure
+		if err != nil {
+			return fmt.Errorf("failed to send ntfy notification: %v", err)
+		}
+		return fmt.Errorf("ntfy returned status %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		slog.Warn("Non-OK status from ntfy", "topic", topic, "status", resp.StatusCode)
-		return fmt.Errorf("ntfy returned status %d", resp.StatusCode)
-	}
-
-	slog.Info("Sent ntfy notification", "topic", topic, "title", title)
+	slog.Info("Sent ntfy notification", "topic", topic, "title", title, "message", message)
 	return nil
 }
 
 // updateLastNotified updates the lastNotifiedAt timestamp for multiple subscriptions
 func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Collection, updates []mongo.WriteModel) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	if len(updates) == 0 {
 		return nil
 	}
@@ -185,7 +224,7 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 }
 
 // notifyEligibleSubscribers sends notifications to eligible subscribers
-func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mongo.Collection, location string, subscriptions []Subscription, appointments []Appointment, globalNotifiedCount *int32) error {
+func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mongo.Collection, location string, subscriptions []Subscription, appointments []Appointment, globalNotifiedCount *int32, failureChan chan<- struct{}) error {
 	if len(appointments) == 0 || !appointments[0].Active {
 		return nil
 	}
@@ -195,6 +234,17 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 	localNotifiedCount := int32(0)
 
 	for _, sub := range subscriptions {
+		// Check context cancellation and failure limit
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if atomic.LoadInt32(&h.failedNtfyCount) >= h.Config.MaxNtfyFailures {
+			failureChan <- struct{}{}
+			return ErrMaxNtfyFailures
+		}
+
 		// Check global notification limit atomically
 		currentGlobalCount := atomic.LoadInt32(globalNotifiedCount)
 		if currentGlobalCount >= h.Config.MaxNotifications {
@@ -203,7 +253,7 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 		}
 
 		message := fmt.Sprintf("Appointment available at %s on %s", location, appointments[0].StartTimestamp)
-		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
+		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message, failureChan); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
 			continue
 		}
@@ -217,27 +267,36 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 
 	if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 		slog.Error("Failed to update lastNotifiedAt", "error", err)
+		return nil
 	}
 
-	slog.Info("Sent notifications", "count", localNotifiedCount, "location", location)
+	if localNotifiedCount > 0 {
+		slog.Info("Sent notifications", "count", localNotifiedCount, "location", location)
+	}
 	return nil
 }
 
 // checkAvailabilityAndNotify checks availability and notifies eligible subscribers
-func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location string, subscriptions []Subscription, globalNotifiedCount *int32) error {
+func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location string, subscriptions []Subscription, globalNotifiedCount *int32, failureChan chan<- struct{}) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	appointments, err := h.fetchAppointments(ctx, location)
 	if err != nil {
 		return fmt.Errorf("failed to fetch appointments: %v", err)
 	}
 
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
-	return h.notifyEligibleSubscribers(ctx, coll, location, subscriptions, appointments, globalNotifiedCount)
+	return h.notifyEligibleSubscribers(ctx, coll, location, subscriptions, appointments, globalNotifiedCount, failureChan)
 }
 
 // deleteExpiredSubscription deletes a single expired subscription
 func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mongo.Collection, sub Subscription) error {
 	message := "Your Global Entry appointment subscription has expired."
-	if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message); err != nil {
+	if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message, make(chan struct{})); err != nil {
 		slog.Error("Failed to send expiration notification", "topic", sub.NtfyTopic, "error", err)
 	}
 
@@ -328,7 +387,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	slog.Info("Added subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
 
 	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.Location)
-	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
+	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message, make(chan struct{})); err != nil {
 		slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
 	}
 
@@ -386,6 +445,9 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 
 // HandleRequest handles Scheduled Events and API requests
 func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage) (events.APIGatewayV2HTTPResponse, error) {
+	// Reset failedNtfyCount for each invocation
+	atomic.StoreInt32(&h.failedNtfyCount, 0)
+
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
 	var eventMap map[string]interface{}
@@ -441,8 +503,8 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}},
 			bson.D{{
 				"$sort", bson.M{
-					"isZero":         -1, // True (zero time) first
-					"lastNotifiedAt": -1, // Then sort by lastNotifiedAt descending
+					"isZero":         -1,
+					"lastNotifiedAt": -1,
 				},
 			}},
 			bson.D{{
@@ -483,29 +545,107 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 		var globalNotifiedCount int32
 		var wg sync.WaitGroup
+		var launchMu sync.Mutex // Mutex to serialize goroutine launches
 		semaphore := make(chan struct{}, h.Config.MaxConcurrentGoroutines)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		// Channel to signal failures
+		failureChan := make(chan struct{}, h.Config.MaxConcurrentGoroutines)
+		failureCount := int32(0)
+
+		// Monitor failure count and cancel context immediately
+		go func() {
+			for {
+				select {
+				case <-failureChan:
+					if atomic.AddInt32(&failureCount, 1) >= h.Config.MaxNtfyFailures {
+						slog.Error("Reached maximum ntfy failures, canceling context", "maxNtfyFailures", h.Config.MaxNtfyFailures)
+						cancel()
+						return
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+
 		for _, lt := range locationTopics {
-			if atomic.LoadInt32(&globalNotifiedCount) >= h.Config.MaxNotifications {
-				slog.Info("Skipping location due to global ntfy rate limit", "location", lt.Location, "maxNotifications", h.Config.MaxNotifications)
+			// Lock to ensure we check failure count and context atomically before launching
+			launchMu.Lock()
+			if atomic.LoadInt32(&h.failedNtfyCount) >= h.Config.MaxNtfyFailures {
+				slog.Info("Skipping location due to max ntfy failures", "location", lt.Location, "maxNtfyFailures", h.Config.MaxNtfyFailures)
+				launchMu.Unlock()
 				continue
 			}
+			select {
+			case <-ctx.Done():
+				slog.Info("Skipping location due to context cancellation", "location", lt.Location)
+				launchMu.Unlock()
+				continue
+			default:
+			}
+			if atomic.LoadInt32(&globalNotifiedCount) >= h.Config.MaxNotifications {
+				slog.Info("Skipping location due to global ntfy rate limit", "location", lt.Location, "maxNotifications", h.Config.MaxNotifications)
+				launchMu.Unlock()
+				continue
+			}
+
+			// Launch goroutine
 			wg.Add(1)
+			semaphore <- struct{}{}
 			go func(lt LocationTopics) {
 				defer wg.Done()
-				semaphore <- struct{}{}
 				defer func() { <-semaphore }()
-				if err := h.checkAvailabilityAndNotify(ctx, lt.Location, lt.Subscriptions, &globalNotifiedCount); err != nil {
+				defer launchMu.Unlock() // Unlock after goroutine starts
+
+				// Check context at goroutine start
+				select {
+				case <-ctx.Done():
+					slog.Info("Goroutine aborted due to context cancellation", "location", lt.Location)
+					return
+				default:
+				}
+
+				if err := h.checkAvailabilityAndNotify(ctx, lt.Location, lt.Subscriptions, &globalNotifiedCount, failureChan); err != nil {
 					slog.Error("Failed to check availability", "location", lt.Location, "error", err)
 				}
 			}(lt)
 		}
-		wg.Wait()
 
-		return events.APIGatewayV2HTTPResponse{
-			StatusCode: 200,
-			Headers:    corsHeaders,
-			Body:       `{"message": "cloudwatch event processed"}`,
-		}, nil
+		// Wait for goroutines to complete or context cancellation
+		doneChan := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(doneChan)
+			close(failureChan)
+		}()
+
+		select {
+		case <-ctx.Done():
+			slog.Error("Lambda terminated due to maximum ntfy failures", "maxNtfyFailures", h.Config.MaxNtfyFailures)
+			wg.Wait() // Ensure cleanup
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 500,
+				Headers:    corsHeaders,
+				Body:       `{"error": "maximum notification failures reached"}`,
+			}, ErrMaxNtfyFailures
+		case <-doneChan:
+			// Check final failure count
+			if atomic.LoadInt32(&h.failedNtfyCount) >= h.Config.MaxNtfyFailures {
+				slog.Error("Lambda terminated due to maximum ntfy failures", "maxNtfyFailures", h.Config.MaxNtfyFailures)
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 500,
+					Headers:    corsHeaders,
+					Body:       `{"error": "maximum notification failures reached"}`,
+				}, ErrMaxNtfyFailures
+			}
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    corsHeaders,
+				Body:       `{"message": "cloudwatch event processed"}`,
+			}, nil
+		}
 	}
 
 	// Handle API Gateway V2 HTTP event
@@ -592,7 +732,7 @@ func main() {
 	var config Config
 	if err := envconfig.Process("", &config); err != nil {
 		slog.Error("Failed to load config", "error", err)
-		os.Exit(1) // Graceful exit instead of panic
+		os.Exit(1)
 	}
 
 	url := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
@@ -602,7 +742,7 @@ func main() {
 	client, err := mongo.Connect(opts)
 	if err != nil {
 		slog.Error("Failed to connect to MongoDB", "error", err)
-		os.Exit(1) // Graceful exit instead of panic
+		os.Exit(1)
 	}
 
 	_, cancel := context.WithTimeout(context.Background(), config.MongoConnectTimeout)
