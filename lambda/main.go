@@ -46,8 +46,9 @@ type (
 		MaxNotifications         int32         `envconfig:"MAX_NOTIFICATIONS" default:"10"`
 		MaxConcurrentGoroutines  int           `envconfig:"MAX_CONCURRENT_GOROUTINES" default:"10"`
 		RetryWaitMin             time.Duration `envconfig:"RETRY_WAIT_MIN" default:"100ms"`
-		RetryWaitMax             time.Duration `envconfig:"RETRY_WAIT_MAX" default:"300ms"`
+		RetryWaitMax             time.Duration `envconfig:"RETRY_WAIT_MAX" default:"200ms"`
 		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"1"`
+		MaxNtfyFailures          int32         `envconfig:"MAX_NTFY_FAILURES" default:"5"`
 	}
 
 	// Subscription represents a subscription document
@@ -166,7 +167,7 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 		return fmt.Errorf("ntfy returned status %d", resp.StatusCode)
 	}
 
-	slog.Info("Sent ntfy notification", "topic", topic, "title", title)
+	slog.Info("Sent ntfy notification", "topic", topic, "title", title, "message", message)
 	return nil
 }
 
@@ -193,6 +194,7 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 	now := time.Now().UTC()
 	var bulkUpdates []mongo.WriteModel
 	localNotifiedCount := int32(0)
+	failedNtfyCount := int32(0)
 
 	for _, sub := range subscriptions {
 		// Check global notification limit atomically
@@ -202,9 +204,16 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 			return nil
 		}
 
+		// Check failed notification limit
+		if atomic.LoadInt32(&failedNtfyCount) >= h.Config.MaxNtfyFailures {
+			slog.Error("Reached maximum ntfy failures", "maxNtfyFailures", h.Config.MaxNtfyFailures)
+			return fmt.Errorf("maximum ntfy failures (%d) reached, terminating lambda", h.Config.MaxNtfyFailures)
+		}
+
 		message := fmt.Sprintf("Appointment available at %s on %s", location, appointments[0].StartTimestamp)
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
+			atomic.AddInt32(&failedNtfyCount, 1)
 			continue
 		}
 

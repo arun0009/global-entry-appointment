@@ -85,8 +85,9 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		MaxNotifications:         30,
 		MaxConcurrentGoroutines:  10,
 		RetryWaitMin:             100 * time.Millisecond,
-		RetryWaitMax:             300 * time.Millisecond,
-		MaxRetries:               3,
+		RetryWaitMax:             200 * time.Millisecond,
+		MaxRetries:               1,
+		MaxNtfyFailures:          5,
 	}
 	url := "http://localhost/%s" // Will be overridden by httptest
 	handler := NewLambdaHandler(config, url, client)
@@ -408,7 +409,7 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 	var globalNotifiedCount int32
 	err := handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, &globalNotifiedCount)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "giving up after 4 attempt(s)")
+	assert.Contains(t, err.Error(), "giving up after 2 attempt(s)")
 	assert.Equal(t, int32(0), globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
 }
 
