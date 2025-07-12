@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,8 +25,8 @@ import (
 func newRetryableHTTPClient(config Config) *retryablehttp.Client {
 	retryClient := retryablehttp.NewClient()
 	retryClient.RetryMax = config.MaxRetries
-	retryClient.RetryWaitMin = config.RetryWaitMin
-	retryClient.RetryWaitMax = config.RetryWaitMax
+	retryClient.RetryWaitMin = 100 * time.Millisecond
+	retryClient.RetryWaitMax = 200 * time.Millisecond
 	retryClient.HTTPClient.Timeout = config.HTTPTimeout
 	retryClient.Logger = nil
 	return retryClient
@@ -82,15 +81,12 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		MongoDBPassword:          "test",
 		NtfyServer:               "http://localhost",
 		HTTPTimeout:              2 * time.Second,
-		NotificationCooldownTime: 60 * time.Minute,
+		NotificationCooldownTime: 15 * time.Minute,
 		MongoConnectTimeout:      10 * time.Second,
 		SubscriptionTTL:          30 * 24 * time.Hour,
-		MaxNotifications:         30,
-		MaxConcurrentGoroutines:  10,
-		RetryWaitMin:             100 * time.Millisecond,
-		RetryWaitMax:             200 * time.Millisecond,
+		MaxNotifications:         10,
 		MaxRetries:               1,
-		MaxNtfyFailures:          5,
+		MaxNtfyFailures:          2,
 	}
 	url := "http://localhost/%s"
 	handler := NewLambdaHandler(config, url, client)
@@ -112,19 +108,13 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	// Insert test data: one unnotified, one outside cooldown, one within cooldown
 	now := time.Now().UTC()
 	insertSubscription(t, ctx, coll, "JFK", "user1-jfk", now, time.Time{})
-	insertSubscription(t, ctx, coll, "JFK", "user2-jfk", now, now.Add(-61*time.Minute))
-	insertSubscription(t, ctx, coll, "JFK", "user3-jfk", now, now.Add(-30*time.Minute))
+	insertSubscription(t, ctx, coll, "JFK", "user2-jfk", now, now.Add(-16*time.Minute))
+	insertSubscription(t, ctx, coll, "JFK", "user3-jfk", now, now.Add(-10*time.Minute))
 
-	// Mock HTTP server for Global Entry API
+	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		json.NewEncoder(w).Encode([]Appointment{
-			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+			{LocationID: 123, StartTimestamp: "2025-07-13T10:00:00Z", Active: true},
 		})
 	}))
 	defer apiServer.Close()
@@ -133,12 +123,6 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
@@ -173,11 +157,11 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user2-jfk"}).Decode(&sub2)
 	assert.NoError(t, err)
 	assert.False(t, sub2.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to be updated for user2-jfk")
-	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-61*time.Minute)), "Expected lastNotifiedAt to be updated to a newer time for user2-jfk")
+	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-16*time.Minute)), "Expected lastNotifiedAt to be updated to a newer time for user2-jfk")
 
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user3-jfk"}).Decode(&sub3)
 	assert.NoError(t, err)
-	assert.True(t, sub3.LastNotifiedAt.Before(now.Add(-29*time.Minute)), "Expected lastNotifiedAt to remain unchanged for user3-jfk")
+	assert.True(t, sub3.LastNotifiedAt.Before(now.Add(-9*time.Minute)), "Expected lastNotifiedAt to remain unchanged for user3-jfk")
 }
 
 func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
@@ -188,12 +172,6 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
@@ -322,14 +300,8 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		json.NewEncoder(w).Encode([]Appointment{
-			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+			{LocationID: 123, StartTimestamp: "2025-07-13T10:00:00Z", Active: true},
 		})
 	}))
 	defer apiServer.Close()
@@ -338,12 +310,6 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
@@ -356,13 +322,13 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 	handler.Config.NtfyServer = ntfyServer.URL
 	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
-	// Call function with failureChan
-	var globalNotifiedCount int32
-	failureChan := make(chan struct{}, handler.Config.MaxConcurrentGoroutines)
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, &globalNotifiedCount, failureChan)
+	// Call function
+	globalNotifiedCount := 0
+	var err error
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, globalNotifiedCount)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
-	assert.Equal(t, int32(1), globalNotifiedCount, "Expected globalNotifiedCount to be incremented")
+	assert.Equal(t, 1, globalNotifiedCount, "Expected globalNotifiedCount to be incremented")
 
 	// Verify lastNotifiedAt was updated
 	var sub Subscription
@@ -391,12 +357,6 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		json.NewEncoder(w).Encode([]Appointment{})
 	}))
 	defer apiServer.Close()
@@ -405,25 +365,19 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 	}))
 	defer ntfyServer.Close()
 	handler.Config.NtfyServer = ntfyServer.URL
 	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
-	// Call function with failureChan
-	var globalNotifiedCount int32
-	failureChan := make(chan struct{}, handler.Config.MaxConcurrentGoroutines)
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, &globalNotifiedCount, failureChan)
+	// Call function
+	globalNotifiedCount := 0
+	var err error
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, globalNotifiedCount)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
-	assert.Equal(t, int32(0), globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
+	assert.Equal(t, 0, globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
 }
 
 func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
@@ -446,25 +400,28 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 
 	// Mock Global Entry API (failing)
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		http.Error(w, "Server Error", http.StatusInternalServerError)
 	}))
 	defer apiServer.Close()
 	handler.URL = apiServer.URL + "/%s"
-	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
-	// Call function with failureChan
-	var globalNotifiedCount int32
-	failureChan := make(chan struct{}, handler.Config.MaxConcurrentGoroutines)
-	err := handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, &globalNotifiedCount, failureChan)
+	// Create HTTP client with custom retry policy to not retry on 500 status
+	httpClient := newRetryableHTTPClient(handler.Config)
+	httpClient.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if resp != nil && resp.StatusCode == http.StatusInternalServerError {
+			return false, nil // Do not retry on 500 status
+		}
+		return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
+	}
+	handler.HTTPClient = httpClient
+
+	// Call function
+	globalNotifiedCount := 0
+	var err error
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "JFK", subscriptions, globalNotifiedCount)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "giving up after 2 attempt(s)")
-	assert.Equal(t, int32(0), globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
+	assert.Contains(t, err.Error(), "API returned status 500")
+	assert.Equal(t, 0, globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
 }
 
 func TestHandleExpiringSubscriptions(t *testing.T) {
@@ -479,12 +436,6 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
@@ -520,12 +471,6 @@ func TestHandleExpiringSubscriptions_NotYetExpired(t *testing.T) {
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 	}))
 	defer ntfyServer.Close()
@@ -592,21 +537,15 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 
 	// Insert test subscriptions for 10 locations
 	now := time.Now().UTC()
-	locations := []string{"JFK", "LAX", "SFO", "ORD", "MIA", "DFW", "SEA", "IAH", "BOS", "ATL"}
+	locations := []string{"LAX", "MIA", "ATL", "BOS", "JFK", "SEA", "SFO", "ORD", "IAH", "DFW"}
 	for i, loc := range locations {
 		insertSubscription(t, ctx, coll, loc, fmt.Sprintf("user%d-%s", i+1, loc), now, time.Time{})
 	}
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		json.NewEncoder(w).Encode([]Appointment{
-			{LocationID: 123, StartTimestamp: "2025-05-04T10:00:00Z", Active: true},
+			{LocationID: 123, StartTimestamp: "2025-07-13T10:00:00Z", Active: true},
 		})
 	}))
 	defer apiServer.Close()
@@ -615,12 +554,6 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	// Mock ntfy server to fail all requests
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			http.Error(w, "Request canceled", http.StatusRequestTimeout)
-			return
-		default:
-		}
 		ntfyCalls++
 		http.Error(w, "Ntfy Server Error", http.StatusInternalServerError)
 	}))
@@ -640,20 +573,16 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	assert.JSONEq(t, `{"error": "maximum notification failures reached"}`, resp.Body)
 
 	// Verify failure count and ntfy calls
-	assert.Equal(t, int32(5), atomic.LoadInt32(&handler.failedNtfyCount), "Expected exactly 5 failures")
-	assert.LessOrEqual(t, ntfyCalls, 10, "Expected at most 10 ntfy attempts (5 failures with 1 retry each)")
+	assert.Equal(t, 2, handler.failedNtfyCount, "Expected exactly 2 failures")
+	assert.Equal(t, 4, ntfyCalls, "Expected exactly 4 ntfy attempts (2 failures with 1 retry each)")
 
-	// Verify that not all subscriptions were processed
-	processedCount := 0
+	// Verify no subscriptions were updated (since all notifications failed)
 	for i, loc := range locations {
 		var sub Subscription
 		err := coll.FindOne(ctx, bson.M{"ntfyTopic": fmt.Sprintf("user%d-%s", i+1, loc)}).Decode(&sub)
 		assert.NoError(t, err)
-		if !sub.LastNotifiedAt.IsZero() {
-			processedCount++
-		}
+		assert.True(t, sub.LastNotifiedAt.IsZero(), "Expected lastNotifiedAt to remain zero for %s", loc)
 	}
-	assert.LessOrEqual(t, processedCount, 5, "Expected at most 5 subscriptions to be processed")
 }
 
 func TestMain(m *testing.M) {
