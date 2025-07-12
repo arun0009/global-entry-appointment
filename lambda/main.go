@@ -53,6 +53,8 @@ type (
 	Subscription struct {
 		ID             bson.ObjectID `bson:"_id"`
 		Location       string        `bson:"location"`
+		ShortName      string        `bson:"shortName"`
+		Timezone       string        `bson:"timezone"`
 		NtfyTopic      string        `bson:"ntfyTopic"`
 		CreatedAt      time.Time     `bson:"createdAt"`
 		LastNotifiedAt time.Time     `bson:"lastNotifiedAt,omitempty"`
@@ -78,6 +80,8 @@ type (
 	SubscriptionRequest struct {
 		Action    string `json:"action"`
 		Location  string `json:"location"`
+		ShortName string `json:"shortName"`
+		Timezone  string `json:"timezone"`
 		NtfyTopic string `json:"ntfyTopic"`
 	}
 
@@ -213,7 +217,20 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 			return globalNotifiedCount, nil
 		}
 
-		message := fmt.Sprintf("Appointment available at %s on %s", location, appointments[0].StartTimestamp)
+		// Load timezone from subscription
+		loc, err := time.LoadLocation(sub.Timezone)
+		if err != nil {
+			slog.Error("Failed to load timezone", "timezone", sub.Timezone, "error", err)
+			continue
+		}
+		// Parse the timestamp in the subscription's timezone
+		t, err := time.ParseInLocation("2006-01-02T15:04", appointments[0].StartTimestamp, loc)
+		if err != nil {
+			slog.Error("Failed to parse timestamp", "topic", sub.NtfyTopic, "error", err)
+			continue
+		}
+		formattedTime := t.Format("Mon, Jan 2, 2006 at 3:04 PM MST")
+		message := fmt.Sprintf("Appointment available at %s on %s", sub.ShortName, formattedTime)
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
 			if errors.Is(err, ErrMaxNtfyFailures) {
@@ -306,6 +323,14 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 			Body:       `{"error": "Ntfy Topic must not contain spaces or special characters"}`,
 		}, nil
 	}
+
+	if req.ShortName == "" || req.Timezone == "" {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "shortName and timezone must be provided from location data"}`,
+		}, nil
+	}
 	return events.APIGatewayV2HTTPResponse{}, nil
 }
 
@@ -330,6 +355,8 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	_, err = coll.InsertOne(ctx, bson.M{
 		"_id":            bson.NewObjectID(),
 		"location":       req.Location,
+		"shortName":      req.ShortName,
+		"timezone":       req.Timezone,
 		"ntfyTopic":      req.NtfyTopic,
 		"createdAt":      time.Now().UTC(),
 		"lastNotifiedAt": time.Time{},
@@ -341,9 +368,9 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 			Body:       `{"error": "failed to insert subscription"}`,
 		}, fmt.Errorf("failed to insert subscription: %v", err)
 	}
-	slog.Info("Added subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
+	slog.Info("Added subscription", "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic)
 
-	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.Location)
+	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.ShortName)
 	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
 		slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
 	}
@@ -469,6 +496,8 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 						"$push", bson.M{
 							"_id":            "$_id",
 							"location":       "$location",
+							"shortName":      "$shortName",
+							"timezone":       "$timezone",
 							"ntfyTopic":      "$ntfyTopic",
 							"createdAt":      "$createdAt",
 							"lastNotifiedAt": "$lastNotifiedAt",

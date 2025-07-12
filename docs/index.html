@@ -286,7 +286,7 @@
                     `${loc.city} ${loc.state} ${loc.postalCode}`
                 ];
                 const text = labelParts.filter(Boolean).join(" – ");
-                const option = new Option(text, loc.id);
+                const option = new Option(text, JSON.stringify({id: loc.id, shortName: loc.shortName, timezone: loc.tzData}));
                 select.add(option);
             });
         } catch {
@@ -295,7 +295,10 @@
     }
 
     async function submitForm() {
-        const location = document.getElementById("location").value;
+        const locationData = JSON.parse(document.getElementById("location").value || "{}");
+        const location = locationData.id || "";
+        const shortName = locationData.shortName || "";
+        const timezone = locationData.timezone || "";
         const topic = document.getElementById("topic").value.trim();
         const action = document.querySelector('input[name="action"]:checked').value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
@@ -318,7 +321,7 @@
             `;
         submitButton.disabled = true;
 
-        const payload = { action, location, ntfyTopic: topic, recaptchaToken };
+        const payload = { action, location, shortName, timezone, ntfyTopic: topic, recaptchaToken };
         const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
 
         try {
