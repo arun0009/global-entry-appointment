@@ -60,20 +60,17 @@
             }
         }
     </script>
-
     <style>
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
         }
-
         @keyframes pulse-glow {
             from { box-shadow: 0 0 20px rgba(79, 127, 255, 0.3); }
             to { box-shadow: 0 0 30px rgba(79, 127, 255, 0.6), 0 0 40px rgba(79, 127, 255, 0.3); }
         }
-
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', 'sans-serif';
         }
     </style>
 </head>
@@ -188,7 +185,6 @@
 
             <!-- Instructions Sidebar -->
             <div class="space-y-6">
-                <!-- Setup Instructions -->
                 <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="pt-6 px-6 pb-2">
                         <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
@@ -264,6 +260,9 @@
 </div>
 
 <script>
+    // Store locations globally to access shortName and timezone
+    let globalLocations = [];
+
     function onSubmit(token) {
         document.getElementById("recaptcha_token").value = token;
         submitForm();
@@ -274,19 +273,20 @@
             const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
             const locations = await res.json();
 
-            locations.sort((a, b) => a.name.localeCompare(b.name));
+            // Store locations for later use
+            globalLocations = locations.sort((a, b) => a.name.localeCompare(b.name));
 
             const select = document.getElementById("location");
             select.innerHTML = '<option value="">-- Select a location --</option>';
 
-            locations.forEach(loc => {
+            globalLocations.forEach(loc => {
                 const labelParts = [
                     loc.name,
                     loc.addressAdditional || loc.address,
                     `${loc.city} ${loc.state} ${loc.postalCode}`
                 ];
                 const text = labelParts.filter(Boolean).join(" – ");
-                const option = new Option(text, JSON.stringify({id: loc.id, shortName: loc.shortName, timezone: loc.tzData}));
+                const option = new Option(text, loc.id);
                 select.add(option);
             });
         } catch {
@@ -295,18 +295,23 @@
     }
 
     async function submitForm() {
-        const locationData = JSON.parse(document.getElementById("location").value || "{}");
-        const location = locationData.id || "";
-        const shortName = locationData.shortName || "";
-        const timezone = locationData.timezone || "";
+        const locationId = document.getElementById("location").value;
         const topic = document.getElementById("topic").value.trim();
         const action = document.querySelector('input[name="action"]:checked').value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
         const submitButton = document.querySelector('.g-recaptcha');
         const status = document.getElementById("status");
 
-        if (!location || !topic) {
+        if (!locationId || !topic) {
             status.textContent = "Please fill out all fields.";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            return;
+        }
+
+        // Find the selected location to get shortName and timezone
+        const selectedLocation = globalLocations.find(loc => loc.id === Number(locationId));
+        if (!selectedLocation) {
+            status.textContent = "Selected location not found.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
         }
@@ -321,7 +326,13 @@
             `;
         submitButton.disabled = true;
 
-        const payload = { action, location, shortName, timezone, ntfyTopic: topic, recaptchaToken };
+        const payload = {
+            action,
+            location: String(locationId), // Ensure location is a string
+            shortName: selectedLocation.shortName || selectedLocation.name,
+            timezone: selectedLocation.tzData || "America/New_York", // Fallback to a default timezone
+            ntfyTopic: topic,
+        };
         const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
 
         try {
@@ -350,7 +361,6 @@
         }
     }
 
-    // Update submit button text based on action selection
     function updateSubmitButton() {
         const action = document.querySelector('input[name="action"]:checked').value;
         const submitButton = document.querySelector('.g-recaptcha');
@@ -368,7 +378,6 @@
         });
     });
 
-    // Add event listeners for radio buttons
     document.addEventListener('change', function(e) {
         if (e.target.name === 'action') {
             updateSubmitButton();
@@ -381,9 +390,8 @@
             document.getElementById("unsubscribe").checked = true;
             updateSubmitButton();
         }
+        fetchLocations();
     });
-
-    fetchLocations();
 </script>
 </body>
 </html>
