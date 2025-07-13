@@ -199,16 +199,25 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 }
 
 // notifyEligibleSubscribers sends notifications to eligible subscribers
-func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mongo.Collection, location string, subscriptions []Subscription, appointments []Appointment, globalNotifiedCount int) (int, error) {
-	if len(appointments) == 0 || !appointments[0].Active {
-		return globalNotifiedCount, nil
-	}
-
+func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mongo.Collection, subscriptions []Subscription, appointments map[string][]Appointment, globalNotifiedCount int) (int, error) {
 	now := time.Now().UTC()
 	var bulkUpdates []mongo.WriteModel
 	localNotifiedCount := 0
 
 	for _, sub := range subscriptions {
+		// Check if subscription is within cooldown period
+		if now.Sub(sub.LastNotifiedAt) < h.Config.NotificationCooldownTime {
+			slog.Debug("Skipping notification due to cooldown", "topic", sub.NtfyTopic, "lastNotifiedAt", sub.LastNotifiedAt)
+			continue
+		}
+
+		// Get appointments for the subscription's location
+		appointments, exists := appointments[sub.Location]
+		if !exists || len(appointments) == 0 || !appointments[0].Active {
+			slog.Debug("No active appointments for location", "location", sub.Location)
+			continue
+		}
+
 		// Load timezone from subscription
 		loc, err := time.LoadLocation(sub.Timezone)
 		if err != nil {
@@ -277,14 +286,33 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 }
 
 // checkAvailabilityAndNotify checks availability and notifies eligible subscribers
-func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, location string, subscriptions []Subscription, globalNotifiedCount int) (int, error) {
-	appointments, err := h.fetchAppointments(ctx, location)
-	if err != nil {
-		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments: %v", err)
+func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscriptions []Subscription, globalNotifiedCount int) (int, error) {
+	// Collect unique locations from subscriptions
+	locations := make(map[string]bool)
+	for _, sub := range subscriptions {
+		locations[sub.Location] = true
+	}
+
+	// Fetch appointments for all unique locations
+	appointments := make(map[string][]Appointment)
+	var fetchErrors []error
+	for location := range locations {
+		apps, err := h.fetchAppointments(ctx, location)
+		if err != nil {
+			slog.Warn("Failed to fetch appointments", "location", location, "error", err)
+			fetchErrors = append(fetchErrors, fmt.Errorf("location %s: %w", location, err))
+			continue
+		}
+		appointments[location] = apps
+	}
+
+	// If no appointments were fetched successfully and there were errors, return a combined error
+	if len(appointments) == 0 && len(fetchErrors) > 0 {
+		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments for all locations: %v", errors.Join(fetchErrors...))
 	}
 
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
-	return h.notifyEligibleSubscribers(ctx, coll, location, subscriptions, appointments, globalNotifiedCount)
+	return h.notifyEligibleSubscribers(ctx, coll, subscriptions, appointments, globalNotifiedCount)
 }
 
 // deleteExpiredSubscription deletes a single expired subscription
@@ -496,19 +524,8 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				},
 			}},
 			bson.D{{
-				"$group", bson.D{
-					{"_id", "$location"},
-					{"subscriptions", bson.D{{
-						"$push", bson.M{
-							"_id":            "$_id",
-							"location":       "$location",
-							"shortName":      "$shortName",
-							"timezone":       "$timezone",
-							"ntfyTopic":      "$ntfyTopic",
-							"createdAt":      "$createdAt",
-							"lastNotifiedAt": "$lastNotifiedAt",
-						},
-					}}},
+				"$sort", bson.M{
+					"lastNotifiedAt": 1, // Sort by lastNotifiedAt ascending (oldest first)
 				},
 			}},
 		}
@@ -523,8 +540,8 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 		defer cursor.Close(ctx)
 
-		var locationTopics []LocationTopics
-		if err := cursor.All(ctx, &locationTopics); err != nil {
+		var subscriptions []Subscription
+		if err := cursor.All(ctx, &subscriptions); err != nil {
 			slog.Error("Failed to decode aggregation results", "error", err)
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 500,
@@ -534,9 +551,9 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 
 		globalNotifiedCount := 0
-		for _, lt := range locationTopics {
+		if len(subscriptions) > 0 {
 			if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-				slog.Error("Terminating due to maximum ntfy failures", "location", lt.Location)
+				slog.Error("Terminating due to maximum ntfy failures")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
 					Headers:    corsHeaders,
@@ -554,17 +571,17 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}
 
 			var err error
-			globalNotifiedCount, err = h.checkAvailabilityAndNotify(ctx, lt.Location, lt.Subscriptions, globalNotifiedCount)
+			globalNotifiedCount, err = h.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 			if err != nil {
 				if errors.Is(err, ErrMaxNtfyFailures) {
-					slog.Error("Terminating due to maximum ntfy failures", "location", lt.Location)
+					slog.Error("Terminating due to maximum ntfy failures")
 					return events.APIGatewayV2HTTPResponse{
 						StatusCode: 500,
 						Headers:    corsHeaders,
 						Body:       `{"error": "maximum notification failures reached"}`,
 					}, ErrMaxNtfyFailures
 				}
-				slog.Warn("Failed to check availability", "location", lt.Location, "error", err)
+				slog.Warn("Failed to check availability", "error", err)
 			}
 		}
 

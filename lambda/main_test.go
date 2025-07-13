@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,16 +108,31 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test data: one new subscription, one outside cooldown, one within cooldown
+	// Insert test data: subscriptions across different locations with varying lastNotifiedAt
 	now := time.Now().UTC()
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-16*time.Minute))
+	// Oldest subscription (user2-sf, San Francisco)
+	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-20*time.Minute))
+	// Middle subscription (user1-ny, New York)
+	insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-16*time.Minute))
+	// Newest subscription (user3-sf, San Francisco, within cooldown)
 	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user3-sf", now, now.Add(-10*time.Minute))
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract location from URL
+		parts := strings.Split(r.URL.Path, "/")
+		location := parts[len(parts)-1]
+		var locationID int
+		if location == "5446" {
+			locationID = 5446
+		} else if location == "5001" {
+			locationID = 5001
+		} else {
+			http.Error(w, "Invalid location", http.StatusBadRequest)
+			return
+		}
 		json.NewEncoder(w).Encode([]Appointment{
-			{LocationID: 5446, StartTimestamp: "2025-07-22T14:00", EndTimestamp: "2025-07-22T14:10", Active: true, Duration: 10, RemoteInd: false},
+			{LocationID: locationID, StartTimestamp: "2025-07-22T14:00", EndTimestamp: "2025-07-22T14:10", Active: true, Duration: 10, RemoteInd: false},
 		})
 	}))
 	defer apiServer.Close()
@@ -124,13 +140,18 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 
 	// Mock ntfy server
 	ntfyCalls := 0
+	ntfyTopics := []string{}
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ntfyCalls++
 		var payload map[string]string
 		json.NewDecoder(r.Body).Decode(&payload)
+		ntfyTopics = append(ntfyTopics, payload["topic"])
 		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
-		assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM PDT")
-		assert.Contains(t, []string{"user1-sf", "user2-sf"}, payload["topic"], "Expected notification for user1-sf or user2-sf")
+		if payload["topic"] == "user2-sf" {
+			assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM PDT")
+		} else if payload["topic"] == "user1-ny" {
+			assert.Contains(t, payload["message"], "Appointment available at NY Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM EDT")
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ntfyServer.Close()
@@ -147,18 +168,20 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.JSONEq(t, `{"message": "cloudwatch event processed"}`, resp.Body)
 
-	// Verify ntfy calls (only for user1-sf and user2-sf, as user3-sf is within cooldown)
+	// Verify ntfy calls (only for user2-sf and user1-ny, as user3-sf is within cooldown)
 	assert.Equal(t, 2, ntfyCalls, "Expected two ntfy notifications")
+	// Verify order of notifications (user2-sf should be first, then user1-ny)
+	assert.Equal(t, []string{"user2-sf", "user1-ny"}, ntfyTopics, "Expected notifications in order of oldest lastNotifiedAt")
 
-	// Verify lastNotifiedAt was updated for user1-sf and user2-sf
+	// Verify lastNotifiedAt was updated for user2-sf and user1-ny
 	var sub1, sub2, sub3 Subscription
-	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user1-sf"}).Decode(&sub1)
+	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user2-sf"}).Decode(&sub1)
 	assert.NoError(t, err)
-	assert.True(t, sub1.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for user1-sf")
+	assert.True(t, sub1.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for user2-sf")
 
-	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user2-sf"}).Decode(&sub2)
+	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user1-ny"}).Decode(&sub2)
 	assert.NoError(t, err)
-	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-16*time.Minute)), "Expected lastNotifiedAt to be updated for user2-sf")
+	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for user1-ny")
 
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user3-sf"}).Decode(&sub3)
 	assert.NoError(t, err)
@@ -380,7 +403,7 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 	// Call function
 	globalNotifiedCount := 0
 	var err error
-	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "5446", subscriptions, globalNotifiedCount)
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
 	assert.Equal(t, 1, globalNotifiedCount, "Expected globalNotifiedCount to be incremented")
@@ -431,7 +454,7 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 	// Call function
 	globalNotifiedCount := 0
 	var err error
-	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "5446", subscriptions, globalNotifiedCount)
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
 	assert.Equal(t, 0, globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
@@ -477,9 +500,10 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 	// Call function
 	globalNotifiedCount := 0
 	var err error
-	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, "5446", subscriptions, globalNotifiedCount)
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "API returned status 500")
+	assert.Contains(t, err.Error(), "failed to fetch appointments for all locations")
+	assert.Contains(t, err.Error(), "location 5446: API returned status 500")
 	assert.Equal(t, 0, globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
 }
 
@@ -707,8 +731,10 @@ func TestNotifyEligibleSubscribersMaxNotifications(t *testing.T) {
 			LastNotifiedAt: now.Add(-20 * time.Minute),
 		},
 	}
-	appointments := []Appointment{
-		{Active: true, StartTimestamp: "2025-07-13T10:00"},
+	appointments := map[string][]Appointment{
+		"5446": {
+			{Active: true, StartTimestamp: "2025-07-13T10:00"},
+		},
 	}
 
 	// Mock ntfy server
@@ -727,7 +753,7 @@ func TestNotifyEligibleSubscribersMaxNotifications(t *testing.T) {
 	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
 	// Call function
-	globalNotifiedCount, err := handler.notifyEligibleSubscribers(ctx, coll, "5446", subscriptions, appointments, 0)
+	globalNotifiedCount, err := handler.notifyEligibleSubscribers(ctx, coll, subscriptions, appointments, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, globalNotifiedCount, "Expected globalNotifiedCount to be 1")
 	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
