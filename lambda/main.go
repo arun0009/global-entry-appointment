@@ -198,22 +198,41 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 	return nil
 }
 
-// notifyEligibleSubscribers sends notifications to eligible subscribers
-func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mongo.Collection, subscriptions []Subscription, appointments map[string][]Appointment, globalNotifiedCount int) (int, error) {
+// checkAvailabilityAndNotify checks availability and notifies eligible subscribers
+func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscriptions []Subscription, globalNotifiedCount int) (int, error) {
+	appointments := make(map[string][]Appointment)
+	var fetchErrors []error
 	now := time.Now().UTC()
 	var bulkUpdates []mongo.WriteModel
-	localNotifiedCount := 0
+	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
 	for _, sub := range subscriptions {
-		// Check if subscription is within cooldown period
-		if now.Sub(sub.LastNotifiedAt) < h.Config.NotificationCooldownTime {
-			slog.Debug("Skipping notification due to cooldown", "topic", sub.NtfyTopic, "lastNotifiedAt", sub.LastNotifiedAt)
-			continue
+		// Stop if we've reached the global notification limit
+		if globalNotifiedCount >= h.Config.MaxNotifications {
+			slog.Info("Reached global notification limit")
+			// Update lastNotifiedAt before returning
+			if len(bulkUpdates) > 0 {
+				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
+					slog.Error("Failed to update lastNotifiedAt before max notifications", "error", err)
+				}
+			}
+			return globalNotifiedCount, nil
+		}
+
+		// Fetch appointments only if we haven't already for this location
+		if _, exists := appointments[sub.Location]; !exists {
+			apps, err := h.fetchAppointments(ctx, sub.Location)
+			if err != nil {
+				slog.Warn("Failed to fetch appointments", "location", sub.Location, "error", err)
+				fetchErrors = append(fetchErrors, fmt.Errorf("location %s: %w", sub.Location, err))
+				continue
+			}
+			appointments[sub.Location] = apps
 		}
 
 		// Get appointments for the subscription's location
-		appointments, exists := appointments[sub.Location]
-		if !exists || len(appointments) == 0 || !appointments[0].Active {
+		apps, exists := appointments[sub.Location]
+		if !exists || len(apps) == 0 || !apps[0].Active {
 			slog.Debug("No active appointments for location", "location", sub.Location)
 			continue
 		}
@@ -225,7 +244,7 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 			continue
 		}
 		// Parse the timestamp in the subscription's timezone
-		t, err := time.ParseInLocation("2006-01-02T15:04", appointments[0].StartTimestamp, loc)
+		t, err := time.ParseInLocation("2006-01-02T15:04", apps[0].StartTimestamp, loc)
 		if err != nil {
 			slog.Error("Failed to parse timestamp", "topic", sub.NtfyTopic, "error", err)
 			continue
@@ -250,9 +269,8 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 			SetFilter(bson.M{"_id": sub.ID}).
 			SetUpdate(bson.M{"$set": bson.M{"lastNotifiedAt": now}}))
 		globalNotifiedCount++
-		localNotifiedCount++
 
-		// Check limits after adding to bulkUpdates
+		// Check for max notification failures
 		if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
 			// Update lastNotifiedAt before returning
 			if len(bulkUpdates) > 0 {
@@ -261,17 +279,6 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 				}
 			}
 			return globalNotifiedCount, ErrMaxNtfyFailures
-		}
-
-		if globalNotifiedCount >= h.Config.MaxNotifications {
-			slog.Info("Reached global notification limit")
-			// Update lastNotifiedAt before returning
-			if len(bulkUpdates) > 0 {
-				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-					slog.Error("Failed to update lastNotifiedAt before max notifications", "error", err)
-				}
-			}
-			return globalNotifiedCount, nil
 		}
 	}
 
@@ -282,37 +289,12 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 		}
 	}
 
-	return globalNotifiedCount, nil
-}
-
-// checkAvailabilityAndNotify checks availability and notifies eligible subscribers
-func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscriptions []Subscription, globalNotifiedCount int) (int, error) {
-	// Collect unique locations from subscriptions
-	locations := make(map[string]bool)
-	for _, sub := range subscriptions {
-		locations[sub.Location] = true
-	}
-
-	// Fetch appointments for all unique locations
-	appointments := make(map[string][]Appointment)
-	var fetchErrors []error
-	for location := range locations {
-		apps, err := h.fetchAppointments(ctx, location)
-		if err != nil {
-			slog.Warn("Failed to fetch appointments", "location", location, "error", err)
-			fetchErrors = append(fetchErrors, fmt.Errorf("location %s: %w", location, err))
-			continue
-		}
-		appointments[location] = apps
-	}
-
 	// If no appointments were fetched successfully and there were errors, return a combined error
 	if len(appointments) == 0 && len(fetchErrors) > 0 {
 		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments for all locations: %v", errors.Join(fetchErrors...))
 	}
 
-	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
-	return h.notifyEligibleSubscribers(ctx, coll, subscriptions, appointments, globalNotifiedCount)
+	return globalNotifiedCount, nil
 }
 
 // deleteExpiredSubscription deletes a single expired subscription
@@ -559,15 +541,6 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					Headers:    corsHeaders,
 					Body:       `{"error": "maximum notification failures reached"}`,
 				}, ErrMaxNtfyFailures
-			}
-
-			if globalNotifiedCount >= h.Config.MaxNotifications {
-				slog.Info("Terminating due to global notification limit")
-				return events.APIGatewayV2HTTPResponse{
-					StatusCode: 200,
-					Headers:    corsHeaders,
-					Body:       `{"message": "cloudwatch event processed"}`,
-				}, nil
 			}
 
 			var err error

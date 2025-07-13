@@ -507,6 +507,136 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 	assert.Equal(t, 0, globalNotifiedCount, "Expected globalNotifiedCount to remain zero")
 }
 
+func TestCheckAvailabilityAndNotify_GreedyFetching(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Override MaxNotifications to a low value
+	handler.Config.MaxNotifications = 3
+
+	// Insert test subscriptions: 6 subscriptions across 3 locations
+	now := time.Now().UTC()
+	locations := []struct {
+		id             bson.ObjectID
+		location       string
+		ntfyTopic      string
+		lastNotifiedAt time.Time
+	}{
+		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-20*time.Minute)), location: "5446", ntfyTopic: "user1-sf", lastNotifiedAt: now.Add(-20 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-19*time.Minute)), location: "5446", ntfyTopic: "user2-sf", lastNotifiedAt: now.Add(-19 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-18*time.Minute)), location: "5001", ntfyTopic: "user1-ny", lastNotifiedAt: now.Add(-18 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user2-ny", now, now.Add(-17*time.Minute)), location: "5001", ntfyTopic: "user2-ny", lastNotifiedAt: now.Add(-17 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user1-chi", now, now.Add(-16*time.Minute)), location: "1234", ntfyTopic: "user1-chi", lastNotifiedAt: now.Add(-16 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user2-chi", now, now.Add(-15*time.Minute)), location: "1234", ntfyTopic: "user2-chi", lastNotifiedAt: now.Add(-15 * time.Minute)},
+	}
+
+	// Create subscription slice, sorted by lastNotifiedAt (oldest first)
+	subscriptions := make([]Subscription, len(locations))
+	shortNameMap := map[string]string{
+		"5446": "SF Enrollment Center",
+		"5001": "NY Enrollment Center",
+		"1234": "Chicago Enrollment Center",
+	}
+	timezoneMap := map[string]string{
+		"5446": "America/Los_Angeles",
+		"5001": "America/New_York",
+		"1234": "America/Chicago",
+	}
+	for i, loc := range locations {
+		subscriptions[i] = Subscription{
+			ID:             loc.id,
+			Location:       loc.location,
+			ShortName:      shortNameMap[loc.location],
+			Timezone:       timezoneMap[loc.location],
+			NtfyTopic:      loc.ntfyTopic,
+			CreatedAt:      now,
+			LastNotifiedAt: loc.lastNotifiedAt,
+		}
+	}
+
+	// Mock Global Entry API with fetch counter
+	fetchCalls := 0
+	fetchedLocations := make(map[string]bool)
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fetchCalls++
+		parts := strings.Split(r.URL.Path, "/")
+		location := parts[len(parts)-1]
+		fetchedLocations[location] = true
+		var locationID int
+		switch location {
+		case "5446":
+			locationID = 5446
+		case "5001":
+			locationID = 5001
+		case "1234":
+			locationID = 1234
+		default:
+			http.Error(w, "Invalid location", http.StatusBadRequest)
+			return
+		}
+		json.NewEncoder(w).Encode([]Appointment{
+			{LocationID: locationID, StartTimestamp: "2025-07-22T14:00", EndTimestamp: "2025-07-22T14:10", Active: true, Duration: 10, RemoteInd: false},
+		})
+	}))
+	defer apiServer.Close()
+	handler.URL = apiServer.URL + "/%s"
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyTopics := []string{}
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		ntfyTopics = append(ntfyTopics, payload["topic"])
+		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
+		if payload["topic"] == "user1-sf" {
+			assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM PDT")
+		} else if payload["topic"] == "user2-sf" {
+			assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM PDT")
+		} else if payload["topic"] == "user1-ny" {
+			assert.Contains(t, payload["message"], "Appointment available at NY Enrollment Center on Tue, Jul 22, 2025 at 2:00 PM EDT")
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+	// Call function
+	globalNotifiedCount := 0
+	var err error
+	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, ntfyCalls, "Expected three ntfy notifications")
+	assert.Equal(t, 3, globalNotifiedCount, "Expected globalNotifiedCount to be 3")
+	assert.LessOrEqual(t, fetchCalls, 2, "Expected at most 2 fetch calls (for 5446 and 5001)")
+
+	// Verify fetched locations
+	expectedLocations := map[string]bool{"5446": true, "5001": true}
+	assert.Equal(t, expectedLocations, fetchedLocations, "Expected fetches only for locations 5446 and 5001")
+
+	// Verify lastNotifiedAt was updated for notified subscriptions
+	for _, topic := range []string{"user1-sf", "user2-sf", "user1-ny"} {
+		var sub Subscription
+		err = coll.FindOne(ctx, bson.M{"ntfyTopic": topic}).Decode(&sub)
+		assert.NoError(t, err)
+		assert.True(t, sub.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for %s", topic)
+	}
+
+	// Verify lastNotifiedAt was not updated for non-notified subscriptions
+	for _, topic := range []string{"user2-ny", "user1-chi", "user2-chi"} {
+		var sub Subscription
+		err = coll.FindOne(ctx, bson.M{"ntfyTopic": topic}).Decode(&sub)
+		assert.NoError(t, err)
+		assert.True(t, sub.LastNotifiedAt.Before(now.Add(-14*time.Minute)), "Expected lastNotifiedAt to remain unchanged for %s", topic)
+	}
+
+	// Verify notification order
+	assert.Equal(t, []string{"user1-sf", "user2-sf", "user1-ny"}, ntfyTopics, "Expected notifications in order of oldest lastNotifiedAt")
+}
+
 func TestHandleExpiringSubscriptions(t *testing.T) {
 	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
@@ -692,7 +822,7 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	assert.JSONEq(t, `{"error": "maximum notification failures reached"}`, resp.Body)
 
 	// Verify failure count and ntfy calls
-	assert.Equal(t, 2, handler.failedNtfyCount, "Expected exactly 2 failures")
+	assert.Equal(t, 2, handler.failedNtfyCount, "Existing exactly 2 failures")
 	assert.Equal(t, 4, ntfyCalls, "Expected exactly 4 ntfy attempts (2 failures with 1 retry each)")
 
 	// Verify no subscriptions were updated (since all notifications failed)
@@ -702,67 +832,6 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, sub.LastNotifiedAt.Before(now.Add(-14*time.Minute)), "Expected lastNotifiedAt to remain unchanged for %s", loc)
 	}
-}
-
-func TestNotifyEligibleSubscribersMaxNotifications(t *testing.T) {
-	handler, coll, cleanup := setupTestHandler(t)
-	defer cleanup()
-	ctx := context.Background()
-
-	// Insert test subscription
-	now := time.Now().UTC()
-	subID := bson.NewObjectID()
-	_, err := coll.InsertOne(ctx, bson.M{
-		"_id":            subID,
-		"ntfyTopic":      "yota2-sf",
-		"location":       "5446",
-		"shortName":      "SF Enrollment Center",
-		"timezone":       "America/Los_Angeles",
-		"lastNotifiedAt": now.Add(-20 * time.Minute),
-	})
-	assert.NoError(t, err)
-	subscriptions := []Subscription{
-		{
-			ID:             subID,
-			NtfyTopic:      "yota2-sf",
-			Location:       "5446",
-			ShortName:      "SF Enrollment Center",
-			Timezone:       "America/Los_Angeles",
-			LastNotifiedAt: now.Add(-20 * time.Minute),
-		},
-	}
-	appointments := map[string][]Appointment{
-		"5446": {
-			{Active: true, StartTimestamp: "2025-07-13T10:00"},
-		},
-	}
-
-	// Mock ntfy server
-	ntfyCalls := 0
-	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ntfyCalls++
-		var payload map[string]string
-		json.NewDecoder(r.Body).Decode(&payload)
-		assert.Equal(t, "yota2-sf", payload["topic"])
-		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
-		assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Sun, Jul 13, 2025 at 10:00 AM PDT")
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer ntfyServer.Close()
-	handler.Config.NtfyServer = ntfyServer.URL
-	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
-
-	// Call function
-	globalNotifiedCount, err := handler.notifyEligibleSubscribers(ctx, coll, subscriptions, appointments, 0)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, globalNotifiedCount, "Expected globalNotifiedCount to be 1")
-	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
-
-	// Verify lastNotifiedAt was updated
-	var sub Subscription
-	err = coll.FindOne(ctx, bson.M{"_id": subID}).Decode(&sub)
-	assert.NoError(t, err)
-	assert.WithinDuration(t, time.Now().UTC(), sub.LastNotifiedAt, time.Second)
 }
 
 func TestMain(m *testing.M) {
