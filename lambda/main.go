@@ -253,9 +253,6 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 		}
 	}
 
-	if localNotifiedCount > 0 {
-		slog.Info("Sent notifications", "count", localNotifiedCount, "location", location)
-	}
 	return globalNotifiedCount, nil
 }
 
