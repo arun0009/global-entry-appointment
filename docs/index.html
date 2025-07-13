@@ -232,8 +232,15 @@
                                 Support This Project
                             </h4>
                             <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center">
-                                <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" />
+                                <img id="bmc-button" />
                             </a>
+
+                            <script>
+                                const baseUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00";
+                                const img = document.getElementById("bmc-button");
+                                img.src = `${baseUrl}&_=${new Date().getTime()}`;
+                            </script>
+
                             <div class="flex justify-center gap-4 pt-4">
                                 <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
                                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
