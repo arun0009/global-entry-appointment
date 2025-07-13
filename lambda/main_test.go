@@ -680,6 +680,65 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	}
 }
 
+func TestNotifyEligibleSubscribersMaxNotifications(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Insert test subscription
+	now := time.Now().UTC()
+	subID := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":            subID,
+		"ntfyTopic":      "yota2-sf",
+		"location":       "5446",
+		"shortName":      "SF Enrollment Center",
+		"timezone":       "America/Los_Angeles",
+		"lastNotifiedAt": now.Add(-20 * time.Minute),
+	})
+	assert.NoError(t, err)
+	subscriptions := []Subscription{
+		{
+			ID:             subID,
+			NtfyTopic:      "yota2-sf",
+			Location:       "5446",
+			ShortName:      "SF Enrollment Center",
+			Timezone:       "America/Los_Angeles",
+			LastNotifiedAt: now.Add(-20 * time.Minute),
+		},
+	}
+	appointments := []Appointment{
+		{Active: true, StartTimestamp: "2025-07-13T10:00"},
+	}
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		var payload map[string]string
+		json.NewDecoder(r.Body).Decode(&payload)
+		assert.Equal(t, "yota2-sf", payload["topic"])
+		assert.Equal(t, "Global Entry Appointment Notification", payload["title"])
+		assert.Contains(t, payload["message"], "Appointment available at SF Enrollment Center on Sun, Jul 13, 2025 at 10:00 AM PDT")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+	// Call function
+	globalNotifiedCount, err := handler.notifyEligibleSubscribers(ctx, coll, "5446", subscriptions, appointments, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, globalNotifiedCount, "Expected globalNotifiedCount to be 1")
+	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification")
+
+	// Verify lastNotifiedAt was updated
+	var sub Subscription
+	err = coll.FindOne(ctx, bson.M{"_id": subID}).Decode(&sub)
+	assert.NoError(t, err)
+	assert.WithinDuration(t, time.Now().UTC(), sub.LastNotifiedAt, time.Second)
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }

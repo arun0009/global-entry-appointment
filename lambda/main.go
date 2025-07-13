@@ -209,15 +209,6 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 	localNotifiedCount := 0
 
 	for _, sub := range subscriptions {
-		if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-			return globalNotifiedCount, ErrMaxNtfyFailures
-		}
-
-		if globalNotifiedCount >= h.Config.MaxNotifications {
-			slog.Info("Reached global notification limit")
-			return globalNotifiedCount, nil
-		}
-
 		// Load timezone from subscription
 		loc, err := time.LoadLocation(sub.Timezone)
 		if err != nil {
@@ -235,7 +226,13 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
 			if errors.Is(err, ErrMaxNtfyFailures) {
-				return globalNotifiedCount, err
+				// Update lastNotifiedAt for notifications sent so far
+				if len(bulkUpdates) > 0 {
+					if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
+						slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
+					}
+				}
+				return globalNotifiedCount, ErrMaxNtfyFailures
 			}
 			continue
 		}
@@ -245,8 +242,31 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 			SetUpdate(bson.M{"$set": bson.M{"lastNotifiedAt": now}}))
 		globalNotifiedCount++
 		localNotifiedCount++
+
+		// Check limits after adding to bulkUpdates
+		if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
+			// Update lastNotifiedAt before returning
+			if len(bulkUpdates) > 0 {
+				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
+					slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
+				}
+			}
+			return globalNotifiedCount, ErrMaxNtfyFailures
+		}
+
+		if globalNotifiedCount >= h.Config.MaxNotifications {
+			slog.Info("Reached global notification limit")
+			// Update lastNotifiedAt before returning
+			if len(bulkUpdates) > 0 {
+				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
+					slog.Error("Failed to update lastNotifiedAt before max notifications", "error", err)
+				}
+			}
+			return globalNotifiedCount, nil
+		}
 	}
 
+	// Update lastNotifiedAt for any remaining updates
 	if len(bulkUpdates) > 0 {
 		if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %v", err)
