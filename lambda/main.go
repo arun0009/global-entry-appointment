@@ -57,7 +57,7 @@ type (
 		Timezone       string        `bson:"timezone"`
 		NtfyTopic      string        `bson:"ntfyTopic"`
 		CreatedAt      time.Time     `bson:"createdAt"`
-		LastNotifiedAt time.Time     `bson:"lastNotifiedAt,omitempty"`
+		LastNotifiedAt time.Time     `bson:"lastNotifiedAt"`
 	}
 
 	// LocationTopics represents aggregated data
@@ -191,6 +191,7 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 
 	result, err := coll.BulkWrite(ctx, updates)
 	if err != nil {
+		slog.Error("Failed to update lastNotifiedAt", "error", err)
 		return fmt.Errorf("failed to update lastNotifiedAt: %v", err)
 	}
 	slog.Debug("Updated lastNotifiedAt", "modifiedCount", result.ModifiedCount)
@@ -246,8 +247,10 @@ func (h *LambdaHandler) notifyEligibleSubscribers(ctx context.Context, coll *mon
 		localNotifiedCount++
 	}
 
-	if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-		slog.Warn("Failed to update lastNotifiedAt", "error", err)
+	if len(bulkUpdates) > 0 {
+		if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
+			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %v", err)
+		}
 	}
 
 	if localNotifiedCount > 0 {
@@ -352,14 +355,15 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 		}, nil
 	}
 
+	now := time.Now().UTC()
 	_, err = coll.InsertOne(ctx, bson.M{
 		"_id":            bson.NewObjectID(),
 		"location":       req.Location,
 		"shortName":      req.ShortName,
 		"timezone":       req.Timezone,
 		"ntfyTopic":      req.NtfyTopic,
-		"createdAt":      time.Now().UTC(),
-		"lastNotifiedAt": time.Time{},
+		"createdAt":      now,
+		"lastNotifiedAt": now.Add(-15 * time.Minute),
 	})
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
@@ -467,26 +471,11 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 
 		cooldownThreshold := time.Now().UTC().Add(-h.Config.NotificationCooldownTime)
+		slog.Debug("Cooldown threshold", "threshold", cooldownThreshold)
 		pipeline := mongo.Pipeline{
 			bson.D{{
 				"$match", bson.M{
-					"$or": []bson.M{
-						{"lastNotifiedAt": time.Time{}},
-						{"lastNotifiedAt": bson.M{"$lte": cooldownThreshold}},
-					},
-				},
-			}},
-			bson.D{{
-				"$addFields", bson.M{
-					"isZero": bson.M{
-						"$eq": []interface{}{"$lastNotifiedAt", time.Time{}},
-					},
-				},
-			}},
-			bson.D{{
-				"$sort", bson.M{
-					"isZero":         -1,
-					"lastNotifiedAt": -1,
+					"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
 				},
 			}},
 			bson.D{{
