@@ -41,7 +41,7 @@ type (
 		MongoDBPassword          string        `envconfig:"MONGODB_PASSWORD" required:"true"`
 		NtfyServer               string        `envconfig:"NTFY_SERVER" default:"https://ntfy.sh/"`
 		HTTPTimeout              time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"5s"`
-		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"15m"`
+		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"60m"`
 		MongoConnectTimeout      time.Duration `envconfig:"MONGO_CONNECT_TIMEOUT" default:"10s"`
 		SubscriptionTTL          time.Duration `envconfig:"SUBSCRIPTION_TTL_DAYS" default:"720h"`
 		MaxNotifications         int           `envconfig:"MAX_NOTIFICATIONS" default:"10"`
@@ -390,7 +390,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 		"timezone":       req.Timezone,
 		"ntfyTopic":      req.NtfyTopic,
 		"createdAt":      now,
-		"lastNotifiedAt": now.Add(-15 * time.Minute),
+		"lastNotifiedAt": now.Add(-h.Config.NotificationCooldownTime),
 	})
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{

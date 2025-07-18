@@ -84,7 +84,7 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		MongoDBPassword:          "test",
 		NtfyServer:               "http://localhost",
 		HTTPTimeout:              2 * time.Second,
-		NotificationCooldownTime: 15 * time.Minute,
+		NotificationCooldownTime: 60 * time.Minute,
 		MongoConnectTimeout:      10 * time.Second,
 		SubscriptionTTL:          30 * 24 * time.Hour,
 		MaxNotifications:         10,
@@ -111,11 +111,11 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	// Insert test data: subscriptions across different locations with varying lastNotifiedAt
 	now := time.Now().UTC()
 	// Oldest subscription (user2-sf, San Francisco)
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-20*time.Minute))
+	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-(handler.Config.NotificationCooldownTime + 5*time.Minute)))
 	// Middle subscription (user1-ny, New York)
-	insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-16*time.Minute))
+	insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-(handler.Config.NotificationCooldownTime + 1*time.Minute)))
 	// Newest subscription (user3-sf, San Francisco, within cooldown)
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user3-sf", now, now.Add(-10*time.Minute))
+	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user3-sf", now, now.Add(-(handler.Config.NotificationCooldownTime - 10*time.Minute)))
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -177,15 +177,15 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	var sub1, sub2, sub3 Subscription
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user2-sf"}).Decode(&sub1)
 	assert.NoError(t, err)
-	assert.True(t, sub1.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for user2-sf")
+	assert.True(t, sub1.LastNotifiedAt.After(now.Add(-handler.Config.NotificationCooldownTime)), "Expected lastNotifiedAt to be updated for user2-sf")
 
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user1-ny"}).Decode(&sub2)
 	assert.NoError(t, err)
-	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for user1-ny")
+	assert.True(t, sub2.LastNotifiedAt.After(now.Add(-handler.Config.NotificationCooldownTime)), "Expected lastNotifiedAt to be updated for user1-ny")
 
 	err = coll.FindOne(ctx, bson.M{"ntfyTopic": "user3-sf"}).Decode(&sub3)
 	assert.NoError(t, err)
-	assert.True(t, sub3.LastNotifiedAt.Before(now.Add(-9*time.Minute)), "Expected lastNotifiedAt to remain unchanged for user3-sf")
+	assert.True(t, sub3.LastNotifiedAt.Before(now.Add(-(handler.Config.NotificationCooldownTime - 10*time.Minute))), "Expected lastNotifiedAt to remain unchanged for user3-sf")
 }
 
 func TestHandleRequest_CloudWatchEvent_WithinCooldown(t *testing.T) {
@@ -291,8 +291,8 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	assert.Equal(t, "America/Los_Angeles", sub.Timezone)
 	assert.Equal(t, "user1-sf", sub.NtfyTopic)
 	assert.False(t, sub.CreatedAt.IsZero(), "Expected createdAt to be set")
-	assert.True(t, sub.LastNotifiedAt.Before(time.Now().UTC().Add(-14*time.Minute)), "Expected lastNotifiedAt to be ~15 minutes ago")
-	assert.True(t, sub.LastNotifiedAt.After(time.Now().UTC().Add(-16*time.Minute)), "Expected lastNotifiedAt to be ~15 minutes ago")
+	assert.True(t, sub.LastNotifiedAt.Before(time.Now().UTC().Add(-(handler.Config.NotificationCooldownTime - 1*time.Minute))), fmt.Sprintf("Expected lastNotifiedAt to be ~%d minutes ago", handler.Config.NotificationCooldownTime))
+	assert.True(t, sub.LastNotifiedAt.After(time.Now().UTC().Add(-(handler.Config.NotificationCooldownTime + 1*time.Minute))), fmt.Sprintf("Expected lastNotifiedAt to be ~%d minutes ago", handler.Config.NotificationCooldownTime))
 
 	// Verify ntfy notification
 	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification for subscription confirmation")
@@ -305,7 +305,7 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 
 	// Insert test subscription
 	now := time.Now().UTC()
-	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
+	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Create API Gateway V2 request
 	req := SubscriptionRequest{Action: "unsubscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
@@ -363,7 +363,7 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 
 	// Insert test subscription
 	now := time.Now().UTC()
-	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
+	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Create subscription slice
 	subscriptions := []Subscription{{
@@ -373,7 +373,7 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 		Timezone:       "America/Los_Angeles",
 		NtfyTopic:      "user1-sf",
 		CreatedAt:      now,
-		LastNotifiedAt: now.Add(-15 * time.Minute),
+		LastNotifiedAt: now.Add(-handler.Config.NotificationCooldownTime),
 	}}
 
 	// Mock Global Entry API
@@ -412,7 +412,7 @@ func TestCheckAvailabilityAndNotify_Success(t *testing.T) {
 	var sub Subscription
 	err = coll.FindOne(ctx, bson.M{"_id": id}).Decode(&sub)
 	assert.NoError(t, err)
-	assert.True(t, sub.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated")
+	assert.True(t, sub.LastNotifiedAt.After(now.Add(-handler.Config.NotificationCooldownTime)), "Expected lastNotifiedAt to be updated")
 }
 
 func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
@@ -422,7 +422,7 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 
 	// Insert test subscription
 	now := time.Now().UTC()
-	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
+	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Create subscription slice
 	subscriptions := []Subscription{{
@@ -432,7 +432,7 @@ func TestCheckAvailabilityAndNotify_NoAppointments(t *testing.T) {
 		Timezone:       "America/Los_Angeles",
 		NtfyTopic:      "user1-sf",
 		CreatedAt:      now,
-		LastNotifiedAt: now.Add(-15 * time.Minute),
+		LastNotifiedAt: now.Add(-handler.Config.NotificationCooldownTime),
 	}}
 
 	// Mock Global Entry API
@@ -467,7 +467,7 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 
 	// Insert test subscription
 	now := time.Now().UTC()
-	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
+	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Create subscription slice
 	subscriptions := []Subscription{{
@@ -477,7 +477,7 @@ func TestCheckAvailabilityAndNotify_APIFailure(t *testing.T) {
 		Timezone:       "America/Los_Angeles",
 		NtfyTopic:      "user1-sf",
 		CreatedAt:      now,
-		LastNotifiedAt: now.Add(-15 * time.Minute),
+		LastNotifiedAt: now.Add(-handler.Config.NotificationCooldownTime),
 	}}
 
 	// Mock Global Entry API (failing)
@@ -523,12 +523,12 @@ func TestCheckAvailabilityAndNotify_GreedyFetching(t *testing.T) {
 		ntfyTopic      string
 		lastNotifiedAt time.Time
 	}{
-		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-20*time.Minute)), location: "5446", ntfyTopic: "user1-sf", lastNotifiedAt: now.Add(-20 * time.Minute)},
-		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-19*time.Minute)), location: "5446", ntfyTopic: "user2-sf", lastNotifiedAt: now.Add(-19 * time.Minute)},
-		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-18*time.Minute)), location: "5001", ntfyTopic: "user1-ny", lastNotifiedAt: now.Add(-18 * time.Minute)},
-		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user2-ny", now, now.Add(-17*time.Minute)), location: "5001", ntfyTopic: "user2-ny", lastNotifiedAt: now.Add(-17 * time.Minute)},
-		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user1-chi", now, now.Add(-16*time.Minute)), location: "1234", ntfyTopic: "user1-chi", lastNotifiedAt: now.Add(-16 * time.Minute)},
-		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user2-chi", now, now.Add(-15*time.Minute)), location: "1234", ntfyTopic: "user2-chi", lastNotifiedAt: now.Add(-15 * time.Minute)},
+		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-(handler.Config.NotificationCooldownTime + 5*time.Minute))), location: "5446", ntfyTopic: "user1-sf", lastNotifiedAt: now.Add(-(handler.Config.NotificationCooldownTime + 5*time.Minute))},
+		{id: insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-(handler.Config.NotificationCooldownTime + 4*time.Minute))), location: "5446", ntfyTopic: "user2-sf", lastNotifiedAt: now.Add(-(handler.Config.NotificationCooldownTime + 4*time.Minute))},
+		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-(handler.Config.NotificationCooldownTime + 3*time.Minute))), location: "5001", ntfyTopic: "user1-ny", lastNotifiedAt: now.Add(-(handler.Config.NotificationCooldownTime + 3*time.Minute))},
+		{id: insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user2-ny", now, now.Add(-(handler.Config.NotificationCooldownTime + 2*time.Minute))), location: "5001", ntfyTopic: "user2-ny", lastNotifiedAt: now.Add(-(handler.Config.NotificationCooldownTime + 2*time.Minute))},
+		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user1-chi", now, now.Add(-(handler.Config.NotificationCooldownTime + 1*time.Minute))), location: "1234", ntfyTopic: "user1-chi", lastNotifiedAt: now.Add(-(handler.Config.NotificationCooldownTime + 1*time.Minute))},
+		{id: insertSubscription(t, ctx, coll, "1234", "Chicago Enrollment Center", "America/Chicago", "user2-chi", now, now.Add(-handler.Config.NotificationCooldownTime)), location: "1234", ntfyTopic: "user2-chi", lastNotifiedAt: now.Add(-handler.Config.NotificationCooldownTime)},
 	}
 
 	// Create subscription slice, sorted by lastNotifiedAt (oldest first)
@@ -609,8 +609,8 @@ func TestCheckAvailabilityAndNotify_GreedyFetching(t *testing.T) {
 	var err error
 	globalNotifiedCount, err = handler.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 	assert.NoError(t, err)
-	assert.Equal(t, 3, ntfyCalls, "Expected three ntfy notifications")
-	assert.Equal(t, 3, globalNotifiedCount, "Expected globalNotifiedCount to be 3")
+	assert.Equal(t, handler.Config.MaxNotifications, ntfyCalls, "Expected %d ntfy notifications", handler.Config.MaxNotifications)
+	assert.Equal(t, handler.Config.MaxNotifications, globalNotifiedCount, "Expected globalNotifiedCount to be %d", handler.Config.MaxNotifications)
 	assert.LessOrEqual(t, fetchCalls, 2, "Expected at most 2 fetch calls (for 5446 and 5001)")
 
 	// Verify fetched locations
@@ -622,7 +622,7 @@ func TestCheckAvailabilityAndNotify_GreedyFetching(t *testing.T) {
 		var sub Subscription
 		err = coll.FindOne(ctx, bson.M{"ntfyTopic": topic}).Decode(&sub)
 		assert.NoError(t, err)
-		assert.True(t, sub.LastNotifiedAt.After(now.Add(-15*time.Minute)), "Expected lastNotifiedAt to be updated for %s", topic)
+		assert.True(t, sub.LastNotifiedAt.After(now.Add(-handler.Config.NotificationCooldownTime)), "Expected lastNotifiedAt to be updated for %s", topic)
 	}
 
 	// Verify lastNotifiedAt was not updated for non-notified subscriptions
@@ -630,7 +630,7 @@ func TestCheckAvailabilityAndNotify_GreedyFetching(t *testing.T) {
 		var sub Subscription
 		err = coll.FindOne(ctx, bson.M{"ntfyTopic": topic}).Decode(&sub)
 		assert.NoError(t, err)
-		assert.True(t, sub.LastNotifiedAt.Before(now.Add(-14*time.Minute)), "Expected lastNotifiedAt to remain unchanged for %s", topic)
+		assert.True(t, sub.LastNotifiedAt.Before(now.Add(-(handler.Config.NotificationCooldownTime - 1*time.Minute))), "Expected lastNotifiedAt to remain unchanged for %s", topic)
 	}
 
 	// Verify notification order
@@ -642,8 +642,8 @@ func TestHandleExpiringSubscriptions(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test subscription (older than 30 days)
-	expireTime := time.Now().UTC().Add(-31 * 24 * time.Hour)
+	// Insert test subscription (older than SubscriptionTTL)
+	expireTime := time.Now().UTC().Add(-(handler.Config.SubscriptionTTL + 24*time.Hour))
 	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", expireTime, expireTime)
 
 	// Mock ntfy server
@@ -677,9 +677,9 @@ func TestHandleExpiringSubscriptions_NotYetExpired(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test subscription (less than 30 days old)
-	createdTime := time.Now().UTC().Add(-29 * 24 * time.Hour)
-	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", createdTime, createdTime.Add(-15*time.Minute))
+	// Insert test subscription (less than SubscriptionTTL)
+	createdTime := time.Now().UTC().Add(-(handler.Config.SubscriptionTTL - 24*time.Hour))
+	id := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", createdTime, createdTime.Add(-handler.Config.NotificationCooldownTime))
 
 	// Mock ntfy server
 	ntfyCalls := 0
@@ -756,7 +756,7 @@ func TestHandleSubscription_Duplicate(t *testing.T) {
 
 	// Insert existing subscription
 	now := time.Now().UTC()
-	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-15*time.Minute))
+	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Test duplicate subscription
 	req := SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
@@ -788,7 +788,7 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	now := time.Now().UTC()
 	locations := []string{"5446", "1234", "5678", "9012", "3456", "7890", "2345", "6789", "0123", "4567"}
 	for i, loc := range locations {
-		insertSubscription(t, ctx, coll, loc, "SF Enrollment Center", "America/Los_Angeles", fmt.Sprintf("user%d-sf", i+1), now, now.Add(-15*time.Minute))
+		insertSubscription(t, ctx, coll, loc, "SF Enrollment Center", "America/Los_Angeles", fmt.Sprintf("user%d-sf", i+1), now, now.Add(-handler.Config.NotificationCooldownTime))
 	}
 
 	// Mock Global Entry API
@@ -822,8 +822,8 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	assert.JSONEq(t, `{"error": "maximum notification failures reached"}`, resp.Body)
 
 	// Verify failure count and ntfy calls
-	assert.Equal(t, 2, handler.failedNtfyCount, "Existing exactly 2 failures")
-	assert.Equal(t, 4, ntfyCalls, "Expected exactly 4 ntfy attempts (2 failures with 1 retry each)")
+	assert.Equal(t, handler.Config.MaxNtfyFailures, handler.failedNtfyCount, "Expected exactly %d failures", handler.Config.MaxNtfyFailures)
+	assert.Equal(t, handler.Config.MaxNtfyFailures*(handler.Config.MaxRetries+1), ntfyCalls, "Expected exactly %d ntfy attempts (%d failures with %d retries each)", handler.Config.MaxNtfyFailures*(handler.Config.MaxRetries+1), handler.Config.MaxNtfyFailures, handler.Config.MaxRetries)
 
 	// Verify no subscriptions were updated (since all notifications failed)
 	for i, loc := range locations {
