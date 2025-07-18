@@ -84,7 +84,7 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		MongoDBPassword:          "test",
 		NtfyServer:               "http://localhost",
 		HTTPTimeout:              2 * time.Second,
-		NotificationCooldownTime: 15 * time.Minute,
+		NotificationCooldownTime: 60 * time.Minute,
 		MongoConnectTimeout:      10 * time.Second,
 		SubscriptionTTL:          30 * 24 * time.Hour,
 		MaxNotifications:         10,
@@ -111,11 +111,11 @@ func TestHandleRequest_CloudWatchEvent(t *testing.T) {
 	// Insert test data: subscriptions across different locations with varying lastNotifiedAt
 	now := time.Now().UTC()
 	// Oldest subscription (user2-sf, San Francisco)
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-20*time.Minute))
+	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user2-sf", now, now.Add(-(handler.Config.NotificationCooldownTime + 5*time.Minute)))
 	// Middle subscription (user1-ny, New York)
-	insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-16*time.Minute))
+	insertSubscription(t, ctx, coll, "5001", "NY Enrollment Center", "America/New_York", "user1-ny", now, now.Add(-(handler.Config.NotificationCooldownTime + 1*time.Minute)))
 	// Newest subscription (user3-sf, San Francisco, within cooldown)
-	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user3-sf", now, now.Add(-10*time.Minute))
+	insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user3-sf", now, now.Add(-(handler.Config.NotificationCooldownTime - 10*time.Minute)))
 
 	// Mock Global Entry API
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -788,7 +788,7 @@ func TestHandleRequest_MaxNtfyFailures(t *testing.T) {
 	now := time.Now().UTC()
 	locations := []string{"5446", "1234", "5678", "9012", "3456", "7890", "2345", "6789", "0123", "4567"}
 	for i, loc := range locations {
-		insertSubscription(t, ctx, coll, loc, "SF Enrollment Center", "America/Los_Angeles", fmt.Sprintf("user%d-sf", i+1), now, now.Add(-15*time.Minute))
+		insertSubscription(t, ctx, coll, loc, "SF Enrollment Center", "America/Los_Angeles", fmt.Sprintf("user%d-sf", i+1), now, now.Add(-handler.Config.NotificationCooldownTime))
 	}
 
 	// Mock Global Entry API
