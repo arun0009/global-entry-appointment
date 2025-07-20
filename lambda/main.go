@@ -179,7 +179,13 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 	}
 	defer resp.Body.Close()
 
-	slog.Info("Sent ntfy notification", "topic", topic, "title", title)
+	slog.Info("Notification sent",
+		"event", "notification",
+		"topic", topic,
+		"timestamp", time.Now().UTC(),
+		"message", message,
+	)
+
 	return nil
 }
 
