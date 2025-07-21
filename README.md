@@ -76,7 +76,7 @@ Visit our web app and configure your preferred locations.
 
 Your support helps cover AWS costs and keeps this tool free for everyone
 
-[![Support this project](https://img.buymeacoffee.com/button-api/?text=Support%20this%20project&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00?)](https://www.buymeacoffee.com/arun0009)
+[![Support this project](https://img.buymeacoffee.com/button-api/?text=Support%20this%20project&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/arun0009)
 
 **🌟 Star this repo** if it saved you time!
 

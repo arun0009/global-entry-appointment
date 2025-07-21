@@ -83,6 +83,7 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 	config := Config{
 		MongoDBPassword:          "test",
 		NtfyServer:               "http://localhost",
+		RecaptchaURL:             "http://localhost/recaptcha",
 		HTTPTimeout:              2 * time.Second,
 		NotificationCooldownTime: 60 * time.Minute,
 		MongoConnectTimeout:      10 * time.Second,
@@ -90,6 +91,7 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		MaxNotifications:         10,
 		MaxRetries:               1,
 		MaxNtfyFailures:          2,
+		RecaptchaSecretKey:       "test-recaptcha-secret",
 	}
 	url := "http://localhost/%s"
 	handler := NewLambdaHandler(config, url, client)
@@ -101,6 +103,45 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 	}
 
 	return handler, coll, cleanup
+}
+
+// setupRecaptchaServer creates a mock reCAPTCHA server
+func setupRecaptchaServer(t *testing.T, valid bool, score float64) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Ensure it's the correct content type
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		secret := r.FormValue("secret")
+		token := r.FormValue("response")
+
+		if secret != "test-recaptcha-secret" {
+			http.Error(w, "Invalid secret key", http.StatusUnauthorized)
+			return
+		}
+
+		// (Optional) Assert token is non-empty for stricter test
+		if token == "" {
+			http.Error(w, "Missing token", http.StatusBadRequest)
+			return
+		}
+
+		response := map[string]interface{}{
+			"success": valid,
+			"score":   score,
+			"action":  "submit",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(response)
+	}))
 }
 
 func TestHandleRequest_CloudWatchEvent(t *testing.T) {
@@ -241,6 +282,11 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
+	// Mock reCAPTCHA server
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+
 	// Mock ntfy server
 	ntfyCalls := 0
 	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -257,7 +303,14 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
 	// Create API Gateway V2 request
-	req := SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
+	req := SubscriptionRequest{
+		Action:         "subscribe",
+		Location:       "5446",
+		ShortName:      "SF Enrollment Center",
+		Timezone:       "America/Los_Angeles",
+		NtfyTopic:      "user1-sf",
+		RecaptchaToken: "valid-token",
+	}
 	body, _ := json.Marshal(req)
 	apiReq := events.APIGatewayV2HTTPRequest{
 		Version:  "2.0",
@@ -298,17 +351,34 @@ func TestHandleRequest_APIGatewaySubscribe(t *testing.T) {
 	assert.Equal(t, 1, ntfyCalls, "Expected one ntfy notification for subscription confirmation")
 }
 
-func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
+func TestHandleRequest_APIGatewaySubscribe_InvalidRecaptcha(t *testing.T) {
 	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
 	ctx := context.Background()
 
-	// Insert test subscription
-	now := time.Now().UTC()
-	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
+	// Mock reCAPTCHA server (invalid token)
+	recaptchaServer := setupRecaptchaServer(t, false, 0.1)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
 
-	// Create API Gateway V2 request
-	req := SubscriptionRequest{Action: "unsubscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+	// Create API Gateway V2 request with invalid reCAPTCHA token
+	req := SubscriptionRequest{
+		Action:         "subscribe",
+		Location:       "5446",
+		ShortName:      "SF Enrollment Center",
+		Timezone:       "America/Los_Angeles",
+		NtfyTopic:      "user1-sf",
+		RecaptchaToken: "invalid-token",
+	}
 	body, _ := json.Marshal(req)
 	apiReq := events.APIGatewayV2HTTPRequest{
 		Version:  "2.0",
@@ -324,6 +394,120 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 		IsBase64Encoded: false,
 	}
 	eventJSON, _ := json.Marshal(apiReq)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+
+	// Verify response
+	assert.Equal(t, 400, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "reCAPTCHA verification failed: low score or invalid token"}`, resp.Body)
+
+	// Verify no subscription in database
+	count, err := coll.CountDocuments(ctx, bson.M{"location": "5446", "ntfyTopic": "user1-sf"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count, "Expected no subscription to be created")
+
+	// Verify no ntfy notification
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
+}
+
+func TestHandleRequest_APIGatewaySubscribe_MissingRecaptcha(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Mock ntfy server
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+	// Create API Gateway V2 request with missing reCAPTCHA token
+	req := SubscriptionRequest{
+		Action:    "subscribe",
+		Location:  "5446",
+		ShortName: "SF Enrollment Center",
+		Timezone:  "America/Los_Angeles",
+		NtfyTopic: "user1-sf",
+	}
+	body, _ := json.Marshal(req)
+	apiReq := events.APIGatewayV2HTTPRequest{
+		Version:  "2.0",
+		RouteKey: "POST /subscriptions",
+		RawPath:  "/subscriptions",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: "POST",
+				Path:   "/subscriptions",
+			},
+		},
+		Body:            string(body),
+		IsBase64Encoded: false,
+	}
+	eventJSON, _ := json.Marshal(apiReq)
+
+	// Invoke handler
+	resp, err := handler.HandleRequest(ctx, eventJSON)
+	assert.NoError(t, err)
+
+	// Verify response
+	assert.Equal(t, 400, resp.StatusCode)
+	assert.JSONEq(t, `{"error": "reCAPTCHA token is required"}`, resp.Body)
+
+	// Verify no subscription in database
+	count, err := coll.CountDocuments(ctx, bson.M{"location": "5446", "ntfyTopic": "user1-sf"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count, "Expected no subscription to be created")
+
+	// Verify no ntfy notification
+	assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
+}
+
+func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Mock reCAPTCHA server
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+
+	// Insert test subscription
+	now := time.Now().UTC()
+	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
+
+	// Create API Gateway V2 request
+	req := SubscriptionRequest{
+		Action:         "unsubscribe",
+		Location:       "5446",
+		ShortName:      "SF Enrollment Center",
+		Timezone:       "America/Los_Angeles",
+		NtfyTopic:      "user1-sf",
+		RecaptchaToken: "valid-token",
+	}
+	body, _ := json.Marshal(req)
+	apiReq := events.APIGatewayV2HTTPRequest{
+		Version:  "2.0",
+		RouteKey: "POST /subscriptions",
+		RawPath:  "/subscriptions",
+		RequestContext: events.APIGatewayV2HTTPRequestContext{
+			HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{
+				Method: "POST",
+				Path:   "/subscriptions",
+			},
+		},
+		Body:            string(body),
+		IsBase64Encoded: false,
+	}
+	eventJSON, _ := json.Marshal(apiReq)
+
+	// Set HTTP client
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
 	// Invoke handler
 	resp, err := handler.HandleRequest(ctx, eventJSON)
@@ -706,6 +890,12 @@ func TestHandleSubscription_InvalidInput(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
+	// Mock reCAPTCHA server
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
 	// Test cases for invalid inputs
 	tests := []struct {
 		name     string
@@ -714,27 +904,27 @@ func TestHandleSubscription_InvalidInput(t *testing.T) {
 	}{
 		{
 			name:     "Missing location",
-			req:      SubscriptionRequest{Action: "subscribe", NtfyTopic: "user1-sf"},
+			req:      SubscriptionRequest{Action: "subscribe", NtfyTopic: "user1-sf", RecaptchaToken: "valid-token"},
 			expected: "location and ntfyTopic are required",
 		},
 		{
 			name:     "Missing ntfyTopic",
-			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles"},
+			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", RecaptchaToken: "valid-token"},
 			expected: "location and ntfyTopic are required",
 		},
 		{
 			name:     "Invalid ntfyTopic",
-			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1 sf"},
+			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1 sf", RecaptchaToken: "valid-token"},
 			expected: "Ntfy Topic must not contain spaces or special characters",
 		},
 		{
 			name:     "Missing shortName",
-			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"},
+			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf", RecaptchaToken: "valid-token"},
 			expected: "shortName and timezone must be provided from location data",
 		},
 		{
 			name:     "Missing timezone",
-			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", NtfyTopic: "user1-sf"},
+			req:      SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", NtfyTopic: "user1-sf", RecaptchaToken: "valid-token"},
 			expected: "shortName and timezone must be provided from location data",
 		},
 	}
@@ -749,17 +939,99 @@ func TestHandleSubscription_InvalidInput(t *testing.T) {
 	}
 }
 
+func TestHandleSubscription_RecaptchaFailures(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+
+	// Test cases for reCAPTCHA failures
+	tests := []struct {
+		name           string
+		req            SubscriptionRequest
+		recaptchaValid bool
+		recaptchaScore float64
+		expectedError  string
+	}{
+		{
+			name:           "Missing reCAPTCHA token",
+			req:            SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"},
+			recaptchaValid: true,
+			recaptchaScore: 0.9,
+			expectedError:  "reCAPTCHA token is required",
+		},
+		{
+			name:           "Invalid reCAPTCHA token",
+			req:            SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf", RecaptchaToken: "invalid-token"},
+			recaptchaValid: false,
+			recaptchaScore: 0.1,
+			expectedError:  "reCAPTCHA verification failed: low score or invalid token",
+		},
+		{
+			name:           "Low reCAPTCHA score",
+			req:            SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf", RecaptchaToken: "low-score-token"},
+			recaptchaValid: true,
+			recaptchaScore: 0.3,
+			expectedError:  "reCAPTCHA verification failed: low score or invalid token",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Mock reCAPTCHA server
+			recaptchaServer := setupRecaptchaServer(t, tt.recaptchaValid, tt.recaptchaScore)
+			defer recaptchaServer.Close()
+			handler.Config.RecaptchaURL = recaptchaServer.URL
+
+			// Mock ntfy server
+			ntfyCalls := 0
+			ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ntfyCalls++
+			}))
+			defer ntfyServer.Close()
+			handler.Config.NtfyServer = ntfyServer.URL
+			handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+			// Call handleSubscription
+			resp, err := handler.handleSubscription(ctx, coll, tt.req)
+			assert.NoError(t, err)
+			assert.Equal(t, 400, resp.StatusCode)
+			assert.JSONEq(t, fmt.Sprintf(`{"error": %q}`, tt.expectedError), resp.Body)
+
+			// Verify no subscription in database
+			count, err := coll.CountDocuments(ctx, bson.M{"location": "5446", "ntfyTopic": "user1-sf"})
+			assert.NoError(t, err)
+			assert.Equal(t, int64(0), count, "Expected no subscription to be created")
+
+			// Verify no ntfy notification
+			assert.Equal(t, 0, ntfyCalls, "Expected no ntfy notifications")
+		})
+	}
+}
+
 func TestHandleSubscription_Duplicate(t *testing.T) {
 	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
 	ctx := context.Background()
+
+	// Mock reCAPTCHA server
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
 
 	// Insert existing subscription
 	now := time.Now().UTC()
 	_ = insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "user1-sf", now, now.Add(-handler.Config.NotificationCooldownTime))
 
 	// Test duplicate subscription
-	req := SubscriptionRequest{Action: "subscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
+	req := SubscriptionRequest{
+		Action:         "subscribe",
+		Location:       "5446",
+		ShortName:      "SF Enrollment Center",
+		Timezone:       "America/Los_Angeles",
+		NtfyTopic:      "user1-sf",
+		RecaptchaToken: "valid-token",
+	}
 	resp, err := handler.handleSubscription(ctx, coll, req)
 	assert.NoError(t, err)
 	assert.Equal(t, 400, resp.StatusCode)
@@ -771,8 +1043,21 @@ func TestHandleSubscription_UnsubscribeNotFound(t *testing.T) {
 	defer cleanup()
 	ctx := context.Background()
 
+	// Mock reCAPTCHA server
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
 	// Test unsubscribe not found
-	req := SubscriptionRequest{Action: "unsubscribe", Location: "5446", ShortName: "SF Enrollment Center", Timezone: "America/Los_Angeles", NtfyTopic: "user1-sf"}
+	req := SubscriptionRequest{
+		Action:         "unsubscribe",
+		Location:       "5446",
+		ShortName:      "SF Enrollment Center",
+		Timezone:       "America/Los_Angeles",
+		NtfyTopic:      "user1-sf",
+		RecaptchaToken: "valid-token",
+	}
 	resp, err := handler.handleSubscription(ctx, coll, req)
 	assert.NoError(t, err)
 	assert.Equal(t, 404, resp.StatusCode)

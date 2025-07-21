@@ -309,13 +309,12 @@
         const submitButton = document.querySelector('.g-recaptcha');
         const status = document.getElementById("status");
 
-        if (!locationId || !topic) {
-            status.textContent = "Please fill out all fields.";
+        if (!locationId || !topic || !recaptchaToken) {
+            status.textContent = "Please fill out all fields and complete reCAPTCHA.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
         }
 
-        // Find the selected location to get shortName and timezone
         const selectedLocation = globalLocations.find(loc => loc.id === Number(locationId));
         if (!selectedLocation) {
             status.textContent = "Selected location not found.";
@@ -323,7 +322,6 @@
             return;
         }
 
-        // Show loading state
         submitButton.innerHTML = `
                 <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -335,10 +333,11 @@
 
         const payload = {
             action,
-            location: String(locationId), // Ensure location is a string
+            location: String(locationId),
             shortName: selectedLocation.shortName || selectedLocation.name,
-            timezone: selectedLocation.tzData || "America/New_York", // Fallback to a default timezone
+            timezone: selectedLocation.tzData || "America/New_York",
             ntfyTopic: topic,
+            recaptchaToken: recaptchaToken
         };
         const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
 
@@ -346,23 +345,22 @@
             const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(payload)
             });
 
             const text = await res.text();
             status.textContent = text || "Request successful!";
             status.className = "text-center font-medium text-sm mt-4 text-green-600";
 
-            // Reset form on successful subscription
             if (action === 'subscribe') {
                 document.getElementById("topic").value = '';
                 document.getElementById("location").value = '';
+                document.getElementById("recaptcha_token").value = '';
             }
         } catch {
             status.textContent = "Error submitting request.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
         } finally {
-            // Reset button
             updateSubmitButton();
             submitButton.disabled = false;
         }
@@ -382,6 +380,10 @@
         e.preventDefault();
         grecaptcha.execute('6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-', { action: 'submit' }).then(function(token) {
             onSubmit(token);
+        }).catch(function(error) {
+            console.error('reCAPTCHA Error:', error);
+            document.getElementById("status").textContent = "reCAPTCHA failed. Please try again.";
+            document.getElementById("status").className = "text-center font-medium text-sm mt-4 text-red-600";
         });
     });
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -47,6 +48,8 @@ type (
 		MaxNotifications         int           `envconfig:"MAX_NOTIFICATIONS" default:"10"`
 		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"1"`
 		MaxNtfyFailures          int           `envconfig:"MAX_NTFY_FAILURES" default:"2"`
+		RecaptchaSecretKey       string        `envconfig:"RECAPTCHA_SECRET_KEY" required:"true"`
+		RecaptchaURL             string        `envconfig:"RECAPTCHA_URL" default:"https://www.google.com/recaptcha/api/siteverify"`
 	}
 
 	// Subscription represents a subscription document
@@ -78,11 +81,12 @@ type (
 
 	// SubscriptionRequest for registration/unsubscription
 	SubscriptionRequest struct {
-		Action    string `json:"action"`
-		Location  string `json:"location"`
-		ShortName string `json:"shortName"`
-		Timezone  string `json:"timezone"`
-		NtfyTopic string `json:"ntfyTopic"`
+		Action         string `json:"action"`
+		Location       string `json:"location"`
+		ShortName      string `json:"shortName"`
+		Timezone       string `json:"timezone"`
+		NtfyTopic      string `json:"ntfyTopic"`
+		RecaptchaToken string `json:"recaptchaToken"`
 	}
 
 	// LambdaHandler holds dependencies
@@ -110,6 +114,58 @@ func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHa
 		Client:     client,
 		HTTPClient: retryClient,
 	}
+}
+
+// verifyRecaptchaToken verifies the reCAPTCHA token with Google's API
+func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) (bool, float64, error) {
+	form := url.Values{}
+	form.Set("secret", h.Config.RecaptchaSecretKey)
+	form.Set("response", token)
+
+	req, err := retryablehttp.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.Config.RecaptchaURL,
+		strings.NewReader(form.Encode()),
+	)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to create reCAPTCHA verification request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := h.HTTPClient.Do(req)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to verify reCAPTCHA token: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return false, 0, fmt.Errorf("reCAPTCHA verification returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to read reCAPTCHA response body: %v", err)
+	}
+
+	var result struct {
+		Success    bool     `json:"success"`
+		Score      float64  `json:"score"`
+		Action     string   `json:"action"`
+		ErrorCodes []string `json:"error-codes"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return false, 0, fmt.Errorf("failed to unmarshal reCAPTCHA response: %v", err)
+	}
+
+	slog.Info("reCAPTCHA parsed result", "success", result.Success, "score", result.Score, "action", result.Action, "error-codes", result.ErrorCodes)
+
+	// Optional: check the action matches what your frontend sent (if using reCAPTCHA v3)
+	if result.Action != "submit" {
+		return false, 0, fmt.Errorf("reCAPTCHA action mismatch: expected 'submit', got '%s'", result.Action)
+	}
+
+	return result.Success, result.Score, nil
 }
 
 // fetchAppointments retrieves appointment slots from the API
@@ -446,6 +502,35 @@ func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Colle
 
 // handleSubscription manages subscribe/unsubscribe requests
 func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
+	// Validate reCAPTCHA token
+	if req.RecaptchaToken == "" {
+		slog.Error("Missing reCAPTCHA token")
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "reCAPTCHA token is required"}`,
+		}, nil
+	}
+
+	success, score, err := h.verifyRecaptchaToken(ctx, req.RecaptchaToken)
+	if err != nil {
+		slog.Error("Failed to verify reCAPTCHA token", "error", err)
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "reCAPTCHA verification failed"}`,
+		}, nil
+	}
+	if !success || score < 0.5 {
+		slog.Warn("reCAPTCHA verification failed", "success", success, "score", score)
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "reCAPTCHA verification failed: low score or invalid token"}`,
+		}, nil
+	}
+
+	// Proceed with existing validation
 	if resp, err := h.validateSubscriptionRequest(req); err != nil || resp.StatusCode != 0 {
 		return resp, err
 	}
