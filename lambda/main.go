@@ -48,25 +48,21 @@ type (
 		MaxNotifications         int           `envconfig:"MAX_NOTIFICATIONS" default:"10"`
 		MaxRetries               int           `envconfig:"MAX_RETRIES" default:"1"`
 		MaxNtfyFailures          int           `envconfig:"MAX_NTFY_FAILURES" default:"2"`
+		MaxNotificationCount     int           `envconfig:"MAX_NOTIFICATION_COUNT" default:"30"`
 		RecaptchaSecretKey       string        `envconfig:"RECAPTCHA_SECRET_KEY" required:"true"`
 		RecaptchaURL             string        `envconfig:"RECAPTCHA_URL" default:"https://www.google.com/recaptcha/api/siteverify"`
 	}
 
 	// Subscription represents a subscription document
 	Subscription struct {
-		ID             bson.ObjectID `bson:"_id"`
-		Location       string        `bson:"location"`
-		ShortName      string        `bson:"shortName"`
-		Timezone       string        `bson:"timezone"`
-		NtfyTopic      string        `bson:"ntfyTopic"`
-		CreatedAt      time.Time     `bson:"createdAt"`
-		LastNotifiedAt time.Time     `bson:"lastNotifiedAt"`
-	}
-
-	// LocationTopics represents aggregated data
-	LocationTopics struct {
-		Location      string         `bson:"_id"`
-		Subscriptions []Subscription `bson:"subscriptions"`
+		ID                bson.ObjectID `bson:"_id"`
+		Location          string        `bson:"location"`
+		ShortName         string        `bson:"shortName"`
+		Timezone          string        `bson:"timezone"`
+		NtfyTopic         string        `bson:"ntfyTopic"`
+		CreatedAt         time.Time     `bson:"createdAt"`
+		LastNotifiedAt    time.Time     `bson:"lastNotifiedAt"`
+		NotificationCount int           `bson:"notificationCount"`
 	}
 
 	// Appointment from Global Entry API
@@ -160,7 +156,6 @@ func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) 
 
 	slog.Info("reCAPTCHA parsed result", "success", result.Success, "score", result.Score, "action", result.Action, "error-codes", result.ErrorCodes)
 
-	// Optional: check the action matches what your frontend sent (if using reCAPTCHA v3)
 	if result.Action != "submit" {
 		return false, 0, fmt.Errorf("reCAPTCHA action mismatch: expected 'submit', got '%s'", result.Action)
 	}
@@ -245,7 +240,7 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 	return nil
 }
 
-// updateLastNotified updates the lastNotifiedAt timestamp for multiple subscriptions
+// updateLastNotified updates the lastNotifiedAt timestamp and notificationCount for multiple subscriptions
 func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Collection, updates []mongo.WriteModel) error {
 	if len(updates) == 0 {
 		return nil
@@ -253,10 +248,10 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 
 	result, err := coll.BulkWrite(ctx, updates)
 	if err != nil {
-		slog.Error("Failed to update lastNotifiedAt", "error", err)
-		return fmt.Errorf("failed to update lastNotifiedAt: %v", err)
+		slog.Error("Failed to update lastNotifiedAt and notificationCount", "error", err)
+		return fmt.Errorf("failed to update lastNotifiedAt and notificationCount: %v", err)
 	}
-	slog.Debug("Updated lastNotifiedAt", "modifiedCount", result.ModifiedCount)
+	slog.Debug("Updated lastNotifiedAt and notificationCount", "modifiedCount", result.ModifiedCount)
 	return nil
 }
 
@@ -272,7 +267,6 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		// Stop if we've reached the global notification limit
 		if globalNotifiedCount >= h.Config.MaxNotifications {
 			slog.Info("Reached global notification limit")
-			// Update lastNotifiedAt before returning
 			if len(bulkUpdates) > 0 {
 				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 					slog.Error("Failed to update lastNotifiedAt before max notifications", "error", err)
@@ -313,10 +307,11 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		}
 		formattedTime := t.Format("Mon, Jan 2, 2006 at 3:04 PM MST")
 		message := fmt.Sprintf("Appointment available at %s on %s", sub.ShortName, formattedTime)
+
+		// Send appointment notification
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
 			if errors.Is(err, ErrMaxNtfyFailures) {
-				// Update lastNotifiedAt for notifications sent so far
 				if len(bulkUpdates) > 0 {
 					if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 						slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
@@ -327,14 +322,38 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 			continue
 		}
 
+		// Increment notification count
+		newCount := sub.NotificationCount + 1
+
+		// Check if subscription has exceeded max notification count
+		if newCount >= h.Config.MaxNotificationCount {
+			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment!", sub.ShortName, newCount)
+			if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Ended", expireMessage); err != nil {
+				slog.Error("Failed to send max notification count expiration notice", "topic", sub.NtfyTopic, "error", err)
+			}
+			_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
+			if err != nil {
+				slog.Error("Failed to delete subscription due to max notifications", "id", sub.ID, "error", err)
+			} else {
+				slog.Info("Deleted subscription due to max notifications", "id", sub.ID, "notificationCount", newCount)
+			}
+			continue
+		}
+
+		// Update MongoDB with new notification count and lastNotifiedAt
 		bulkUpdates = append(bulkUpdates, mongo.NewUpdateOneModel().
 			SetFilter(bson.M{"_id": sub.ID}).
-			SetUpdate(bson.M{"$set": bson.M{"lastNotifiedAt": now}}))
+			SetUpdate(bson.M{
+				"$set": bson.M{
+					"lastNotifiedAt": now,
+				},
+				"$inc": bson.M{
+					"notificationCount": 1,
+				},
+			}))
 		globalNotifiedCount++
 
-		// Check for max notification failures
 		if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-			// Update lastNotifiedAt before returning
 			if len(bulkUpdates) > 0 {
 				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 					slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
@@ -344,14 +363,12 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		}
 	}
 
-	// Update lastNotifiedAt for any remaining updates
 	if len(bulkUpdates) > 0 {
 		if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %v", err)
 		}
 	}
 
-	// If no appointments were fetched successfully and there were errors, return a combined error
 	if len(appointments) == 0 && len(fetchErrors) > 0 {
 		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments for all locations: %v", errors.Join(fetchErrors...))
 	}
@@ -379,15 +396,17 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 	ttlThreshold := time.Now().UTC().Add(-h.Config.SubscriptionTTL)
 	slog.Debug("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold)
 
-	cursor, err := coll.Find(ctx, bson.M{"createdAt": bson.M{"$lte": ttlThreshold}})
+	cursor, err := coll.Find(ctx, bson.M{
+		"createdAt": bson.M{"$lte": ttlThreshold},
+	})
 	if err != nil {
-		return fmt.Errorf("failed to find expiring subscriptions: %v", err)
+		return fmt.Errorf("failed to find expired subscriptions: %v", err)
 	}
 	defer cursor.Close(ctx)
 
 	var subscriptions []Subscription
 	if err := cursor.All(ctx, &subscriptions); err != nil {
-		return fmt.Errorf("failed to decode expiring subscriptions: %v", err)
+		return fmt.Errorf("failed to decode expired subscriptions: %v", err)
 	}
 
 	for _, sub := range subscriptions {
@@ -446,13 +465,14 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 
 	now := time.Now().UTC()
 	_, err = coll.InsertOne(ctx, bson.M{
-		"_id":            bson.NewObjectID(),
-		"location":       req.Location,
-		"shortName":      req.ShortName,
-		"timezone":       req.Timezone,
-		"ntfyTopic":      req.NtfyTopic,
-		"createdAt":      now,
-		"lastNotifiedAt": now.Add(-h.Config.NotificationCooldownTime),
+		"_id":               bson.NewObjectID(),
+		"location":          req.Location,
+		"shortName":         req.ShortName,
+		"timezone":          req.Timezone,
+		"ntfyTopic":         req.NtfyTopic,
+		"createdAt":         now,
+		"lastNotifiedAt":    now.Add(-h.Config.NotificationCooldownTime),
+		"notificationCount": 0,
 	})
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
@@ -466,6 +486,13 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.ShortName)
 	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
 		slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
+	} else {
+		_, err = coll.UpdateOne(ctx,
+			bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic},
+			bson.M{"$inc": bson.M{"notificationCount": 1}})
+		if err != nil {
+			slog.Error("Failed to increment notification count", "topic", req.NtfyTopic, "error", err)
+		}
 	}
 
 	return events.APIGatewayV2HTTPResponse{
@@ -502,7 +529,6 @@ func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Colle
 
 // handleSubscription manages subscribe/unsubscribe requests
 func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
-	// Validate reCAPTCHA token
 	if req.RecaptchaToken == "" {
 		slog.Error("Missing reCAPTCHA token")
 		return events.APIGatewayV2HTTPResponse{
@@ -530,7 +556,6 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		}, nil
 	}
 
-	// Proceed with existing validation
 	if resp, err := h.validateSubscriptionRequest(req); err != nil || resp.StatusCode != 0 {
 		return resp, err
 	}
@@ -577,67 +602,48 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 	}
 
-	// Handle CloudWatch Event
-	if source, ok := eventMap["source"].(string); ok && source == "aws.events" {
-		if err := h.handleExpiringSubscriptions(ctx, coll); err != nil {
-			slog.Error("Failed to handle expiring subscriptions", "error", err)
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 500,
-				Headers:    corsHeaders,
-				Body:       `{"error": "failed to handle expiring subscriptions"}`,
-			}, nil
-		}
-
-		cooldownThreshold := time.Now().UTC().Add(-h.Config.NotificationCooldownTime)
-		slog.Debug("Cooldown threshold", "threshold", cooldownThreshold)
-		pipeline := mongo.Pipeline{
-			bson.D{{
-				"$match", bson.M{
-					"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
-				},
-			}},
-			bson.D{{
-				"$sort", bson.M{
-					"lastNotifiedAt": 1, // Sort by lastNotifiedAt ascending (oldest first)
-				},
-			}},
-		}
-		cursor, err := coll.Aggregate(ctx, pipeline)
-		if err != nil {
-			slog.Error("Failed to execute aggregation", "error", err)
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 500,
-				Headers:    corsHeaders,
-				Body:       `{"error": "failed to execute aggregation"}`,
-			}, nil
-		}
-		defer cursor.Close(ctx)
-
-		var subscriptions []Subscription
-		if err := cursor.All(ctx, &subscriptions); err != nil {
-			slog.Error("Failed to decode aggregation results", "error", err)
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 500,
-				Headers:    corsHeaders,
-				Body:       `{"error": "failed to decode aggregation results"}`,
-			}, nil
-		}
-
-		globalNotifiedCount := 0
-		if len(subscriptions) > 0 {
-			if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-				slog.Error("Terminating due to maximum ntfy failures")
+	// Handle CloudWatch Events
+	if source, ok := eventMap["source"].(string); ok {
+		if source == "aws.events.availability" {
+			// Minute-by-minute availability check
+			cooldownThreshold := time.Now().UTC().Add(-h.Config.NotificationCooldownTime)
+			slog.Debug("Cooldown threshold", "threshold", cooldownThreshold)
+			pipeline := mongo.Pipeline{
+				bson.D{{
+					"$match", bson.M{
+						"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
+					},
+				}},
+				bson.D{{
+					"$sort", bson.M{
+						"lastNotifiedAt": 1,
+					},
+				}},
+			}
+			cursor, err := coll.Aggregate(ctx, pipeline)
+			if err != nil {
+				slog.Error("Failed to execute aggregation", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
 					Headers:    corsHeaders,
-					Body:       `{"error": "maximum notification failures reached"}`,
-				}, ErrMaxNtfyFailures
+					Body:       `{"error": "failed to execute aggregation"}`,
+				}, nil
+			}
+			defer cursor.Close(ctx)
+
+			var subscriptions []Subscription
+			if err := cursor.All(ctx, &subscriptions); err != nil {
+				slog.Error("Failed to decode aggregation results", "error", err)
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 500,
+					Headers:    corsHeaders,
+					Body:       `{"error": "failed to decode aggregation results"}`,
+				}, nil
 			}
 
-			var err error
-			globalNotifiedCount, err = h.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
-			if err != nil {
-				if errors.Is(err, ErrMaxNtfyFailures) {
+			globalNotifiedCount := 0
+			if len(subscriptions) > 0 {
+				if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
 					slog.Error("Terminating due to maximum ntfy failures")
 					return events.APIGatewayV2HTTPResponse{
 						StatusCode: 500,
@@ -645,15 +651,43 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 						Body:       `{"error": "maximum notification failures reached"}`,
 					}, ErrMaxNtfyFailures
 				}
-				slog.Warn("Failed to check availability", "error", err)
-			}
-		}
 
-		return events.APIGatewayV2HTTPResponse{
-			StatusCode: 200,
-			Headers:    corsHeaders,
-			Body:       `{"message": "cloudwatch event processed"}`,
-		}, nil
+				var err error
+				globalNotifiedCount, err = h.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
+				if err != nil {
+					if errors.Is(err, ErrMaxNtfyFailures) {
+						slog.Error("Terminating due to maximum ntfy failures")
+						return events.APIGatewayV2HTTPResponse{
+							StatusCode: 500,
+							Headers:    corsHeaders,
+							Body:       `{"error": "maximum notification failures reached"}`,
+						}, ErrMaxNtfyFailures
+					}
+					slog.Warn("Failed to check availability", "error", err)
+				}
+			}
+
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    corsHeaders,
+				Body:       `{"message": "availability check processed"}`,
+			}, nil
+		} else if source == "aws.events.expiration" {
+			// Daily expiration check
+			if err := h.handleExpiringSubscriptions(ctx, coll); err != nil {
+				slog.Error("Failed to handle expiring subscriptions", "error", err)
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 500,
+					Headers:    corsHeaders,
+					Body:       `{"error": "failed to handle expiring subscriptions"}`,
+				}, nil
+			}
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    corsHeaders,
+				Body:       `{"message": "expiration check processed"}`,
+			}, nil
+		}
 	}
 
 	// Handle API Gateway V2 HTTP event
@@ -722,7 +756,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					Body:       `{"error": "internal server error"}`,
 				}, fmt.Errorf("failed to handle subscription: %v", err)
 			}
-			resp.Headers = corsHeaders // Ensure CORS headers are set
+			resp.Headers = corsHeaders
 			slog.Debug("Returning response", "statusCode", resp.StatusCode, "body", resp.Body)
 			return resp, nil
 		}
@@ -743,7 +777,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	url := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
+	cpbURL := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
 	dbURL := "mongodb+srv://arun0009:%s@global-entry-appointmen.fcwlj2v.mongodb.net/?retryWrites=true&w=majority&appName=global-entry-appointment-cluster"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(fmt.Sprintf(dbURL, config.MongoDBPassword)).SetServerAPIOptions(serverAPI).SetConnectTimeout(config.MongoConnectTimeout)
@@ -760,6 +794,6 @@ func main() {
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	handler := NewLambdaHandler(config, url, client)
+	handler := NewLambdaHandler(config, cpbURL, client)
 	lambda.Start(handler.HandleRequest)
 }

@@ -31,7 +31,7 @@ type LambdaCdkStackProps struct {
 
 type Environment struct {
 	Parameters map[string]*string `json:"Parameters"`
-	AWS        map[string]*string `json:'"AWS"`
+	AWS        map[string]*string `json:"AWS"`
 }
 
 func LoadEnvironmentVariables(filePath string) (map[string]*string, error) {
@@ -76,25 +76,62 @@ func NewLambdaCdkStack(scope constructs.Construct, id string, props *LambdaCdkSt
 		Environment:  &envVars,
 	})
 
-	// Define CloudWatch event rule
-	rule := awsevents.NewRule(stack, jsii.String("GlobalEntryScheduledRule"), &awsevents.RuleProps{
+	// Define CloudWatch event rule for availability checks
+	availabilityRule := awsevents.NewRule(stack, jsii.String("GlobalEntryAvailabilityRule"), &awsevents.RuleProps{
 		Schedule: awsevents.Schedule_Rate(awscdk.Duration_Minutes(jsii.Number(ScheduleRate))),
+		EventPattern: &awsevents.EventPattern{
+			Source: jsii.Strings("aws.events.availability"),
+		},
 	})
 
-	// Get the ARN of the CloudWatch Events rule
-	ruleArn := rule.RuleArn()
+	// Get the ARN of the availability rule
+	availabilityRuleArn := availabilityRule.RuleArn()
 
-	// Add permission for the event rule to invoke the Lambda function
-	globalEntryFn.AddPermission(jsii.String("AllowEventRule"),
+	// Add permission for the availability rule to invoke the Lambda function
+	globalEntryFn.AddPermission(jsii.String("AllowAvailabilityRule"),
 		&awslambda.Permission{
 			Action:    jsii.String("lambda:InvokeFunction"),
 			Principal: awsiam.NewServicePrincipal(jsii.String("events.amazonaws.com"), &awsiam.ServicePrincipalOpts{}),
-			SourceArn: ruleArn,
+			SourceArn: availabilityRuleArn,
 		},
 	)
 
-	// Add Lambda function as a target for the rule
-	rule.AddTarget(awseventstargets.NewLambdaFunction(globalEntryFn, &awseventstargets.LambdaFunctionProps{}))
+	// Add Lambda function as a target for the availability rule
+	availabilityRule.AddTarget(awseventstargets.NewLambdaFunction(globalEntryFn, &awseventstargets.LambdaFunctionProps{
+		Event: awsevents.RuleTargetInput_FromObject(&map[string]interface{}{
+			"source": "aws.events.availability",
+		}),
+	}))
+
+	// Define CloudWatch event rule for expiration checks (daily at 12:00 PM EST, which is 17:00 UTC)
+	expirationRule := awsevents.NewRule(stack, jsii.String("GlobalEntryExpirationRule"), &awsevents.RuleProps{
+		Schedule: awsevents.Schedule_Cron(&awsevents.CronOptions{
+			Hour:   jsii.String("17"), // 17:00 UTC = 12:00 PM EST (UTC-5)
+			Minute: jsii.String("0"),
+		}),
+		EventPattern: &awsevents.EventPattern{
+			Source: jsii.Strings("aws.events.expiration"),
+		},
+	})
+
+	// Get the ARN of the expiration rule
+	expirationRuleArn := expirationRule.RuleArn()
+
+	// Add permission for the expiration rule to invoke the Lambda function
+	globalEntryFn.AddPermission(jsii.String("AllowExpirationRule"),
+		&awslambda.Permission{
+			Action:    jsii.String("lambda:InvokeFunction"),
+			Principal: awsiam.NewServicePrincipal(jsii.String("events.amazonaws.com"), &awsiam.ServicePrincipalOpts{}),
+			SourceArn: expirationRuleArn,
+		},
+	)
+
+	// Add Lambda function as a target for the expiration rule
+	expirationRule.AddTarget(awseventstargets.NewLambdaFunction(globalEntryFn, &awseventstargets.LambdaFunctionProps{
+		Event: awsevents.RuleTargetInput_FromObject(&map[string]interface{}{
+			"source": "aws.events.expiration",
+		}),
+	}))
 
 	// Add a public Lambda Function URL
 	functionUrl := globalEntryFn.AddFunctionUrl(&awslambda.FunctionUrlOptions{

@@ -57,7 +57,7 @@
 ### **Step 2: Set Up Your Alerts**
 Visit our web app and configure your preferred locations.
 
-**That's it!** You'll receive notifications for the next 30 days (auto-unsubscribes).
+**That's it!** You’ll receive notifications for the next 30 days or 30 alerts, whichever comes first (auto-unsubscribes).
 
 <div align="center">
   <a href="https://arun0009.github.io/global-entry-appointment" target="_blank">
@@ -117,7 +117,8 @@ Create `env.json`:
 ```json
 {
   "Parameters": {
-    "MONGODB_PASSWORD": "your-mongodb-password"
+    "MONGODB_PASSWORD": "your-mongodb-password",
+    "RECAPTCHA_SECRET_KEY": "your-recaptcha-secret-key"
   }
 }
 ```
