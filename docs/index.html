@@ -133,6 +133,21 @@
                                 </select>
                             </div>
 
+                            <div id="date-field" class="space-y-2">
+                                <label for="date" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z"/>
+                                    </svg>
+                                    Latest Appointment Date
+                                </label>
+                                <input type="date" id="date" name="date"
+                                       required
+                                       class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
+                                <p class="text-xs text-slate-500">
+                                    Receive alerts for appointments before this date
+                                </p>
+                            </div>
+
                             <div class="space-y-2">
                                 <label for="topic" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
@@ -141,7 +156,7 @@
                                     Ntfy Topic
                                 </label>
                                 <input type="text" id="topic" name="topic"
-                                       placeholder="see setup instructions"
+                                       placeholder="See Setup Instructions"
                                        required
                                        pattern="^[a-zA-Z0-9_-]+$"
                                        class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
@@ -183,8 +198,50 @@
                 </div>
             </div>
 
-            <!-- Instructions Sidebar -->
+            <!-- Sidebar -->
             <div class="space-y-6">
+                <!-- Support Section -->
+                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
+                    <div class="pt-6 px-6 pb-6">
+                        <div class="text-center space-y-4">
+                            <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
+                                <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
+                                </svg>
+                                Support This Project
+                            </h4>
+                            <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center">
+                                <img id="bmc-button" />
+                            </a>
+
+                            <script>
+                                const baseUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00?a";
+                                const img = document.getElementById("bmc-button");
+                                img.src = `${baseUrl}&_=${new Date().getTime()}`;
+                            </script>
+
+                            <div class="flex justify-center gap-4 pt-4">
+                                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                    </svg>
+                                </a>
+                                <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                                    </svg>
+                                </a>
+                                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions Section -->
                 <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="pt-6 px-6 pb-2">
                         <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
@@ -220,51 +277,17 @@
                         </div>
 
                         <div class="space-y-2">
-                            <h4 class="font-semibold text-sm text-slate-700">ℹ️ Notification Limit</h4>
+                            <h4 class="font-semibold text-sm text-slate-700">📅 Appointment Date</h4>
                             <p class="text-sm text-slate-600 leading-relaxed">
-                                Your subscription will send up to 30 alerts for available appointment slots or last 30 days, whichever comes first. You’ll be notified when it ends.
+                                Set a date to receive alerts for appointments before that date. Defaults to one year from today.
                             </p>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Support Section -->
-                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="pt-6 px-6 pb-6">
-                        <div class="text-center space-y-4">
-                            <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
-                                <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
-                                </svg>
-                                Support This Project
-                            </h4>
-                            <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center">
-                                <img id="bmc-button" />
-                            </a>
-
-                            <script>
-                                const baseUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00";
-                                const img = document.getElementById("bmc-button");
-                                img.src = `${baseUrl}&_=${new Date().getTime()}`;
-                            </script>
-
-                            <div class="flex justify-center gap-4 pt-4">
-                                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                                    </svg>
-                                </a>
-                                <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                                    </svg>
-                                </a>
-                                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                    </svg>
-                                </a>
-                            </div>
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-sm text-slate-700">ℹ️ Notification Limit</h4>
+                            <p class="text-sm text-slate-600 leading-relaxed">
+                                Your subscription will send up to 30 alerts for available appointment slots before your specified date or last 30 days, whichever comes first. You’ll be notified when it ends.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -308,16 +331,33 @@
         }
     }
 
+    function setDefaultDate() {
+        const dateInput = document.getElementById("date");
+        const today = new Date();
+        const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
+        const year = nextYear.getFullYear();
+        const month = String(nextYear.getMonth() + 1).padStart(2, '0');
+        const day = String(nextYear.getDate()).padStart(2, '0');
+        dateInput.value = `${year}-${month}-${day}`;
+    }
+
     async function submitForm() {
         const locationId = document.getElementById("location").value;
         const topic = document.getElementById("topic").value.trim();
+        const date = document.getElementById("date").value;
         const action = document.querySelector('input[name="action"]:checked').value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
         const submitButton = document.querySelector('.g-recaptcha');
         const status = document.getElementById("status");
 
+        // Validate fields based on action
         if (!locationId || !topic || !recaptchaToken) {
-            status.textContent = "Please fill out all fields and complete reCAPTCHA.";
+            status.textContent = "Please fill out Enrollment Center, Ntfy Topic, and complete reCAPTCHA.";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            return;
+        }
+        if (action === 'subscribe' && !date) {
+            status.textContent = "Please select a Latest Appointment Date for subscription.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
         }
@@ -344,6 +384,7 @@
             shortName: selectedLocation.shortName || selectedLocation.name,
             timezone: selectedLocation.tzData || "America/New_York",
             ntfyTopic: topic,
+            latestDate: action === 'subscribe' ? date : null,
             recaptchaToken: recaptchaToken
         };
         const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
@@ -363,6 +404,7 @@
                 document.getElementById("topic").value = '';
                 document.getElementById("location").value = '';
                 document.getElementById("recaptcha_token").value = '';
+                setDefaultDate();
             }
         } catch {
             status.textContent = "Error submitting request.";
@@ -376,11 +418,15 @@
     function updateSubmitButton() {
         const action = document.querySelector('input[name="action"]:checked').value;
         const submitButton = document.querySelector('.g-recaptcha');
+        const dateField = document.getElementById("date-field");
         const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
             </svg>`;
         submitButton.innerHTML = `${icon} ${action === 'subscribe' ? 'Start Receiving Alerts' : 'Stop Alerts'}`;
+        dateField.classList.toggle('hidden', action === 'unsubscribe');
+        dateField.classList.toggle('block', action === 'subscribe');
+        document.getElementById("date").required = action === 'subscribe';
     }
 
     document.getElementById("alert-form").addEventListener("submit", async (e) => {
@@ -407,6 +453,7 @@
             updateSubmitButton();
         }
         fetchLocations();
+        setDefaultDate();
     });
 </script>
 </body>

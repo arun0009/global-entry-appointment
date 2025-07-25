@@ -60,6 +60,7 @@ type (
 		ShortName         string        `bson:"shortName"`
 		Timezone          string        `bson:"timezone"`
 		NtfyTopic         string        `bson:"ntfyTopic"`
+		LatestDate        time.Time     `bson:"latestDate"`
 		CreatedAt         time.Time     `bson:"createdAt"`
 		LastNotifiedAt    time.Time     `bson:"lastNotifiedAt"`
 		NotificationCount int           `bson:"notificationCount"`
@@ -82,6 +83,7 @@ type (
 		ShortName      string `json:"shortName"`
 		Timezone       string `json:"timezone"`
 		NtfyTopic      string `json:"ntfyTopic"`
+		LatestDate     string `json:"latestDate"`
 		RecaptchaToken string `json:"recaptchaToken"`
 	}
 
@@ -267,12 +269,7 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		// Stop if we've reached the global notification limit
 		if globalNotifiedCount >= h.Config.MaxNotifications {
 			slog.Info("Reached global notification limit")
-			if len(bulkUpdates) > 0 {
-				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-					slog.Error("Failed to update lastNotifiedAt before max notifications", "error", err)
-				}
-			}
-			return globalNotifiedCount, nil
+			break
 		}
 
 		// Fetch appointments only if we haven't already for this location
@@ -288,8 +285,8 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 
 		// Get appointments for the subscription's location
 		apps, exists := appointments[sub.Location]
-		if !exists || len(apps) == 0 || !apps[0].Active {
-			slog.Debug("No active appointments for location", "location", sub.Location)
+		if !exists || len(apps) == 0 {
+			slog.Debug("No appointments for location", "location", sub.Location)
 			continue
 		}
 
@@ -299,12 +296,37 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 			slog.Error("Failed to load timezone", "timezone", sub.Timezone, "error", err)
 			continue
 		}
-		// Parse the timestamp in the subscription's timezone
-		t, err := time.ParseInLocation("2006-01-02T15:04", apps[0].StartTimestamp, loc)
-		if err != nil {
-			slog.Error("Failed to parse timestamp", "topic", sub.NtfyTopic, "error", err)
+
+		// Process each appointment for the subscription
+		var eligibleAppointment *Appointment
+		for _, app := range apps {
+			if !app.Active {
+				continue
+			}
+			// Parse the timestamp in the subscription's timezone
+			t, err := time.ParseInLocation("2006-01-02T15:04", app.StartTimestamp, loc)
+			if err != nil {
+				slog.Error("Failed to parse timestamp", "topic", sub.NtfyTopic, "error", err)
+				continue
+			}
+			// Debug: Log subscription eligibility
+			slog.Debug("Checking eligibility", "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
+
+			// Check if appointment is within latestDate
+			if t.Before(sub.LatestDate) || t.Equal(sub.LatestDate) {
+				eligibleAppointment = &app
+				break
+			}
+			slog.Debug("Appointment after latestDate", "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
+		}
+
+		if eligibleAppointment == nil {
+			slog.Debug("No eligible appointments for subscription", "topic", sub.NtfyTopic)
 			continue
 		}
+
+		// Format time for notification
+		t, _ := time.ParseInLocation("2006-01-02T15:04", eligibleAppointment.StartTimestamp, loc)
 		formattedTime := t.Format("Mon, Jan 2, 2006 at 3:04 PM MST")
 		message := fmt.Sprintf("Appointment available at %s on %s", sub.ShortName, formattedTime)
 
@@ -312,35 +334,26 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
 			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
 			if errors.Is(err, ErrMaxNtfyFailures) {
-				if len(bulkUpdates) > 0 {
-					if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-						slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
-					}
-				}
 				return globalNotifiedCount, ErrMaxNtfyFailures
 			}
 			continue
 		}
 
-		// Increment notification count
-		newCount := sub.NotificationCount + 1
-
-		// Check if subscription has exceeded max notification count
-		if newCount >= h.Config.MaxNotificationCount {
-			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment!", sub.ShortName, newCount)
+		// Check if subscription has exceeded max notification count after sending
+		if sub.NotificationCount+1 >= h.Config.MaxNotificationCount {
+			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment!", sub.ShortName, sub.NotificationCount+1)
 			if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Ended", expireMessage); err != nil {
 				slog.Error("Failed to send max notification count expiration notice", "topic", sub.NtfyTopic, "error", err)
 			}
 			_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 			if err != nil {
 				slog.Error("Failed to delete subscription due to max notifications", "id", sub.ID, "error", err)
-			} else {
-				slog.Info("Deleted subscription due to max notifications", "id", sub.ID, "notificationCount", newCount)
 			}
+			globalNotifiedCount++
 			continue
 		}
 
-		// Update MongoDB with new notification count and lastNotifiedAt
+		// Add update to bulkUpdates only if subscription is not deleted
 		bulkUpdates = append(bulkUpdates, mongo.NewUpdateOneModel().
 			SetFilter(bson.M{"_id": sub.ID}).
 			SetUpdate(bson.M{
@@ -352,17 +365,9 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 				},
 			}))
 		globalNotifiedCount++
-
-		if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-			if len(bulkUpdates) > 0 {
-				if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-					slog.Error("Failed to update lastNotifiedAt before max failures", "error", err)
-				}
-			}
-			return globalNotifiedCount, ErrMaxNtfyFailures
-		}
 	}
 
+	// Apply bulk updates only if there are valid updates
 	if len(bulkUpdates) > 0 {
 		if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
 			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %v", err)
@@ -378,7 +383,7 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 
 // deleteExpiredSubscription deletes a single expired subscription
 func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mongo.Collection, sub Subscription) error {
-	message := "Your Global Entry appointment subscription has expired."
+	message := fmt.Sprintf("Your Global Entry appointment subscription for %s has expired(30 days subscription) or the latest appointment date set (%s) has passed.", sub.ShortName, sub.LatestDate.Format("2006-01-02"))
 	if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message); err != nil {
 		slog.Error("Failed to send expiration notification", "topic", sub.NtfyTopic, "error", err)
 	}
@@ -391,13 +396,17 @@ func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mon
 	return nil
 }
 
-// handleExpiringSubscriptions deletes subscriptions older than TTL
+// handleExpiringSubscriptions deletes subscriptions older than TTL or past latestDate
 func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *mongo.Collection) error {
-	ttlThreshold := time.Now().UTC().Add(-h.Config.SubscriptionTTL)
-	slog.Debug("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold)
+	now := time.Now().UTC()
+	ttlThreshold := now.Add(-h.Config.SubscriptionTTL)
+	slog.Debug("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold, "currentDate", now)
 
 	cursor, err := coll.Find(ctx, bson.M{
-		"createdAt": bson.M{"$lte": ttlThreshold},
+		"$or": []bson.M{
+			{"createdAt": bson.M{"$lte": ttlThreshold}},
+			{"latestDate": bson.M{"$lte": now}},
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to find expired subscriptions: %v", err)
@@ -442,6 +451,33 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 			Body:       `{"error": "shortName and timezone must be provided from location data"}`,
 		}, nil
 	}
+
+	if req.Action == "subscribe" && req.LatestDate == "" {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    corsHeaders,
+			Body:       `{"error": "latestDate is required for subscribe"}`,
+		}, nil
+	}
+
+	if req.LatestDate != "" {
+		latestDate, err := time.Parse("2006-01-02", req.LatestDate)
+		if err != nil {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    corsHeaders,
+				Body:       `{"error": "invalid latestDate format, use YYYY-MM-DD"}`,
+			}, nil
+		}
+		if latestDate.Before(time.Now().UTC().Truncate(24 * time.Hour)) {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    corsHeaders,
+				Body:       `{"error": "latestDate cannot be in the past"}`,
+			}, nil
+		}
+	}
+
 	return events.APIGatewayV2HTTPResponse{}, nil
 }
 
@@ -463,13 +499,27 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 		}, nil
 	}
 
+	latestDate := time.Now().UTC().AddDate(1, 0, 0) // Default to 1 year from now
+	if req.LatestDate != "" {
+		var err error
+		latestDate, err = time.Parse("2006-01-02", req.LatestDate)
+		if err != nil {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    corsHeaders,
+				Body:       `{"error": "invalid latestDate format"}`,
+			}, fmt.Errorf("failed to parse latestDate: %v", err)
+		}
+	}
+
 	now := time.Now().UTC()
-	_, err = coll.InsertOne(ctx, bson.M{
+	result, err := coll.InsertOne(ctx, bson.M{
 		"_id":               bson.NewObjectID(),
 		"location":          req.Location,
 		"shortName":         req.ShortName,
 		"timezone":          req.Timezone,
 		"ntfyTopic":         req.NtfyTopic,
+		"latestDate":        latestDate,
 		"createdAt":         now,
 		"lastNotifiedAt":    now.Add(-h.Config.NotificationCooldownTime),
 		"notificationCount": 0,
@@ -481,14 +531,15 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 			Body:       `{"error": "failed to insert subscription"}`,
 		}, fmt.Errorf("failed to insert subscription: %v", err)
 	}
-	slog.Info("Added subscription", "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic)
+	slog.Info("Added subscription", "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic, "latestDate", latestDate, "insertedID", result.InsertedID)
 
-	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s.", req.ShortName)
+	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s before %s.", req.ShortName, latestDate.Format("2006-01-02"))
 	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
 		slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
 	} else {
+		slog.Debug("Updating notification count for subscription", "topic", req.NtfyTopic, "location", req.Location, "insertedID", result.InsertedID)
 		_, err = coll.UpdateOne(ctx,
-			bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic},
+			bson.M{"_id": result.InsertedID},
 			bson.M{"$inc": bson.M{"notificationCount": 1}})
 		if err != nil {
 			slog.Error("Failed to increment notification count", "topic", req.NtfyTopic, "error", err)
@@ -612,6 +663,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				bson.D{{
 					"$match", bson.M{
 						"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
+						"latestDate":     bson.M{"$gt": time.Now().UTC()},
 					},
 				}},
 				bson.D{{
@@ -762,11 +814,11 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 	}
 
-	slog.Error("Unsupported event type", "event", string(event))
+	slog.Error("Invalid event", "event", string(event))
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 400,
 		Headers:    corsHeaders,
-		Body:       `{"error": "unsupported event type"}`,
+		Body:       `{"error": "invalid event format"}`,
 	}, nil
 }
 
