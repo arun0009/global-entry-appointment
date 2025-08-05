@@ -86,7 +86,7 @@ func setupTestHandler(t *testing.T) (*LambdaHandler, *mongo.Collection, func()) 
 		NtfyServer:               "http://localhost",
 		RecaptchaURL:             "http://localhost/recaptcha",
 		HTTPTimeout:              2 * time.Second,
-		NotificationCooldownTime: 60 * time.Minute,
+		NotificationCooldownTime: 30 * time.Minute,
 		MongoConnectTimeout:      10 * time.Second,
 		SubscriptionTTL:          30 * 24 * time.Hour,
 		MaxNotifications:         10,

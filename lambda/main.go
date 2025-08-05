@@ -42,7 +42,7 @@ type (
 		MongoDBPassword          string        `envconfig:"MONGODB_PASSWORD" required:"true"`
 		NtfyServer               string        `envconfig:"NTFY_SERVER" default:"https://ntfy.sh/"`
 		HTTPTimeout              time.Duration `envconfig:"HTTP_TIMEOUT_SECONDS" default:"5s"`
-		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"60m"`
+		NotificationCooldownTime time.Duration `envconfig:"NOTIFICATION_COOLDOWN_TIME" default:"30m"`
 		MongoConnectTimeout      time.Duration `envconfig:"MONGO_CONNECT_TIMEOUT" default:"10s"`
 		SubscriptionTTL          time.Duration `envconfig:"SUBSCRIPTION_TTL_DAYS" default:"720h"`
 		MaxNotifications         int           `envconfig:"MAX_NOTIFICATIONS" default:"10"`
