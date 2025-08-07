@@ -400,7 +400,7 @@ func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mon
 func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *mongo.Collection) error {
 	now := time.Now().UTC()
 	ttlThreshold := now.Add(-h.Config.SubscriptionTTL)
-	slog.Debug("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold, "currentDate", now)
+	slog.Info("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold, "currentDate", now)
 
 	cursor, err := coll.Find(ctx, bson.M{
 		"$or": []bson.M{
