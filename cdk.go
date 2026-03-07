@@ -17,8 +17,9 @@ import (
 const (
 	StackName    = "GlobalEntryStack"
 	FunctionName = "globalentry"
+	// 128 MB keeps cost low; CPU scales with memory if you need faster runs
 	MemorySize   = 128
-	MaxDuration  = 60
+	MaxDuration  = 30 // Usually finishes in seconds; fail fast to avoid extra cost
 	CodePath     = ".bin/"
 	Handler      = "main.Handler"
 	ScheduleRate = 1
@@ -65,10 +66,11 @@ func NewLambdaCdkStack(scope constructs.Construct, id string, props *LambdaCdkSt
 		panic(err)
 	}
 
-	// Define Lambda function
+	// Define Lambda function (ARM64 Graviton2: same price, better perf; smaller binary = faster cold start)
 	globalEntryFn := awslambda.NewFunction(stack, jsii.String(FunctionName), &awslambda.FunctionProps{
 		FunctionName: jsii.String(*stack.StackName() + "-" + FunctionName),
 		Runtime:      awslambda.Runtime_PROVIDED_AL2023(),
+		Architecture: awslambda.Architecture_ARM_64(),
 		MemorySize:   jsii.Number(MemorySize),
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(MaxDuration)),
 		Code:         awslambda.AssetCode_FromAsset(jsii.String(CodePath), nil),

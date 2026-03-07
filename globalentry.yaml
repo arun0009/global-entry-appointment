@@ -32,8 +32,13 @@ Resources:
           Properties:
             Path: /
             Method: GET
-        SubscribeEndpoint:
+        SubscribeEndpointPost:
           Type: Api
           Properties:
             Path: /subscriptions
             Method: POST
+        SubscribeEndpointGet:
+          Type: Api
+          Properties:
+            Path: /subscriptions
+            Method: GET

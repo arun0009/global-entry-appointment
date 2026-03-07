@@ -640,6 +640,27 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}, nil
 	}
 
+	// Normalize API Gateway REST API (v1) to HTTP API (v2) shape so SAM local and both formats work
+	if _, has := eventMap["rawPath"]; !has {
+		if p, ok := eventMap["path"].(string); ok {
+			eventMap["rawPath"] = p
+		}
+	}
+	if reqCtx, ok := eventMap["requestContext"].(map[string]interface{}); ok {
+		var httpInfo map[string]interface{}
+		if h, ok := reqCtx["http"].(map[string]interface{}); ok {
+			httpInfo = h
+		} else {
+			httpInfo = make(map[string]interface{})
+			reqCtx["http"] = httpInfo
+		}
+		if _, has := httpInfo["method"]; !has {
+			if m, ok := eventMap["httpMethod"].(string); ok {
+				httpInfo["method"] = m
+			}
+		}
+	}
+
 	// Handle OPTIONS request
 	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
 		if httpInfo, ok := req["http"].(map[string]interface{}); ok {
@@ -773,6 +794,19 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 		body, _ := eventMap["body"].(string)
 
+		// GET / or GET /subscriptions: return simple info (e.g. for SAM local or browser)
+		if method == "GET" && (rawPath == "/" || rawPath == "/subscriptions") {
+			msg := `{"message": "Global Entry appointment notifications. Use POST /subscriptions with action, location, ntfyTopic, etc."}`
+			if rawPath == "/" {
+				msg = `{"message": "Global Entry appointment notification API", "subscriptions": "POST /subscriptions"}`
+			}
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 200,
+				Headers:    corsHeaders,
+				Body:       msg,
+			}, nil
+		}
+
 		if method == "POST" && strings.HasSuffix(rawPath, "/subscriptions") {
 			if body == "" {
 				slog.Error("Invalid request: missing body")
@@ -832,17 +866,26 @@ func main() {
 	cpbURL := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
 	dbURL := "mongodb+srv://arun0009:%s@global-entry-appointmen.fcwlj2v.mongodb.net/?retryWrites=true&w=majority&appName=global-entry-appointment-cluster"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(fmt.Sprintf(dbURL, config.MongoDBPassword)).SetServerAPIOptions(serverAPI).SetConnectTimeout(config.MongoConnectTimeout)
+	opts := options.Client().
+		ApplyURI(fmt.Sprintf(dbURL, config.MongoDBPassword)).
+		SetServerAPIOptions(serverAPI).
+		SetConnectTimeout(config.MongoConnectTimeout).
+		SetMaxPoolSize(5) // Lambda is single-concurrent per instance; low pool keeps cost down
 	client, err := mongo.Connect(opts)
 	if err != nil {
 		slog.Error("Failed to connect to MongoDB", "error", err)
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MongoConnectTimeout)
+	_, cancel := context.WithTimeout(context.Background(), config.MongoConnectTimeout)
 	defer cancel()
 
-	defer client.Disconnect(ctx)
+	defer func() {
+		// Use fresh context for disconnect; startup ctx may already be cancelled
+		discCtx, discCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer discCancel()
+		_ = client.Disconnect(discCtx)
+	}()
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
