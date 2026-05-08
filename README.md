@@ -1,119 +1,65 @@
 <div align="center">
 
-# 🌍 Global Entry Appointment Scanner
+# Global Entry Appointment Alerts
 
-<img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" alt="Status"/>
-<img src="https://img.shields.io/badge/Cost-FREE-blue?style=for-the-badge" alt="Cost"/>
-<img src="https://img.shields.io/badge/Setup-2_Steps-orange?style=for-the-badge" alt="Setup"/>
+Free, real-time push notifications when Global Entry appointment slots open up at your enrollment center.
 
-### 🚀 **Never Miss a Global Entry Appointment Again!**
+[**getglobalentryalerts.com →**](https://getglobalentryalerts.com/)
 
-**Stop refreshing the CBP website endlessly.** Get instant push notifications the moment appointment slots open up near you.
-
-[**🔔 Get Started in 2 Minutes →**](https://arun0009.github.io/global-entry-appointment/)
+[![Live](https://img.shields.io/website?url=https%3A%2F%2Fgetglobalentryalerts.com&up_message=live&down_message=offline&label=site)](https://getglobalentryalerts.com/)
+[![GitHub Stars](https://img.shields.io/github/stars/arun0009/global-entry-appointment?style=social)](https://github.com/arun0009/global-entry-appointment/stargazers)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 </div>
 
 ---
 
-## ✨ **Why Choose This Tool?**
+## What it does
 
-<div style="display: flex; justify-content: space-between; gap: 20px;">
+Stop refreshing the CBP website endlessly. Pick your enrollment center once, and the service watches it for you. When a slot opens up, you get a push notification within a minute via the free [ntfy](https://ntfy.sh) app.
 
-  <div style="flex: 1; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <h3>🎯 Smart & Simple</h3>
-    <ul>
-      <li>⚡ <b>Real-time scanning</b> every minute</li>
-      <li>📱<b>Instant notifications</b> to your phone</li>
-      <li>🔒<b>No personal data</b> required</li>
-    </ul>
-  </div>
+- **100% free** — no ads, no signup, no personal data.
+- **Open source** — MIT licensed.
+- **Real-time** — checks every minute via CBP's public scheduler API.
+- **No accounts** — bring your own ntfy topic, no email or phone needed.
+- **Auto-expires** — 30 alerts or 30 days, whichever comes first.
 
-  <div style="flex: 1; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-    <h3>💰 Completely Free</h3>
-    <ul>
-      <li>✅ No login or phone number</li>
-      <li>✅ No hidden fees or subscriptions</li>
-      <li>✅ Open source & transparent</li>
-    </ul>
-  </div>
+## Quick start
 
-</div>
+1. Install ntfy: [iOS](https://apps.apple.com/app/ntfy/id1625396347) · [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+2. In the ntfy app, create a unique topic name (e.g. `global-entry-alerts-arun`).
+3. Paste the same topic at [getglobalentryalerts.com](https://getglobalentryalerts.com/), pick your enrollment center, and submit.
 
-## 📲 **Get Started in 2 Simple Steps**
+That's it — you'll get a push notification when slots open up.
 
-### **Step 1: Install the Ntfy App**
+## How it works
 
-<div align="center">
-  <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank">
-    <img src="https://img.shields.io/badge/App%20Store-Download-black?style=for-the-badge&logo=apple&logoColor=white" alt="App Store" />
-  </a>
-  &nbsp;
-  <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank">
-    <img src="https://img.shields.io/badge/Google%20Play-Download-3DDC84?style=for-the-badge&logo=google-play&logoColor=white" alt="Google Play" />
-  </a>
-</div>
+A scheduled AWS Lambda runs every minute. For each subscribed location, it queries CBP's public scheduler API. If a slot is available before your latest acceptable date, it pushes a notification through ntfy. Subscriptions auto-expire after 30 alerts or 30 days, with a final "we're done" message.
 
-### **Step 2: Set Up Your Alerts**
-Visit our web app and configure your preferred locations.
+Stack: Go on AWS Lambda + MongoDB Atlas + [ntfy.sh](https://ntfy.sh), deployed via AWS CDK.
 
-**That's it!** You’ll receive notifications for the next 30 days or 30 alerts, whichever comes first (auto-unsubscribes).
+## For developers
 
-<div align="center">
-  <a href="https://arun0009.github.io/global-entry-appointment" target="_blank">
-    <img src="https://img.shields.io/badge/🔔%20Set%20Up%20Alerts-Open%20Web%20App-blue?style=for-the-badge" alt="Setup Alerts" />
-  </a>
-</div>
+### Prerequisites
 
-
----
-
-## ❤️ Love This Project?
-
-<div align="center">
-
-### **Help Keep This Service Running Free!**
-
-Your support helps cover AWS costs and keeps this tool free for everyone
-
-[![Support this project](https://img.buymeacoffee.com/button-api/?text=Support%20this%20project&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00?b)](https://www.buymeacoffee.com/arun0009)
-
-**🌟 Star this repo** if it saved you time!
-
-<p>
-<a href="https://github.com/arun0009/global-entry-appointment/stargazers">
-<img src="https://img.shields.io/github/stars/arun0009/global-entry-appointment?style=social" alt="GitHub stars"/>
-</a>
-</p>
-
-</div>
-
----
-
-## 🔧 **For Developers**
-
-### **Prerequisites for AWS Deployment**
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/work-with-cdk-typescript.html)
 - [Docker](https://www.docker.com/get-started/)
 
+### Setup
+
 ```bash
-# Clone the repository
 git clone https://github.com/arun0009/global-entry-appointment.git
 cd global-entry-appointment
-```
 
-### **Environment Setup**
-
-```bash
-# Set AWS credentials
-export AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
-export AWS_REGION=YOUR_AWS_REGION
-export AWS_ACCOUNT=YOUR_AWS_ACCOUNT_ID
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_REGION=...
+export AWS_ACCOUNT=...
 ```
 
 Create `env.json`:
+
 ```json
 {
   "Parameters": {
@@ -123,32 +69,46 @@ Create `env.json`:
 }
 ```
 
-### **Commands**
+> If you serve the static site from both `getglobalentryalerts.com` and `*.github.io`, register both hostnames in [reCAPTCHA admin](https://www.google.com/recaptcha/admin). The API already allows both origins via CORS.
 
-```bash
-# Local development
-make develop
-make invoke
+### MongoDB indexes
 
-# Deploy to AWS
-make deploy
+For production performance, create these once on the `subscriptions` collection:
 
-# Clean up
-make destroy
+```js
+// Unique subscription per (location, ntfyTopic)
+db.subscriptions.createIndex(
+  { location: 1, ntfyTopic: 1 },
+  { unique: true }
+);
+
+// Cron query: subscriptions due for a notification check
+db.subscriptions.createIndex({ lastNotifiedAt: 1, latestDate: 1 });
+
+// Daily expiration sweep
+db.subscriptions.createIndex({ createdAt: 1 });
+db.subscriptions.createIndex({ latestDate: 1 });
 ```
 
----
+### Commands
 
-## 📄 **License**
+```bash
+make develop    # local development
+make invoke     # invoke lambda locally
+make test       # run tests (requires Docker)
+make css        # rebuild docs/styles.css from tailwind.css (only if you change styles)
+make deploy     # deploy to AWS
+make destroy    # tear down stack
+```
 
-MIT © 2025 - Made with ❤️ for the Global Entry community
+The static site at `docs/` ships a precompiled `docs/styles.css` (Tailwind v4) — no CDN, no in-browser compilation. If you edit `tailwind.css` or add new utility classes to `docs/index.html`, run `make css` and commit the regenerated stylesheet. `npm install` once to pull the dev dependencies.
 
----
+## Support
 
-<div align="center">
+Free to use. If this saved you a refresh war, a coffee or a [star](https://github.com/arun0009/global-entry-appointment/stargazers) is always welcome.
 
-**🔥 Stop waiting. Start getting notified.**
+[![Buy me a coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00?b)](https://www.buymeacoffee.com/arun0009)
 
-[**Get Started Now →**](https://arun0009.github.io/global-entry-appointment/)
+## License
 
-</div>
+MIT © 2026 [Arun Gopalpuri](https://github.com/arun0009)

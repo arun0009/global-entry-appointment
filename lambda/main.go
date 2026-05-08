@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -22,17 +23,54 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
 
-// corsHeaders defines the CORS headers for responses
-var corsHeaders = map[string]string{
-	"Access-Control-Allow-Origin":      "https://arun0009.github.io",
-	"Access-Control-Allow-Methods":     "GET, POST, OPTIONS",
-	"Access-Control-Allow-Headers":     "Content-Type",
-	"Access-Control-Allow-Credentials": "true",
+const primarySiteOrigin = "https://getglobalentryalerts.com"
+
+// Browser Origin for GitHub project Pages is https://arun0009.github.io (path not included).
+var allowedCORSOrigins = map[string]bool{
+	primarySiteOrigin:                      true,
+	"https://www.getglobalentryalerts.com": true,
+	"https://arun0009.github.io":           true,
+}
+
+// originFromEvent extracts the request Origin header from an API Gateway event.
+// HTTP API v2 lowercases header names; REST API v1 and SAM local don't, so we
+// check both common spellings.
+func originFromEvent(eventMap map[string]interface{}) string {
+	h, _ := eventMap["headers"].(map[string]interface{})
+	if v, _ := h["origin"].(string); v != "" {
+		return v
+	}
+	if v, _ := h["Origin"].(string); v != "" {
+		return v
+	}
+	return ""
+}
+
+// corsHeadersForOrigin returns the CORS response headers, echoing the request
+// Origin when it's allow-listed and falling back to the primary site otherwise.
+func corsHeadersForOrigin(origin string) map[string]string {
+	allow := primarySiteOrigin
+	if allowedCORSOrigins[origin] {
+		allow = origin
+	}
+	return map[string]string{
+		"Access-Control-Allow-Origin":      allow,
+		"Access-Control-Allow-Methods":     "GET, POST, OPTIONS",
+		"Access-Control-Allow-Headers":     "Content-Type",
+		"Access-Control-Allow-Credentials": "true",
+	}
 }
 
 var validNtfyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// CBP location IDs are numeric; reject anything else to keep the upstream URL safe.
+var validLocationPattern = regexp.MustCompile(`^[0-9]+$`)
+
+// maxLocationFetchConcurrency caps parallel HTTP calls to the CBP API per cron run.
+const maxLocationFetchConcurrency = 8
 
 var ErrMaxNtfyFailures = errors.New("maximum ntfy failures reached")
 
@@ -87,15 +125,27 @@ type (
 		RecaptchaToken string `json:"recaptchaToken"`
 	}
 
-	// LambdaHandler holds dependencies
+	// LambdaHandler holds dependencies plus per-invocation request state.
+	// Lambda runs one request per execution environment at a time, so the
+	// per-request fields are reset at the top of HandleRequest.
 	LambdaHandler struct {
 		Config          Config
 		URL             string
 		Client          *mongo.Client
 		HTTPClient      *retryablehttp.Client
-		failedNtfyCount int // Global counter for notification failures
+		failedNtfyCount int
+		requestCORS     map[string]string
 	}
 )
+
+// cors returns the CORS headers for the current request, falling back to the
+// primary-origin defaults if the request hasn't resolved them yet.
+func (h *LambdaHandler) cors() map[string]string {
+	if h.requestCORS != nil {
+		return h.requestCORS
+	}
+	return corsHeadersForOrigin("")
+}
 
 // NewLambdaHandler creates a new LambdaHandler
 func NewLambdaHandler(config Config, url string, client *mongo.Client) *LambdaHandler {
@@ -257,30 +307,61 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 	return nil
 }
 
+// fetchAppointmentsForLocations fetches CBP appointments for each unique location in
+// the subscription set concurrently with bounded parallelism. Failures are returned
+// per-location; the caller decides how to react.
+func (h *LambdaHandler) fetchAppointmentsForLocations(ctx context.Context, subscriptions []Subscription) (map[string][]Appointment, []error) {
+	uniqueLocations := make(map[string]struct{}, len(subscriptions))
+	for _, s := range subscriptions {
+		uniqueLocations[s.Location] = struct{}{}
+	}
+
+	appointments := make(map[string][]Appointment, len(uniqueLocations))
+	var (
+		fetchErrors []error
+		appsMu      sync.Mutex
+		errMu       sync.Mutex
+	)
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(maxLocationFetchConcurrency)
+
+	for loc := range uniqueLocations {
+		loc := loc
+		g.Go(func() error {
+			apps, err := h.fetchAppointments(gctx, loc)
+			if err != nil {
+				slog.Warn("Failed to fetch appointments", "location", loc, "error", err)
+				errMu.Lock()
+				fetchErrors = append(fetchErrors, fmt.Errorf("location %s: %w", loc, err))
+				errMu.Unlock()
+				// Best-effort: don't propagate so other locations continue.
+				return nil
+			}
+			appsMu.Lock()
+			appointments[loc] = apps
+			appsMu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait()
+	return appointments, fetchErrors
+}
+
 // checkAvailabilityAndNotify checks availability and notifies eligible subscribers
 func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscriptions []Subscription, globalNotifiedCount int) (int, error) {
-	appointments := make(map[string][]Appointment)
-	var fetchErrors []error
 	now := time.Now().UTC()
 	var bulkUpdates []mongo.WriteModel
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
+
+	// Fan out CBP API calls for unique locations; this is the dominant cost per cron run.
+	appointments, fetchErrors := h.fetchAppointmentsForLocations(ctx, subscriptions)
 
 	for _, sub := range subscriptions {
 		// Stop if we've reached the global notification limit
 		if globalNotifiedCount >= h.Config.MaxNotifications {
 			slog.Info("Reached global notification limit")
 			break
-		}
-
-		// Fetch appointments only if we haven't already for this location
-		if _, exists := appointments[sub.Location]; !exists {
-			apps, err := h.fetchAppointments(ctx, sub.Location)
-			if err != nil {
-				slog.Warn("Failed to fetch appointments", "location", sub.Location, "error", err)
-				fetchErrors = append(fetchErrors, fmt.Errorf("location %s: %w", sub.Location, err))
-				continue
-			}
-			appointments[sub.Location] = apps
 		}
 
 		// Get appointments for the subscription's location
@@ -431,15 +512,23 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 	if req.Location == "" || req.NtfyTopic == "" {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "location and ntfyTopic are required"}`,
+		}, nil
+	}
+
+	if !validLocationPattern.MatchString(req.Location) {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    h.cors(),
+			Body:       `{"error": "location must be a numeric enrollment center id"}`,
 		}, nil
 	}
 
 	if !validNtfyPattern.MatchString(req.NtfyTopic) {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "Ntfy Topic must not contain spaces or special characters"}`,
 		}, nil
 	}
@@ -447,7 +536,7 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 	if req.ShortName == "" || req.Timezone == "" {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "shortName and timezone must be provided from location data"}`,
 		}, nil
 	}
@@ -455,7 +544,7 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 	if req.Action == "subscribe" && req.LatestDate == "" {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "latestDate is required for subscribe"}`,
 		}, nil
 	}
@@ -465,14 +554,14 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 		if err != nil {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "invalid latestDate format, use YYYY-MM-DD"}`,
 			}, nil
 		}
 		if latestDate.Before(time.Now().UTC().Truncate(24 * time.Hour)) {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "latestDate cannot be in the past"}`,
 			}, nil
 		}
@@ -487,14 +576,14 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "failed to check existing subscription"}`,
 		}, fmt.Errorf("failed to check existing subscription: %v", err)
 	}
 	if count > 0 {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "subscription already exists"}`,
 		}, nil
 	}
@@ -506,7 +595,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 		if err != nil {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "invalid latestDate format"}`,
 			}, fmt.Errorf("failed to parse latestDate: %v", err)
 		}
@@ -527,7 +616,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "failed to insert subscription"}`,
 		}, fmt.Errorf("failed to insert subscription: %v", err)
 	}
@@ -548,7 +637,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
-		Headers:    corsHeaders,
+		Headers:    h.cors(),
 		Body:       `{"message": "Subscribed successfully"}`,
 	}, nil
 }
@@ -559,21 +648,21 @@ func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Colle
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "failed to delete subscription"}`,
 		}, fmt.Errorf("failed to delete subscription: %v", err)
 	}
 	if result.DeletedCount == 0 {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 404,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "subscription not found"}`,
 		}, nil
 	}
 	slog.Info("Removed subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
-		Headers:    corsHeaders,
+		Headers:    h.cors(),
 		Body:       `{"message": "Unsubscribed successfully"}`,
 	}, nil
 }
@@ -584,7 +673,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		slog.Error("Missing reCAPTCHA token")
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "reCAPTCHA token is required"}`,
 		}, nil
 	}
@@ -594,7 +683,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		slog.Error("Failed to verify reCAPTCHA token", "error", err)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "reCAPTCHA verification failed"}`,
 		}, nil
 	}
@@ -602,7 +691,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 		slog.Warn("reCAPTCHA verification failed", "success", success, "score", score)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "reCAPTCHA verification failed: low score or invalid token"}`,
 		}, nil
 	}
@@ -619,7 +708,7 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 	default:
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    h.cors(),
 			Body:       `{"error": "invalid action, use subscribe or unsubscribe"}`,
 		}, nil
 	}
@@ -627,7 +716,10 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 
 // HandleRequest handles Scheduled Events and API requests
 func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage) (events.APIGatewayV2HTTPResponse, error) {
+	// Lambda runs one request per execution environment at a time, so a fresh
+	// reset here is sufficient to avoid leaking state across invocations.
 	h.failedNtfyCount = 0
+	h.requestCORS = nil
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
 	var eventMap map[string]interface{}
@@ -635,10 +727,12 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		slog.Error("Failed to parse event as JSON", "error", err)
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
-			Headers:    corsHeaders,
+			Headers:    corsHeadersForOrigin(""),
 			Body:       `{"error": "invalid event format"}`,
 		}, nil
 	}
+
+	h.requestCORS = corsHeadersForOrigin(originFromEvent(eventMap))
 
 	// Normalize API Gateway REST API (v1) to HTTP API (v2) shape so SAM local and both formats work
 	if _, has := eventMap["rawPath"]; !has {
@@ -667,7 +761,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			if method, ok := httpInfo["method"].(string); ok && method == "OPTIONS" {
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 200,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       "",
 				}, nil
 			}
@@ -698,7 +792,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to execute aggregation", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "failed to execute aggregation"}`,
 				}, nil
 			}
@@ -709,7 +803,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to decode aggregation results", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "failed to decode aggregation results"}`,
 				}, nil
 			}
@@ -720,7 +814,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					slog.Error("Terminating due to maximum ntfy failures")
 					return events.APIGatewayV2HTTPResponse{
 						StatusCode: 500,
-						Headers:    corsHeaders,
+						Headers:    h.cors(),
 						Body:       `{"error": "maximum notification failures reached"}`,
 					}, ErrMaxNtfyFailures
 				}
@@ -732,7 +826,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 						slog.Error("Terminating due to maximum ntfy failures")
 						return events.APIGatewayV2HTTPResponse{
 							StatusCode: 500,
-							Headers:    corsHeaders,
+							Headers:    h.cors(),
 							Body:       `{"error": "maximum notification failures reached"}`,
 						}, ErrMaxNtfyFailures
 					}
@@ -742,7 +836,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 200,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"message": "availability check processed"}`,
 			}, nil
 		} else if source == "aws.events.expiration" {
@@ -751,13 +845,13 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to handle expiring subscriptions", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "failed to handle expiring subscriptions"}`,
 				}, nil
 			}
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 200,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"message": "expiration check processed"}`,
 			}, nil
 		}
@@ -770,7 +864,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing requestContext in event")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -779,7 +873,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing http info in requestContext")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -788,7 +882,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			slog.Error("Missing method in http info")
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
@@ -802,7 +896,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 200,
-				Headers:    corsHeaders,
+				Headers:    h.cors(),
 				Body:       msg,
 			}, nil
 		}
@@ -812,7 +906,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Invalid request: missing body")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "missing request body"}`,
 				}, nil
 			}
@@ -821,7 +915,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to parse request body", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "invalid request body"}`,
 				}, nil
 			}
@@ -829,7 +923,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Invalid subscription request: missing required fields")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "missing required fields"}`,
 				}, nil
 			}
@@ -838,11 +932,11 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				slog.Error("Failed to handle subscription", "error", err)
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 500,
-					Headers:    corsHeaders,
+					Headers:    h.cors(),
 					Body:       `{"error": "internal server error"}`,
 				}, fmt.Errorf("failed to handle subscription: %v", err)
 			}
-			resp.Headers = corsHeaders
+			resp.Headers = h.cors()
 			slog.Debug("Returning response", "statusCode", resp.StatusCode, "body", resp.Body)
 			return resp, nil
 		}
@@ -851,7 +945,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 	slog.Error("Invalid event", "event", string(event))
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 400,
-		Headers:    corsHeaders,
+		Headers:    h.cors(),
 		Body:       `{"error": "invalid event format"}`,
 	}, nil
 }
@@ -870,22 +964,20 @@ func main() {
 		ApplyURI(fmt.Sprintf(dbURL, config.MongoDBPassword)).
 		SetServerAPIOptions(serverAPI).
 		SetConnectTimeout(config.MongoConnectTimeout).
-		SetMaxPoolSize(5) // Lambda is single-concurrent per instance; low pool keeps cost down
+		SetMinPoolSize(1). // keep one warm connection between invocations
+		SetMaxPoolSize(5)  // Lambda is single-concurrent per instance; low pool keeps cost down
 	client, err := mongo.Connect(opts)
 	if err != nil {
 		slog.Error("Failed to connect to MongoDB", "error", err)
 		os.Exit(1)
 	}
 
-	_, cancel := context.WithTimeout(context.Background(), config.MongoConnectTimeout)
-	defer cancel()
-
-	defer func() {
-		// Use fresh context for disconnect; startup ctx may already be cancelled
-		discCtx, discCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer discCancel()
-		_ = client.Disconnect(discCtx)
-	}()
+	// Force the lazy connection during init so the first request doesn't pay the handshake cost.
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), config.MongoConnectTimeout)
+	if err := client.Ping(pingCtx, nil); err != nil {
+		slog.Warn("MongoDB ping failed during init; first request will retry", "error", err)
+	}
+	pingCancel()
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 

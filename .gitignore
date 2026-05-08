@@ -28,3 +28,5 @@ bootstrap.zip
 .idea
 *.iml
 env.json
+
+node_modules/

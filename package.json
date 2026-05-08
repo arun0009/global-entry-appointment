@@ -1,0 +1,13 @@
+{
+  "name": "global-entry-appointment-styles",
+  "private": true,
+  "description": "Tailwind CSS build for the docs/ static site (GitHub Pages).",
+  "scripts": {
+    "build:css": "tailwindcss -i ./tailwind.css -o ./docs/styles.css --minify",
+    "watch:css": "tailwindcss -i ./tailwind.css -o ./docs/styles.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.4",
+    "tailwindcss": "^4.2.4"
+  }
+}

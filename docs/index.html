@@ -2,32 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Global Entry Appointment Alerts</title>
+    <title>Global Entry Appointment Alerts — Free Notifications</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Get instant push notifications when Global Entry appointment slots open up. Free alerts via ntfy.sh app." />
     <meta name="keywords" content="Global Entry Appointment Alerts via ntfy notifications" />
     <meta name="robots" content="index, follow" />
 
     <meta property="og:title" content="Global Entry Appointment Alerts" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Get Global Entry Alerts" />
     <meta property="og:description" content="Get instant push notifications when Global Entry appointment slots open up. Free alerts via ntfy.sh app." />
-    <meta property="og:url" content="https://arun0009.github.io/global-entry-appointment" />
-    <meta property="og:image" content="https://arun0009.github.io/global-entry-appointment/preview.png" />
+    <meta property="og:url" content="https://getglobalentryalerts.com/" />
+    <meta property="og:image" content="https://getglobalentryalerts.com/preview.png" />
 
     <meta name="twitter:title" content="Global Entry Appointment Alerts">
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:description" content="Get instant Global Entry appointment alerts via the free ntfy app. Never miss an open slot at your preferred enrollment center!" />
-    <meta name="twitter:url" content="https://arun0009.github.io/global-entry-appointment" />
-    <meta name="twitter:image" content="https://arun0009.github.io/global-entry-appointment/preview.png" />
+    <meta name="twitter:url" content="https://getglobalentryalerts.com/" />
+    <meta name="twitter:image" content="https://getglobalentryalerts.com/preview.png" />
+    <meta name="twitter:image:alt" content="Get free Global Entry appointment alerts on your phone." />
 
-    <meta name="theme-color" content="#3b82f6" />
-    <link rel="canonical" href="https://arun0009.github.io/global-entry-appointment" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.google.com/recaptcha/api.js?render=6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"></script>
+    <meta name="theme-color" content="#4F7FFF" />
+    <link rel="canonical" href="https://getglobalentryalerts.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 
     <link rel="icon" type="image/png" href="favicon.png">
+
+    <script src="https://www.google.com/recaptcha/api.js?render=6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"></script>
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3BRX32YSZJ"></script>
@@ -45,7 +49,7 @@
             "@type": "WebApplication",
             "name": "Global Entry Appointment Alerts",
             "description": "A free service to receive instant push notifications for Global Entry appointment availability via the ntfy app.",
-            "url": "https://arun0009.github.io/global-entry-appointment",
+            "url": "https://getglobalentryalerts.com/",
             "applicationCategory": "Travel",
             "operatingSystem": "iOS, Android",
             "offers": {
@@ -55,47 +59,13 @@
             }
         }
     </script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'inter': ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        primary: {
-                            DEFAULT: '#4F7FFF',
-                            50: '#F0F4FF',
-                            100: '#E0EAFF',
-                            500: '#4F7FFF',
-                            600: '#3B6AE6',
-                            700: '#2851CC'
-                        }
-                    },
-                    animation: {
-                        'float': 'float 3s ease-in-out infinite',
-                        'pulse-glow': 'pulse-glow 2s ease-in-out infinite alternate'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        @keyframes pulse-glow {
-            from { box-shadow: 0 0 20px rgba(79, 127, 255, 0.3); }
-            to { box-shadow: 0 0 30px rgba(79, 127, 255, 0.6), 0 0 40px rgba(79, 127, 255, 0.3); }
-        }
-        body {
-            font-family: 'Inter', 'sans-serif';
-        }
-    </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800 min-h-screen font-inter">
+<noscript>
+    <div class="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm text-center py-3 px-4">
+        This site needs JavaScript to load enrollment centers and submit alerts. Please enable it in your browser.
+    </div>
+</noscript>
 <div class="min-h-screen py-8 px-4">
     <div class="max-w-4xl mx-auto space-y-8">
         <!-- Hero Section -->
@@ -116,28 +86,35 @@
                             Global Entry Alerts
                         </h1>
                         <p class="text-xl text-white/90 max-w-2xl">
-                            Never miss an available appointment slot again
+                            Free, real-time alerts the moment a slot opens up
                         </p>
                     </div>
                 </div>
             </div>
 
+            <div class="flex flex-wrap justify-center gap-2 text-xs font-semibold">
+                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">100% Free</span>
+                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No signup</span>
+                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No personal data</span>
+                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm hover:border-slate-400 hover:shadow transition-all duration-200">Open source</a>
+            </div>
+
             <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
                 Get instant push notifications via the <span class="font-semibold text-primary-600">ntfy</span> app
-                when Global Entry appointment slots open up. Stay ahead with real-time alerts!
+                when Global Entry appointment slots open up at your enrollment center.
             </p>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-8">
             <!-- Main Form -->
             <div class="lg:col-span-2">
-                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
+                <div id="setup-instructions" class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="text-center pb-6 pt-8 px-8">
                         <h2 class="text-2xl font-bold text-slate-800 mb-2">
-                            Setup Your Alerts
+                            Set Up Your Alerts
                         </h2>
                         <p class="text-slate-600">
-                            Configure notifications for your preferred enrollment center
+                            Pick your enrollment center and we'll watch it for you.
                         </p>
                     </div>
                     <div class="px-8 pb-8">
@@ -177,9 +154,9 @@
                                     Ntfy Topic
                                 </label>
                                 <input type="text" id="topic" name="topic"
-                                       placeholder="See Setup Instructions"
+                                       placeholder="e.g. global-entry-alerts-yourname"
                                        required
-                                       pattern="^[a-zA-Z0-9_-]+$"
+                                       pattern="^[a-zA-Z0-9_\-]+$"
                                        class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
                                 <p class="text-xs text-slate-500">
                                     Only letters, numbers, underscores, and hyphens are allowed
@@ -221,50 +198,54 @@
 
             <!-- Sidebar -->
             <div class="space-y-6">
-                <!-- Support Section -->
+                <!-- Support / project trust -->
                 <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="pt-6 px-6 pb-6">
-                        <div class="text-center space-y-4">
-                            <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
-                                <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
+                    <div class="p-5 text-center space-y-3">
+                        <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
+                            <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
+                            </svg>
+                            Support This Project
+                        </h4>
+                        <a href="https://www.buymeacoffee.com/arun0009" target="_blank" rel="noopener noreferrer" class="inline-block">
+                            <img id="bmc-button"
+                                 alt="Buy me a coffee"
+                                 width="217" height="60"
+                                 loading="eager" decoding="async"
+                                 style="display:block;height:60px;width:auto;max-width:100%;" />
+                        </a>
+                        <p id="bmc-supporter-count"
+                           class="hidden text-xs font-medium text-slate-500 pt-1"
+                           aria-live="polite"></p>
+                        <script>
+                            const bmcBtnUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00";
+                            const bmcBtnImg = document.getElementById("bmc-button");
+                            bmcBtnImg.src = `${bmcBtnUrl}&_=${Date.now()}`;
+                        </script>
+                        <div class="flex justify-center items-center gap-5 pt-1">
+                            <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" aria-label="X" class="text-slate-400 hover:text-primary-600 transition-colors duration-300">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                                 </svg>
-                                Support This Project
-                            </h4>
-                            <a href="https://www.buymeacoffee.com/arun0009" class="flex justify-center">
-                                <img id="bmc-button" />
                             </a>
-
-                            <script>
-                                const baseUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00?a";
-                                const img = document.getElementById("bmc-button");
-                                img.src = `${baseUrl}&_=${new Date().getTime()}`;
-                            </script>
-
-                            <div class="flex justify-center gap-4 pt-4">
-                                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                                    </svg>
-                                </a>
-                                <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                                    </svg>
-                                </a>
-                                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-primary-600 transition-colors duration-300">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                    </svg>
-                                </a>
-                            </div>
+                            <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" aria-label="Reddit" class="text-slate-400 hover:text-primary-600 transition-colors duration-300">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
+                                </svg>
+                            </a>
+                            <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" aria-label="Star on GitHub" title="Star on GitHub" class="inline-flex items-center gap-1 text-slate-400 hover:text-primary-600 transition-colors duration-300">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                </svg>
+                                <span id="gh-star-count" class="text-xs font-semibold tabular-nums" aria-hidden="true"></span>
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Instructions Section -->
-                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="pt-6 px-6 pb-2">
+                <!-- Setup Instructions -->
+                <div id="setup-instructions" class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
+                    <div class="px-6 pt-6 pb-2">
                         <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
                             <svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
@@ -272,53 +253,50 @@
                             Setup Instructions
                         </h3>
                     </div>
-                    <div class="px-6 pb-6 space-y-4">
-                        <div class="space-y-3">
-                            <h4 class="font-semibold text-sm text-slate-700">📱 Download ntfy App</h4>
-                            <div class="space-y-2">
-                                <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer" class="block">
-                                    <button class="w-full p-3 rounded-lg text-left transition-all duration-300 text-sm font-medium justify-start flex bg-white/70 border border-slate-200 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700">
-                                        📱 iOS App Store
-                                    </button>
-                                </a>
-                                <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer" class="block">
-                                    <button class="w-full p-3 rounded-lg text-left transition-all duration-300 text-sm font-medium justify-start flex bg-white/70 border border-slate-200 hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700">
-                                        🤖 Google Play Store
-                                    </button>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <h4 class="font-semibold text-sm text-slate-700">🔔 Create Topic</h4>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Open the ntfy app and create a <b>unique</b> topic name (e.g., <code class="bg-slate-100 px-1 rounded text-xs">global-entry-alerts-4-arun0009</code>).
-                                Use the same topic name in the form.
-                            </p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <h4 class="font-semibold text-sm text-slate-700">📅 Appointment Date</h4>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Set a date to receive alerts for appointments before that date. Defaults to one year from today.
-                            </p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <h4 class="font-semibold text-sm text-slate-700">ℹ️ Notification Limit</h4>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Your subscription will send up to 30 alerts for available appointment slots before your specified date or last 30 days, whichever comes first. You’ll be notified when it ends.
-                            </p>
-                        </div>
+                    <div class="px-6 pb-6">
+                        <ol class="space-y-4 text-sm">
+                            <li class="flex gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">1</span>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-slate-800">Install ntfy</p>
+                                    <p class="mt-1 text-slate-600">
+                                        <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer" class="text-primary-700 hover:underline font-medium">iOS</a>
+                                        <span class="mx-1 text-slate-300">·</span>
+                                        <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer" class="text-primary-700 hover:underline font-medium">Android</a>
+                                    </p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">2</span>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-slate-800">Create a topic</p>
+                                    <p class="mt-1 text-slate-600">Pick a unique name in the ntfy app (e.g. <code class="bg-slate-100 px-1 rounded text-xs">global-entry-alerts-arun</code>), then paste it in the form.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">3</span>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-slate-800">Set your latest date</p>
+                                    <p class="mt-1 text-slate-600">We'll alert you for slots before this date. Defaults to one year out.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">4</span>
+                                <div class="flex-1">
+                                    <p class="font-semibold text-slate-800">Get up to 30 alerts</p>
+                                    <p class="mt-1 text-slate-600">Your free subscription runs for 30 alerts or 30 days, whichever comes first. We'll notify you when it ends.</p>
+                                </div>
+                            </li>
+                        </ol>
                     </div>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-    // Store locations globally to access shortName and timezone
     let globalLocations = [];
 
     function onSubmit(token) {
@@ -467,6 +445,32 @@
         }
     });
 
+    async function fetchGitHubStars() {
+        try {
+            const r = await fetch("https://api.github.com/repos/arun0009/global-entry-appointment");
+            if (!r.ok) return;
+            const data = await r.json();
+            if (typeof data.stargazers_count === "number") {
+                const span = document.getElementById("gh-star-count");
+                if (span) span.textContent = `★ ${data.stargazers_count}`;
+            }
+        } catch {}
+    }
+
+    async function fetchBMCSupporters() {
+        try {
+            const r = await fetch("https://app.buymeacoffee.com/api/creators/slug/arun0009");
+            if (!r.ok) return;
+            const data = await r.json();
+            const count = data?.data?.attributes?.supporter_count;
+            if (typeof count !== "number" || count <= 0) return;
+            const el = document.getElementById("bmc-supporter-count");
+            if (!el) return;
+            el.textContent = `☕ ${count} ${count === 1 ? "supporter" : "supporters"} · thank you!`;
+            el.classList.remove("hidden");
+        } catch {}
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(window.location.search);
         if (params.get("subscriptions") === "unsubscribe") {
@@ -475,6 +479,8 @@
         }
         fetchLocations();
         setDefaultDate();
+        fetchGitHubStars();
+        fetchBMCSupporters();
     });
 </script>
 </body>
