@@ -161,9 +161,7 @@
                                     <input type="checkbox" id="channel-web" class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
                                     <span class="text-sm text-slate-700"><span class="font-medium">This device</span> — PWA notifications.</span>
                                 </label>
-                                <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                                    This device notifications are unavailable right now. You can still use ntfy.
-                                </p>
+                                <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"></p>
                                 <p id="ios-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
                                     <strong>iPhone / iPad (iOS 16.4+):</strong> Share → <strong>Add to Home Screen</strong>, then open from the icon.
                                 </p>
@@ -337,6 +335,7 @@
 
     let globalLocations = [];
     let geaVapidPublicKey = null;
+    /** True when GET /subscriptions reports Web Push is configured (VAPID); not the same as "user may check This device". */
     let geaWebPushServerEnabled = false;
 
     function onSubmit(token) {
@@ -367,36 +366,68 @@
         return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
     }
 
-    async function loadApiMeta() {
-        const hint = document.getElementById("web-push-unavailable");
-        const iosHint = document.getElementById("ios-pwa-hint");
-        const webCh = document.getElementById("channel-web");
+    /** All user-visible Web Push / “This device” copy in one place. */
+    const WEB_PUSH_COPY = {
+        bannerServerUnreachable: "Could not reach the notification server. Check your connection, pull to refresh, or try again in a moment. You can still use ntfy.",
+        bannerServerOff: "This device notifications are unavailable right now. You can still use ntfy.",
+        bannerNeedsPwa: "This device notifications are disabled until the app is installed and opened from its icon.",
+        bannerBrowserUnsupported: "This browser does not support push notifications here. You can still use ntfy.",
+        notificationsBlocked: "Notifications are blocked. Allow them in browser settings, then try again.",
+        enableFailed: "Could not enable this device. Please try again.",
+        deviceReady: "This device is ready — submit the form below.",
+        submitTapAllowFirst: "Tap 'Allow notifications on this device' above, then submit again.",
+        submitVerifyDevice: "Could not verify this device. Tap 'Allow notifications on this device' above, then try again.",
+    };
+
+    /** GET /subscriptions → whether the call succeeded and whether Web Push is configured on the server. */
+    async function fetchWebPushServerMeta() {
         try {
             const res = await fetch(`${API_BASE}/subscriptions`);
+            if (!res.ok) throw new Error(String(res.status));
             const j = await res.json();
-            geaVapidPublicKey = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
-            geaWebPushServerEnabled = j.webPushEnabled === true && !!geaVapidPublicKey;
+            const vapid = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
+            const serverReady = j.webPushEnabled === true && !!vapid;
+            return { apiOk: true, serverReady, vapidPublicKey: vapid };
         } catch {
-            geaWebPushServerEnabled = false;
-            geaVapidPublicKey = null;
+            return { apiOk: false, serverReady: false, vapidPublicKey: null };
         }
-        const browserOk = "serviceWorker" in navigator && "PushManager" in window;
-        const mobileNeedsInstall = isMobileDevice() && !isStandalonePWA();
+    }
 
-        if (!browserOk || !geaWebPushServerEnabled) {
-            hint.textContent = "This device notifications are unavailable right now. You can still use ntfy.";
+    /**
+     * Pure UI resolution for "This device". Order: network → server keys → phone PWA install → browser APIs.
+     * @returns {{ hint: string|null, disableThisDevice: boolean }}
+     */
+    function resolveWebPushUi(meta) {
+        const browserPushCapable = "serviceWorker" in navigator && "PushManager" in window;
+        const mobile = isMobileDevice();
+        const standalone = isStandalonePWA();
+        if (!meta.apiOk) return { hint: WEB_PUSH_COPY.bannerServerUnreachable, disableThisDevice: true };
+        if (!meta.serverReady) return { hint: WEB_PUSH_COPY.bannerServerOff, disableThisDevice: true };
+        if (mobile && !standalone) return { hint: WEB_PUSH_COPY.bannerNeedsPwa, disableThisDevice: true };
+        if (!browserPushCapable) return { hint: WEB_PUSH_COPY.bannerBrowserUnsupported, disableThisDevice: true };
+        return { hint: null, disableThisDevice: false };
+    }
+
+    function applyWebPushUiState(ui) {
+        const hint = document.getElementById("web-push-unavailable");
+        const webCh = document.getElementById("channel-web");
+        if (ui.hint) {
+            hint.textContent = ui.hint;
             hint.classList.remove("hidden");
-            webCh.disabled = true;
-            webCh.checked = false;
-        } else if (mobileNeedsInstall) {
-            hint.textContent = "This device notifications are disabled until the app is installed and opened from its icon.";
-            hint.classList.remove("hidden");
-            webCh.disabled = true;
-            webCh.checked = false;
         } else {
             hint.classList.add("hidden");
-            webCh.disabled = false;
         }
+        webCh.disabled = ui.disableThisDevice;
+        if (ui.disableThisDevice) webCh.checked = false;
+    }
+
+    async function loadApiMeta() {
+        const meta = await fetchWebPushServerMeta();
+        geaVapidPublicKey = meta.vapidPublicKey;
+        geaWebPushServerEnabled = meta.serverReady;
+        applyWebPushUiState(resolveWebPushUi(meta));
+
+        const iosHint = document.getElementById("ios-pwa-hint");
         if (isIOS()) iosHint.classList.remove("hidden");
         else iosHint.classList.add("hidden");
         const androidHint = document.getElementById("android-pwa-hint");
@@ -436,11 +467,11 @@
             st.className = "text-xs text-green-700 min-h-[1.25rem]";
         };
         if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-            setErr("This device notifications are unavailable right now.");
+            setErr(WEB_PUSH_COPY.bannerServerOff);
             return;
         }
         if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-            setErr("This browser does not support notifications for this feature.");
+            setErr(WEB_PUSH_COPY.bannerBrowserUnsupported);
             return;
         }
         try {
@@ -451,7 +482,7 @@
                 if (p && typeof p.then === "function") await p;
             }
             if (Notification.permission !== "granted") {
-                setErr("Notifications are blocked. Allow them in browser settings, then try again.");
+                setErr(WEB_PUSH_COPY.notificationsBlocked);
                 return;
             }
             let pushSub = await reg.pushManager.getSubscription();
@@ -462,13 +493,13 @@
                 });
             }
             if (!pushSub || !pushSub.endpoint) {
-                setErr("Could not enable this device. Please try again.");
+                setErr(WEB_PUSH_COPY.enableFailed);
                 return;
             }
-            setOk("This device is ready — submit the form below.");
+            setOk(WEB_PUSH_COPY.deviceReady);
         } catch (e) {
             console.error(e);
-            setErr("Could not enable this device. Please try again.");
+            setErr(WEB_PUSH_COPY.enableFailed);
         }
     }
 
@@ -571,12 +602,12 @@
         let webPushPayload = null;
         if (action === "subscribe" && useWeb) {
             if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-                status.textContent = "Browser notifications are not available right now. Try ntfy or check back later.";
+                status.textContent = WEB_PUSH_COPY.bannerServerOff;
                 status.className = "text-center font-medium text-sm mt-4 text-red-600";
                 return;
             }
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-                status.textContent = "This browser does not support notifications for this feature.";
+                status.textContent = WEB_PUSH_COPY.bannerBrowserUnsupported;
                 status.className = "text-center font-medium text-sm mt-4 text-red-600";
                 return;
             }
@@ -584,14 +615,14 @@
                 const reg = await navigator.serviceWorker.ready;
                 const pushSub = await reg.pushManager.getSubscription();
                 if (!pushSub || !pushSub.endpoint) {
-                    status.textContent = "Tap 'Allow notifications on this device' above, then submit again.";
+                    status.textContent = WEB_PUSH_COPY.submitTapAllowFirst;
                     status.className = "text-center font-medium text-sm mt-4 text-red-600";
                     return;
                 }
                 webPushPayload = pushSub.toJSON();
             } catch (e) {
                 console.error(e);
-                status.textContent = "Could not verify this device. Tap 'Allow notifications on this device' above, then try again.";
+                status.textContent = WEB_PUSH_COPY.submitVerifyDevice;
                 status.className = "text-center font-medium text-sm mt-4 text-red-600";
                 return;
             }
