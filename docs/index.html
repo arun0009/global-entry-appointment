@@ -125,15 +125,21 @@
                     <div class="px-8 pb-8">
                         <form id="alert-form" class="space-y-6">
                             <div class="space-y-2">
-                                <label for="location" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                                <label for="location-search" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                                     </svg>
                                     Enrollment Center
                                 </label>
-                                <select id="location" required class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12">
-                                    <option value="">Loading locations...</option>
-                                </select>
+                                <input type="hidden" id="location" name="location" value="" />
+                                <div class="space-y-2">
+                                    <input type="search" id="location-search" autocomplete="off" disabled
+                                           placeholder="Loading locations…"
+                                           class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
+                                    <p id="location-summary" class="hidden rounded-lg border border-primary-200 bg-primary-50/80 px-3 py-2 text-sm"></p>
+                                    <div id="location-list" class="hidden max-h-[min(50vh,17rem)] overflow-y-auto overscroll-y-contain rounded-lg border border-slate-200 bg-white shadow-inner divide-y divide-slate-100"></div>
+                                </div>
+                                <p class="text-xs text-slate-500">Search by city, airport name, or ZIP — faster than scrolling the full list.</p>
                             </div>
 
                             <div id="date-field" class="space-y-2">
@@ -509,28 +515,116 @@
         if (!n.checked && !w.checked) n.checked = true;
     }
 
+    function escapeHtml(s) {
+        return String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function getLocationDisplayLines(loc) {
+        const primary = loc.name || "";
+        const secondary = [loc.addressAdditional || loc.address, `${loc.city || ""} ${loc.state || ""} ${loc.postalCode || ""}`.trim()]
+            .filter(Boolean)
+            .join(" · ");
+        return { primary, secondary };
+    }
+
+    function locationHaystack(loc) {
+        return `${loc.name} ${loc.city} ${loc.state} ${loc.postalCode} ${loc.address || ""} ${loc.addressAdditional || ""}`.toLowerCase();
+    }
+
+    function renderLocationList() {
+        const list = document.getElementById("location-list");
+        const search = document.getElementById("location-search");
+        const hidden = document.getElementById("location");
+        if (!list || !search || !hidden) return;
+
+        if (hidden.value) {
+            list.classList.add("hidden");
+            list.innerHTML = "";
+            return;
+        }
+
+        const q = (search.value || "").trim().toLowerCase();
+        if (q.length < 2) {
+            list.classList.remove("hidden");
+            list.innerHTML =
+                '<div class="px-3 py-4 text-sm text-slate-600 text-center">Type at least 2 letters (city, airport name, or ZIP).</div>';
+            return;
+        }
+
+        const filtered = globalLocations.filter((loc) => locationHaystack(loc).includes(q));
+        const MAX = 50;
+        const slice = filtered.slice(0, MAX);
+        list.classList.remove("hidden");
+
+        if (slice.length === 0) {
+            list.innerHTML = '<div class="px-3 py-4 text-sm text-slate-500 text-center">No matches. Try another spelling or nearby city.</div>';
+            return;
+        }
+
+        let html = slice
+            .map((loc) => {
+                const { primary, secondary } = getLocationDisplayLines(loc);
+                return `<button type="button" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
+                <div class="font-medium text-slate-800">${escapeHtml(primary)}</div>
+                ${secondary ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(secondary)}</div>` : ""}
+            </button>`;
+            })
+            .join("");
+        if (filtered.length > MAX) {
+            html += `<div class="px-3 py-2 text-xs text-slate-500 text-center border-t border-slate-100 bg-slate-50">Showing ${MAX} of ${filtered.length} — type more to narrow.</div>`;
+        }
+        list.innerHTML = html;
+    }
+
+    function updateLocationSummary() {
+        const hidden = document.getElementById("location");
+        const sum = document.getElementById("location-summary");
+        if (!hidden || !sum) return;
+        const id = hidden.value;
+        if (!id) {
+            sum.classList.add("hidden");
+            sum.innerHTML = "";
+            return;
+        }
+        const loc = globalLocations.find((l) => String(l.id) === String(id));
+        if (!loc) {
+            sum.classList.add("hidden");
+            return;
+        }
+        const { primary, secondary } = getLocationDisplayLines(loc);
+        sum.innerHTML = `<div class="flex items-start justify-between gap-3">
+            <div class="min-w-0"><span class="text-slate-500 text-xs">Selected</span>
+            <div class="font-semibold text-slate-800 break-words">${escapeHtml(primary)}</div>
+            ${secondary ? `<div class="text-xs text-slate-600 mt-0.5">${escapeHtml(secondary)}</div>` : ""}</div>
+            <button type="button" class="location-change shrink-0 text-primary-600 font-semibold text-xs pt-0.5" aria-label="Change enrollment center">Change</button>
+        </div>`;
+        sum.classList.remove("hidden");
+    }
+
     async function fetchLocations() {
+        const search = document.getElementById("location-search");
+        const list = document.getElementById("location-list");
         try {
             const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
             const locations = await res.json();
-
             globalLocations = locations.sort((a, b) => a.name.localeCompare(b.name));
-
-            const select = document.getElementById("location");
-            select.innerHTML = '<option value="">-- Select a location --</option>';
-
-            globalLocations.forEach(loc => {
-                const labelParts = [
-                    loc.name,
-                    loc.addressAdditional || loc.address,
-                    `${loc.city} ${loc.state} ${loc.postalCode}`
-                ];
-                const text = labelParts.filter(Boolean).join(" – ");
-                const option = new Option(text, loc.id);
-                select.add(option);
-            });
+            search.disabled = false;
+            search.placeholder = "Search city, airport name, or ZIP…";
+            search.value = "";
+            document.getElementById("location").value = "";
+            document.getElementById("location-summary").classList.add("hidden");
+            document.getElementById("location-summary").innerHTML = "";
+            renderLocationList();
         } catch {
-            document.getElementById("location").innerHTML = '<option>Error loading locations</option>';
+            search.disabled = true;
+            search.placeholder = "Locations unavailable";
+            list.classList.remove("hidden");
+            list.innerHTML =
+                '<div class="px-3 py-4 text-sm text-red-600 text-center">Could not load enrollment centers. Refresh and try again.</div>';
         }
     }
 
@@ -686,6 +780,14 @@
             if (res.ok && action === "subscribe") {
                 document.getElementById("topic").value = "";
                 document.getElementById("location").value = "";
+                const locSearch = document.getElementById("location-search");
+                if (locSearch) locSearch.value = "";
+                const locSum = document.getElementById("location-summary");
+                if (locSum) {
+                    locSum.classList.add("hidden");
+                    locSum.innerHTML = "";
+                }
+                renderLocationList();
                 document.getElementById("recaptcha_token").value = "";
                 setDefaultDate();
             }
@@ -777,6 +879,43 @@
             });
         }
         fetchLocations();
+        const locList = document.getElementById("location-list");
+        if (locList) {
+            locList.addEventListener("click", (e) => {
+                const row = e.target.closest(".location-row");
+                if (!row) return;
+                document.getElementById("location").value = String(row.dataset.locationId);
+                document.getElementById("location-search").value = "";
+                updateLocationSummary();
+                renderLocationList();
+            });
+        }
+        const locSum = document.getElementById("location-summary");
+        if (locSum) {
+            locSum.addEventListener("click", (e) => {
+                if (!e.target.closest(".location-change")) return;
+                document.getElementById("location").value = "";
+                locSum.classList.add("hidden");
+                locSum.innerHTML = "";
+                renderLocationList();
+                document.getElementById("location-search").focus();
+            });
+        }
+        const locSearch = document.getElementById("location-search");
+        if (locSearch) {
+            locSearch.addEventListener("input", () => {
+                const hid = document.getElementById("location");
+                if (hid.value) {
+                    hid.value = "";
+                    const s = document.getElementById("location-summary");
+                    if (s) {
+                        s.classList.add("hidden");
+                        s.innerHTML = "";
+                    }
+                }
+                renderLocationList();
+            });
+        }
         setDefaultDate();
         loadApiMeta();
         fetchGitHubStars();
