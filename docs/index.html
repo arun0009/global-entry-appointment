@@ -4,20 +4,20 @@
     <meta charset="UTF-8" />
     <title>Global Entry Appointment Alerts — Free Notifications</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Free Global Entry appointment alerts via ntfy and/or installable PWA browser notifications. You choose channels and enable notifications yourself." />
+    <meta name="description" content="Free Global Entry appointment alerts via ntfy and/or browser push. Optional install as app." />
     <meta name="keywords" content="Global Entry Appointment Alerts via ntfy notifications" />
     <meta name="robots" content="index, follow" />
 
     <meta property="og:title" content="Global Entry Appointment Alerts" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Get Global Entry Alerts" />
-    <meta property="og:description" content="Free alerts when Global Entry slots open — ntfy app and/or PWA browser notifications. You choose how you get notified." />
+    <meta property="og:description" content="Free Global Entry slot alerts — ntfy or this device. Install as app optional." />
     <meta property="og:url" content="https://getglobalentryalerts.com/" />
     <meta property="og:image" content="https://getglobalentryalerts.com/preview.png" />
 
     <meta name="twitter:title" content="Global Entry Appointment Alerts">
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Free Global Entry slot alerts via ntfy and/or installable PWA. Pick your channels and enable notifications when your device asks." />
+    <meta name="twitter:description" content="Free Global Entry slot alerts via ntfy or browser push. Optional PWA install." />
     <meta name="twitter:url" content="https://getglobalentryalerts.com/" />
     <meta name="twitter:image" content="https://getglobalentryalerts.com/preview.png" />
     <meta name="twitter:image:alt" content="Get free Global Entry appointment alerts on your phone." />
@@ -52,7 +52,7 @@
             "@context": "https://schema.org",
             "@type": "WebApplication",
             "name": "Global Entry Appointment Alerts",
-            "description": "A free service to receive instant push notifications for Global Entry appointment availability via the ntfy app and/or browser (PWA) notifications.",
+            "description": "Free Global Entry appointment alerts via ntfy and/or browser push; installable as a web app.",
             "url": "https://getglobalentryalerts.com/",
             "applicationCategory": "Travel",
             "operatingSystem": "iOS, Android",
@@ -105,8 +105,7 @@
             </div>
 
             <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                Get alerts via <span class="font-semibold text-primary-600">ntfy</span>, <span class="font-semibold text-primary-600">this device</span>, or both.
-                For phone browser alerts, install this site as a PWA and allow notifications when prompted.
+                Alerts via <span class="font-semibold text-primary-600">ntfy</span>, <span class="font-semibold text-primary-600">this device</span>, or both. Optional: install as app. Phone push details are in <strong class="text-slate-700">Setup Instructions</strong>.
             </p>
         </div>
 
@@ -165,14 +164,14 @@
                                 </label>
                                 <label class="flex items-start gap-3 cursor-pointer">
                                     <input type="checkbox" id="channel-web" class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
-                                    <span class="text-sm text-slate-700"><span class="font-medium">This device</span> — PWA notifications.</span>
+                                    <span class="text-sm text-slate-700"><span class="font-medium">This device</span> — browser push.</span>
                                 </label>
                                 <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"></p>
                                 <p id="ios-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
-                                    <strong>iPhone / iPad (iOS 16.4+):</strong> Share → <strong>Add to Home Screen</strong>, then open from the icon.
+                                    <strong>iPhone / iPad (16.4+), Safari:</strong> Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>, then open from the new icon.
                                 </p>
                                 <p id="android-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
-                                    <strong>Android (Chrome):</strong> Install app / Add to Home screen for best reliability.
+                                    <strong>Android (Chrome):</strong> Tap <strong>⋮</strong> (menu) → <strong>Install app</strong> or <strong>Add to Home screen</strong> (optional).
                                 </p>
                                 <div id="web-push-enable-row" class="hidden space-y-2 pt-1 border-t border-slate-200 mt-2">
                                     <p class="text-xs text-slate-600 leading-relaxed">
@@ -309,7 +308,7 @@
                                 <div class="flex-1">
                                     <p class="font-semibold text-slate-800">Create a topic</p>
                                     <p class="mt-1 text-slate-600">Pick a unique name in the ntfy app (e.g. <code class="bg-slate-100 px-1 rounded text-xs">global-entry-alerts-arun</code>), then paste it in the form.</p>
-                                    <p class="mt-2 text-slate-600">If you use <strong>This device</strong> notifications, install this site as a PWA first (iPhone: Add to Home Screen, Android: Install app / Add to Home screen).</p>
+                                    <p class="mt-2 text-slate-600">For <strong>This device</strong>: <strong>iPhone / iPad (16.4+), Safari:</strong> <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open from the icon (required for push). <strong>Android (Chrome):</strong> <strong>⋮</strong> → <strong>Install app</strong> or <strong>Add to Home screen</strong> (optional); push works in a tab.</p>
                                 </div>
                             </li>
                             <li class="flex gap-3">
@@ -364,10 +363,6 @@
         return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     }
 
-    function isMobileDevice() {
-        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
-    }
-
     function isStandalonePWA() {
         return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
     }
@@ -376,7 +371,7 @@
     const WEB_PUSH_COPY = {
         bannerServerUnreachable: "Could not reach the notification server. Check your connection, pull to refresh, or try again in a moment. You can still use ntfy.",
         bannerServerOff: "This device notifications are unavailable right now. You can still use ntfy.",
-        bannerNeedsPwa: "This device notifications are disabled until the app is installed and opened from its icon.",
+        bannerNeedsPwa: "On iPhone or iPad, tap Share, then Add to Home Screen, and open from the icon (iOS 16.4+).",
         bannerBrowserUnsupported: "This browser does not support push notifications here. You can still use ntfy.",
         notificationsBlocked: "Notifications are blocked. Allow them in browser settings, then try again.",
         enableFailed: "Could not enable this device. Please try again.",
@@ -400,16 +395,16 @@
     }
 
     /**
-     * Pure UI resolution for "This device". Order: network → server keys → phone PWA install → browser APIs.
+     * Pure UI resolution for "This device". Order: network → server keys → iOS PWA requirement → Push API.
+     * Android Chrome can use push in a normal tab; iOS only exposes Web Push for installed (standalone) web apps.
      * @returns {{ hint: string|null, disableThisDevice: boolean }}
      */
     function resolveWebPushUi(meta) {
         const browserPushCapable = "serviceWorker" in navigator && "PushManager" in window;
-        const mobile = isMobileDevice();
         const standalone = isStandalonePWA();
         if (!meta.apiOk) return { hint: WEB_PUSH_COPY.bannerServerUnreachable, disableThisDevice: true };
         if (!meta.serverReady) return { hint: WEB_PUSH_COPY.bannerServerOff, disableThisDevice: true };
-        if (mobile && !standalone) return { hint: WEB_PUSH_COPY.bannerNeedsPwa, disableThisDevice: true };
+        if (isIOS() && !standalone) return { hint: WEB_PUSH_COPY.bannerNeedsPwa, disableThisDevice: true };
         if (!browserPushCapable) return { hint: WEB_PUSH_COPY.bannerBrowserUnsupported, disableThisDevice: true };
         return { hint: null, disableThisDevice: false };
     }
