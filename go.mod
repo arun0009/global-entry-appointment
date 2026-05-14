@@ -3,6 +3,7 @@ module github.com/arun0009/global-entry-appointment
 go 1.26.3
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.253.0
 	github.com/aws/aws-lambda-go v1.54.0
 	github.com/aws/constructs-go/constructs/v10 v10.6.0
@@ -40,6 +41,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect

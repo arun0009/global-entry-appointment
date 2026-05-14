@@ -4,25 +4,29 @@
     <meta charset="UTF-8" />
     <title>Global Entry Appointment Alerts — Free Notifications</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Get instant push notifications when Global Entry appointment slots open up. Free alerts via ntfy.sh app." />
+    <meta name="description" content="Free Global Entry appointment alerts via ntfy and/or installable PWA browser notifications. You choose channels and enable notifications yourself." />
     <meta name="keywords" content="Global Entry Appointment Alerts via ntfy notifications" />
     <meta name="robots" content="index, follow" />
 
     <meta property="og:title" content="Global Entry Appointment Alerts" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Get Global Entry Alerts" />
-    <meta property="og:description" content="Get instant push notifications when Global Entry appointment slots open up. Free alerts via ntfy.sh app." />
+    <meta property="og:description" content="Free alerts when Global Entry slots open — ntfy app and/or PWA browser notifications. You choose how you get notified." />
     <meta property="og:url" content="https://getglobalentryalerts.com/" />
     <meta property="og:image" content="https://getglobalentryalerts.com/preview.png" />
 
     <meta name="twitter:title" content="Global Entry Appointment Alerts">
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Get instant Global Entry appointment alerts via the free ntfy app. Never miss an open slot at your preferred enrollment center!" />
+    <meta name="twitter:description" content="Free Global Entry slot alerts via ntfy and/or installable PWA. Pick your channels and enable notifications when your device asks." />
     <meta name="twitter:url" content="https://getglobalentryalerts.com/" />
     <meta name="twitter:image" content="https://getglobalentryalerts.com/preview.png" />
     <meta name="twitter:image:alt" content="Get free Global Entry appointment alerts on your phone." />
 
     <meta name="theme-color" content="#4F7FFF" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="GE Alerts" />
     <link rel="canonical" href="https://getglobalentryalerts.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +52,7 @@
             "@context": "https://schema.org",
             "@type": "WebApplication",
             "name": "Global Entry Appointment Alerts",
-            "description": "A free service to receive instant push notifications for Global Entry appointment availability via the ntfy app.",
+            "description": "A free service to receive instant push notifications for Global Entry appointment availability via the ntfy app and/or browser (PWA) notifications.",
             "url": "https://getglobalentryalerts.com/",
             "applicationCategory": "Travel",
             "operatingSystem": "iOS, Android",
@@ -96,12 +100,13 @@
                 <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">100% Free</span>
                 <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No signup</span>
                 <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No personal data</span>
+                <span class="px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 shadow-sm">PWA Ready</span>
                 <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm hover:border-slate-400 hover:shadow transition-all duration-200">Open source</a>
             </div>
 
             <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                Get instant push notifications via the <span class="font-semibold text-primary-600">ntfy</span> app
-                when Global Entry appointment slots open up at your enrollment center.
+                Get alerts via <span class="font-semibold text-primary-600">ntfy</span>, <span class="font-semibold text-primary-600">this device</span>, or both.
+                For phone browser alerts, install this site as a PWA and allow notifications when prompted.
             </p>
         </div>
 
@@ -114,7 +119,7 @@
                             Set Up Your Alerts
                         </h2>
                         <p class="text-slate-600">
-                            Pick your enrollment center and we'll watch it for you.
+                            Pick your enrollment center and choose ntfy, this device, or both.
                         </p>
                     </div>
                     <div class="px-8 pb-8">
@@ -146,7 +151,38 @@
                                 </p>
                             </div>
 
-                            <div class="space-y-2">
+                            <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                                <span class="block text-sm font-semibold text-slate-700">Notify me via</span>
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" id="channel-ntfy" checked class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
+                                    <span class="text-sm text-slate-700"><span class="font-medium">ntfy</span> — app notifications via your topic.</span>
+                                </label>
+                                <label class="flex items-start gap-3 cursor-pointer">
+                                    <input type="checkbox" id="channel-web" class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
+                                    <span class="text-sm text-slate-700"><span class="font-medium">This device</span> — PWA notifications.</span>
+                                </label>
+                                <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                    This device notifications are unavailable right now. You can still use ntfy.
+                                </p>
+                                <p id="ios-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
+                                    <strong>iPhone / iPad (iOS 16.4+):</strong> Share → <strong>Add to Home Screen</strong>, then open from the icon.
+                                </p>
+                                <p id="android-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
+                                    <strong>Android (Chrome):</strong> Install app / Add to Home screen for best reliability.
+                                </p>
+                                <div id="web-push-enable-row" class="hidden space-y-2 pt-1 border-t border-slate-200 mt-2">
+                                    <p class="text-xs text-slate-600 leading-relaxed">
+                                        Tap once before submit.
+                                    </p>
+                                    <button type="button" id="btn-enable-push"
+                                            class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-primary-700 bg-white border-2 border-primary-400 hover:bg-primary-50 transition-colors">
+                                        Allow notifications on this device
+                                    </button>
+                                    <p id="enable-push-status" class="text-xs text-slate-500 min-h-[1.25rem]" aria-live="polite"></p>
+                                </div>
+                            </div>
+
+                            <div id="topic-field" class="space-y-2">
                                 <label for="topic" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
@@ -155,11 +191,9 @@
                                 </label>
                                 <input type="text" id="topic" name="topic"
                                        placeholder="e.g. global-entry-alerts-yourname"
-                                       required
-                                       pattern="^[a-zA-Z0-9_\-]+$"
                                        class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
                                 <p class="text-xs text-slate-500">
-                                    Only letters, numbers, underscores, and hyphens are allowed
+                                    Only letters, numbers, underscores, and hyphens — required when ntfy is checked above
                                 </p>
                             </div>
 
@@ -244,7 +278,7 @@
                 </div>
 
                 <!-- Setup Instructions -->
-                <div id="setup-instructions" class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
+                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
                     <div class="px-6 pt-6 pb-2">
                         <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
                             <svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
@@ -271,6 +305,7 @@
                                 <div class="flex-1">
                                     <p class="font-semibold text-slate-800">Create a topic</p>
                                     <p class="mt-1 text-slate-600">Pick a unique name in the ntfy app (e.g. <code class="bg-slate-100 px-1 rounded text-xs">global-entry-alerts-arun</code>), then paste it in the form.</p>
+                                    <p class="mt-2 text-slate-600">If you use <strong>This device</strong> notifications, install this site as a PWA first (iPhone: Add to Home Screen, Android: Install app / Add to Home screen).</p>
                                 </div>
                             </li>
                             <li class="flex gap-3">
@@ -297,11 +332,150 @@
 </div>
 
 <script>
+    const API_BASE = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws";
+    const LS_WEB_PUSH = "gea_web_push_endpoint";
+
     let globalLocations = [];
+    let geaVapidPublicKey = null;
+    let geaWebPushServerEnabled = false;
 
     function onSubmit(token) {
         document.getElementById("recaptcha_token").value = token;
         submitForm();
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        if (!base64String) return new Uint8Array();
+        const s = String(base64String).trim().replace(/\s+/g, "");
+        const padding = "=".repeat((4 - (s.length % 4)) % 4);
+        const base64 = (s + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const rawData = atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+    }
+
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    function isMobileDevice() {
+        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+    }
+
+    function isStandalonePWA() {
+        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+
+    async function loadApiMeta() {
+        const hint = document.getElementById("web-push-unavailable");
+        const iosHint = document.getElementById("ios-pwa-hint");
+        const webCh = document.getElementById("channel-web");
+        try {
+            const res = await fetch(`${API_BASE}/subscriptions`);
+            const j = await res.json();
+            geaVapidPublicKey = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
+            geaWebPushServerEnabled = j.webPushEnabled === true && !!geaVapidPublicKey;
+        } catch {
+            geaWebPushServerEnabled = false;
+            geaVapidPublicKey = null;
+        }
+        const browserOk = "serviceWorker" in navigator && "PushManager" in window;
+        const mobileNeedsInstall = isMobileDevice() && !isStandalonePWA();
+
+        if (!browserOk || !geaWebPushServerEnabled) {
+            hint.textContent = "This device notifications are unavailable right now. You can still use ntfy.";
+            hint.classList.remove("hidden");
+            webCh.disabled = true;
+            webCh.checked = false;
+        } else if (mobileNeedsInstall) {
+            hint.textContent = "This device notifications are disabled until the app is installed and opened from its icon.";
+            hint.classList.remove("hidden");
+            webCh.disabled = true;
+            webCh.checked = false;
+        } else {
+            hint.classList.add("hidden");
+            webCh.disabled = false;
+        }
+        if (isIOS()) iosHint.classList.remove("hidden");
+        else iosHint.classList.add("hidden");
+        const androidHint = document.getElementById("android-pwa-hint");
+        if (androidHint) {
+            const ua = navigator.userAgent || "";
+            const android = /Android/i.test(ua) && !isIOS();
+            androidHint.classList.toggle("hidden", !android);
+        }
+        syncChannelUX();
+        toggleWebPushPrep();
+    }
+
+    function toggleWebPushPrep() {
+        const row = document.getElementById("web-push-enable-row");
+        const web = document.getElementById("channel-web");
+        if (!row || !web) return;
+        const show = web.checked && !web.disabled && geaWebPushServerEnabled;
+        row.classList.toggle("hidden", !show);
+    }
+
+    function syncChannelUX() {
+        const ntfyOn = document.getElementById("channel-ntfy").checked;
+        const topicEl = document.getElementById("topic");
+        topicEl.disabled = !ntfyOn;
+        document.getElementById("topic-field").classList.toggle("opacity-60", !ntfyOn);
+        toggleWebPushPrep();
+    }
+
+    async function enableWebPushFromGesture() {
+        const st = document.getElementById("enable-push-status");
+        const setErr = (msg) => {
+            st.textContent = msg;
+            st.className = "text-xs text-red-600 min-h-[1.25rem]";
+        };
+        const setOk = (msg) => {
+            st.textContent = msg;
+            st.className = "text-xs text-green-700 min-h-[1.25rem]";
+        };
+        if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
+            setErr("This device notifications are unavailable right now.");
+            return;
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+            setErr("This browser does not support notifications for this feature.");
+            return;
+        }
+        try {
+            await navigator.serviceWorker.register("/sw.js");
+            const reg = await navigator.serviceWorker.ready;
+            if (Notification.permission === "default") {
+                const p = Notification.requestPermission();
+                if (p && typeof p.then === "function") await p;
+            }
+            if (Notification.permission !== "granted") {
+                setErr("Notifications are blocked. Allow them in browser settings, then try again.");
+                return;
+            }
+            let pushSub = await reg.pushManager.getSubscription();
+            if (!pushSub) {
+                pushSub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(geaVapidPublicKey),
+                });
+            }
+            if (!pushSub || !pushSub.endpoint) {
+                setErr("Could not enable this device. Please try again.");
+                return;
+            }
+            setOk("This device is ready — submit the form below.");
+        } catch (e) {
+            console.error(e);
+            setErr("Could not enable this device. Please try again.");
+        }
+    }
+
+    function ensureAtLeastOneChannel() {
+        const n = document.getElementById("channel-ntfy");
+        const w = document.getElementById("channel-web");
+        if (!n.checked && !w.checked) n.checked = true;
     }
 
     async function fetchLocations() {
@@ -309,7 +483,6 @@
             const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
             const locations = await res.json();
 
-            // Store locations for later use
             globalLocations = locations.sort((a, b) => a.name.localeCompare(b.name));
 
             const select = document.getElementById("location");
@@ -335,8 +508,8 @@
         const today = new Date();
         const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
         const year = nextYear.getFullYear();
-        const month = String(nextYear.getMonth() + 1).padStart(2, '0');
-        const day = String(nextYear.getDate()).padStart(2, '0');
+        const month = String(nextYear.getMonth() + 1).padStart(2, "0");
+        const day = String(nextYear.getDate()).padStart(2, "0");
         dateInput.value = `${year}-${month}-${day}`;
     }
 
@@ -346,19 +519,46 @@
         const date = document.getElementById("date").value;
         const action = document.querySelector('input[name="action"]:checked').value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
-        const submitButton = document.querySelector('.g-recaptcha');
+        const submitButton = document.querySelector(".g-recaptcha");
         const status = document.getElementById("status");
+        const useNtfy = document.getElementById("channel-ntfy").checked;
+        const useWeb = document.getElementById("channel-web").checked;
 
-        // Validate fields based on action
-        if (!locationId || !topic || !recaptchaToken) {
-            status.textContent = "Please fill out Enrollment Center, Ntfy Topic, and complete reCAPTCHA.";
+        if (!locationId || !recaptchaToken) {
+            status.textContent = "Please select an enrollment center and complete reCAPTCHA.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
         }
-        if (action === 'subscribe' && !date) {
+        if (!useNtfy && !useWeb) {
+            status.textContent = "Select at least one notification method (ntfy and/or this device).";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            return;
+        }
+        if (action === "subscribe" && !date) {
             status.textContent = "Please select a Latest Appointment Date for subscription.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
+        }
+        if (action === "subscribe" && useNtfy) {
+            const topicPattern = /^[a-zA-Z0-9_-]+$/;
+            if (!topic || !topicPattern.test(topic)) {
+                status.textContent = "Enter a valid ntfy topic (letters, numbers, underscores, hyphens only).";
+                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                return;
+            }
+        }
+        if (action === "unsubscribe" && useNtfy && !topic) {
+            status.textContent = "Enter your ntfy topic to unsubscribe, or turn off ntfy and use browser unsubscribe if you subscribed with this device only.";
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            return;
+        }
+        if (action === "unsubscribe" && !useNtfy) {
+            const ep = localStorage.getItem(LS_WEB_PUSH);
+            if (!ep) {
+                status.textContent = "No saved browser subscription on this device. If you used ntfy, check “ntfy” and enter your topic.";
+                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                return;
+            }
         }
 
         const selectedLocation = globalLocations.find(loc => loc.id === Number(locationId));
@@ -366,6 +566,35 @@
             status.textContent = "Selected location not found.";
             status.className = "text-center font-medium text-sm mt-4 text-red-600";
             return;
+        }
+
+        let webPushPayload = null;
+        if (action === "subscribe" && useWeb) {
+            if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
+                status.textContent = "Browser notifications are not available right now. Try ntfy or check back later.";
+                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                return;
+            }
+            if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+                status.textContent = "This browser does not support notifications for this feature.";
+                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                return;
+            }
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const pushSub = await reg.pushManager.getSubscription();
+                if (!pushSub || !pushSub.endpoint) {
+                    status.textContent = "Tap 'Allow notifications on this device' above, then submit again.";
+                    status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                    return;
+                }
+                webPushPayload = pushSub.toJSON();
+            } catch (e) {
+                console.error(e);
+                status.textContent = "Could not verify this device. Tap 'Allow notifications on this device' above, then try again.";
+                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                return;
+            }
         }
 
         submitButton.innerHTML = `
@@ -382,27 +611,51 @@
             location: String(locationId),
             shortName: selectedLocation.shortName || selectedLocation.name,
             timezone: selectedLocation.tzData || "America/New_York",
-            ntfyTopic: topic,
-            latestDate: action === 'subscribe' ? date : null,
-            recaptchaToken: recaptchaToken
+            ntfyTopic: useNtfy ? topic : "",
+            recaptchaToken,
         };
-        const endpoint = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws/subscriptions";
+        if (action === "subscribe") {
+            payload.latestDate = date;
+            if (webPushPayload) payload.webPush = webPushPayload;
+        }
+        if (action === "unsubscribe" && !useNtfy) {
+            payload.webPushEndpoint = localStorage.getItem(LS_WEB_PUSH);
+        }
 
         try {
-            const res = await fetch(endpoint, {
+            const res = await fetch(`${API_BASE}/subscriptions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
 
             const text = await res.text();
-            status.textContent = text || "Request successful!";
-            status.className = "text-center font-medium text-sm mt-4 text-green-600";
+            let msg = text;
+            try {
+                const j = JSON.parse(text);
+                if (j.message) msg = j.message;
+                else if (j.error) msg = j.error;
+            } catch { /* keep raw */ }
+            status.textContent = msg || "Done.";
+            status.className = res.ok
+                ? "text-center font-medium text-sm mt-4 text-green-600"
+                : "text-center font-medium text-sm mt-4 text-red-600";
 
-            if (action === 'subscribe') {
-                document.getElementById("topic").value = '';
-                document.getElementById("location").value = '';
-                document.getElementById("recaptcha_token").value = '';
+            if (res.ok && action === "subscribe" && webPushPayload && webPushPayload.endpoint) {
+                try {
+                    localStorage.setItem(LS_WEB_PUSH, webPushPayload.endpoint);
+                } catch { /* ignore */ }
+            }
+            if (res.ok && action === "unsubscribe") {
+                try {
+                    localStorage.removeItem(LS_WEB_PUSH);
+                } catch { /* ignore */ }
+            }
+
+            if (res.ok && action === "subscribe") {
+                document.getElementById("topic").value = "";
+                document.getElementById("location").value = "";
+                document.getElementById("recaptcha_token").value = "";
                 setDefaultDate();
             }
         } catch {
@@ -416,32 +669,34 @@
 
     function updateSubmitButton() {
         const action = document.querySelector('input[name="action"]:checked').value;
-        const submitButton = document.querySelector('.g-recaptcha');
+        const submitButton = document.querySelector(".g-recaptcha");
         const dateField = document.getElementById("date-field");
         const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
             </svg>`;
-        submitButton.innerHTML = `${icon} ${action === 'subscribe' ? 'Start Receiving Alerts' : 'Stop Alerts'}`;
-        dateField.classList.toggle('hidden', action === 'unsubscribe');
-        dateField.classList.toggle('block', action === 'subscribe');
-        document.getElementById("date").required = action === 'subscribe';
+        submitButton.innerHTML = `${icon} ${action === "subscribe" ? "Start Receiving Alerts" : "Stop Alerts"}`;
+        dateField.classList.toggle("hidden", action === "unsubscribe");
+        dateField.classList.toggle("block", action === "subscribe");
+        document.getElementById("date").required = action === "subscribe";
     }
 
     document.getElementById("alert-form").addEventListener("submit", async (e) => {
         e.preventDefault();
-        grecaptcha.execute('6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-', { action: 'submit' }).then(function(token) {
+        grecaptcha.execute("6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-", { action: "submit" }).then(function (token) {
             onSubmit(token);
-        }).catch(function(error) {
-            console.error('reCAPTCHA Error:', error);
+        }).catch(function (error) {
+            console.error("reCAPTCHA Error:", error);
             document.getElementById("status").textContent = "reCAPTCHA failed. Please try again.";
             document.getElementById("status").className = "text-center font-medium text-sm mt-4 text-red-600";
         });
     });
 
-    document.addEventListener('change', function(e) {
-        if (e.target.name === 'action') {
-            updateSubmitButton();
+    document.addEventListener("change", function (e) {
+        if (e.target.name === "action") updateSubmitButton();
+        if (e.target.id === "channel-ntfy" || e.target.id === "channel-web") {
+            ensureAtLeastOneChannel();
+            syncChannelUX();
         }
     });
 
@@ -472,13 +727,27 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+        syncChannelUX();
         const params = new URLSearchParams(window.location.search);
         if (params.get("subscriptions") === "unsubscribe") {
             document.getElementById("unsubscribe").checked = true;
             updateSubmitButton();
         }
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("/sw.js").catch(() => {});
+        }
+        document.getElementById("channel-ntfy").addEventListener("change", ensureAtLeastOneChannel);
+        document.getElementById("channel-web").addEventListener("change", ensureAtLeastOneChannel);
+        const enablePushBtn = document.getElementById("btn-enable-push");
+        if (enablePushBtn) {
+            enablePushBtn.addEventListener("click", (ev) => {
+                ev.preventDefault();
+                enableWebPushFromGesture();
+            });
+        }
         fetchLocations();
         setDefaultDate();
+        loadApiMeta();
         fetchGitHubStars();
         fetchBMCSupporters();
     });
