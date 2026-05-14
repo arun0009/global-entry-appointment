@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/hashicorp/go-retryablehttp"
@@ -89,19 +90,35 @@ type (
 		MaxNotificationCount     int           `envconfig:"MAX_NOTIFICATION_COUNT" default:"30"`
 		RecaptchaSecretKey       string        `envconfig:"RECAPTCHA_SECRET_KEY" required:"true"`
 		RecaptchaURL             string        `envconfig:"RECAPTCHA_URL" default:"https://www.google.com/recaptcha/api/siteverify"`
+		VAPIDPublicKey           string        `envconfig:"VAPID_PUBLIC_KEY"`
+		VAPIDPrivateKey          string        `envconfig:"VAPID_PRIVATE_KEY"`
+		VAPIDSubscriber          string        `envconfig:"VAPID_SUBJECT" default:"hello@getglobalentryalerts.com"`
+	}
+
+	// WebPushKeys holds the browser push subscription key material.
+	WebPushKeys struct {
+		Auth   string `json:"auth" bson:"auth"`
+		P256dh string `json:"p256dh" bson:"p256dh"`
+	}
+
+	// WebPushSubscription is one device subscription (PushSubscription JSON shape).
+	WebPushSubscription struct {
+		Endpoint string      `json:"endpoint" bson:"endpoint"`
+		Keys     WebPushKeys `json:"keys" bson:"keys"`
 	}
 
 	// Subscription represents a subscription document
 	Subscription struct {
-		ID                bson.ObjectID `bson:"_id"`
-		Location          string        `bson:"location"`
-		ShortName         string        `bson:"shortName"`
-		Timezone          string        `bson:"timezone"`
-		NtfyTopic         string        `bson:"ntfyTopic"`
-		LatestDate        time.Time     `bson:"latestDate"`
-		CreatedAt         time.Time     `bson:"createdAt"`
-		LastNotifiedAt    time.Time     `bson:"lastNotifiedAt"`
-		NotificationCount int           `bson:"notificationCount"`
+		ID                   bson.ObjectID         `bson:"_id"`
+		Location             string                `bson:"location"`
+		ShortName            string                `bson:"shortName"`
+		Timezone             string                `bson:"timezone"`
+		NtfyTopic            string                `bson:"ntfyTopic"`
+		WebPushSubscriptions []WebPushSubscription `bson:"webPushSubscriptions,omitempty"`
+		LatestDate           time.Time             `bson:"latestDate"`
+		CreatedAt            time.Time             `bson:"createdAt"`
+		LastNotifiedAt       time.Time             `bson:"lastNotifiedAt"`
+		NotificationCount    int                   `bson:"notificationCount"`
 	}
 
 	// Appointment from Global Entry API
@@ -116,13 +133,15 @@ type (
 
 	// SubscriptionRequest for registration/unsubscription
 	SubscriptionRequest struct {
-		Action         string `json:"action"`
-		Location       string `json:"location"`
-		ShortName      string `json:"shortName"`
-		Timezone       string `json:"timezone"`
-		NtfyTopic      string `json:"ntfyTopic"`
-		LatestDate     string `json:"latestDate"`
-		RecaptchaToken string `json:"recaptchaToken"`
+		Action          string               `json:"action"`
+		Location        string               `json:"location"`
+		ShortName       string               `json:"shortName"`
+		Timezone        string               `json:"timezone"`
+		NtfyTopic       string               `json:"ntfyTopic"`
+		WebPush         *WebPushSubscription `json:"webPush,omitempty"`
+		WebPushEndpoint string               `json:"webPushEndpoint,omitempty"`
+		LatestDate      string               `json:"latestDate"`
+		RecaptchaToken  string               `json:"recaptchaToken"`
 	}
 
 	// LambdaHandler holds dependencies plus per-invocation request state.
@@ -137,6 +156,13 @@ type (
 		requestCORS     map[string]string
 	}
 )
+
+// channels reports whether the request uses ntfy (non-empty topic) and/or a Web Push body subscription.
+func (r SubscriptionRequest) channels() (hasNtfy, hasWeb bool) {
+	hasNtfy = strings.TrimSpace(r.NtfyTopic) != ""
+	hasWeb = r.WebPush != nil && strings.TrimSpace(r.WebPush.Endpoint) != ""
+	return
+}
 
 // cors returns the CORS headers for the current request, falling back to the
 // primary-origin defaults if the request hasn't resolved them yet.
@@ -292,6 +318,95 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 	return nil
 }
 
+func (h *LambdaHandler) webPushConfigured() bool {
+	return h.Config.VAPIDPublicKey != "" && h.Config.VAPIDPrivateKey != ""
+}
+
+func validateWebPushSubscription(w *WebPushSubscription) error {
+	if w == nil || strings.TrimSpace(w.Endpoint) == "" {
+		return errors.New("web push endpoint required")
+	}
+	u, err := url.Parse(w.Endpoint)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
+		return errors.New("invalid push endpoint URL")
+	}
+	if strings.TrimSpace(w.Keys.P256dh) == "" || strings.TrimSpace(w.Keys.Auth) == "" {
+		return errors.New("web push keys required")
+	}
+	return nil
+}
+
+func (h *LambdaHandler) sendOneWebPush(ctx context.Context, docID bson.ObjectID, sub WebPushSubscription, title, body string) (int, error) {
+	payload, err := json.Marshal(map[string]string{
+		"title": title,
+		"body":  body,
+		"url":   "/",
+	})
+	if err != nil {
+		return 0, err
+	}
+	wps := &webpush.Subscription{
+		Endpoint: sub.Endpoint,
+		Keys: webpush.Keys{
+			Auth:   sub.Keys.Auth,
+			P256dh: sub.Keys.P256dh,
+		},
+	}
+	resp, err := webpush.SendNotificationWithContext(ctx, payload, wps, &webpush.Options{
+		Subscriber:      h.Config.VAPIDSubscriber,
+		VAPIDPublicKey:  h.Config.VAPIDPublicKey,
+		VAPIDPrivateKey: h.Config.VAPIDPrivateKey,
+		TTL:             86400,
+		HTTPClient:      h.HTTPClient.StandardClient(),
+	})
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		reason, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		slog.Warn("Web push non-success response", "subscriptionId", docID.Hex(), "status", resp.StatusCode, "reason", strings.TrimSpace(string(reason)), "endpoint", sub.Endpoint)
+	}
+	return resp.StatusCode, nil
+}
+
+// sendWebPushNotifications delivers to each stored browser subscription and drops dead endpoints (410/404).
+func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mongo.Collection, docID bson.ObjectID, title, body string, subs []WebPushSubscription) bool {
+	if !h.webPushConfigured() || len(subs) == 0 {
+		return false
+	}
+	anyOK := false
+	for _, s := range subs {
+		status, err := h.sendOneWebPush(ctx, docID, s, title, body)
+		if err != nil {
+			slog.Warn("Web push send failed", "subscriptionId", docID.Hex(), "endpoint", s.Endpoint, "error", err)
+			continue
+		}
+		if status >= 200 && status < 300 {
+			anyOK = true
+			continue
+		}
+		if status == http.StatusGone || status == http.StatusNotFound {
+			if _, err := coll.UpdateOne(ctx, bson.M{"_id": docID}, bson.M{"$pull": bson.M{"webPushSubscriptions": bson.M{"endpoint": s.Endpoint}}}); err != nil {
+				slog.Warn("Failed to remove stale web push subscription", "subscriptionId", docID.Hex(), "error", err)
+			}
+		}
+		// Other non-2xx statuses are already logged in sendOneWebPush with response body when available.
+	}
+	return anyOK
+}
+
+// notifySubscription sends the same title/message on ntfy (if topic is set) and Web Push for one stored row.
+// Used for lifecycle notices; not used for slot alerts, which need distinct ntfy error handling.
+func (h *LambdaHandler) notifySubscription(ctx context.Context, coll *mongo.Collection, sub *Subscription, title, message string) {
+	if strings.TrimSpace(sub.NtfyTopic) != "" {
+		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message); err != nil {
+			slog.Error("Failed to send ntfy notification", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", err)
+		}
+	}
+	h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, sub.WebPushSubscriptions)
+}
+
 // updateLastNotified updates the lastNotifiedAt timestamp and notificationCount for multiple subscriptions
 func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Collection, updates []mongo.WriteModel) error {
 	if len(updates) == 0 {
@@ -367,14 +482,14 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		// Get appointments for the subscription's location
 		apps, exists := appointments[sub.Location]
 		if !exists || len(apps) == 0 {
-			slog.Debug("No appointments for location", "location", sub.Location)
+			slog.Debug("No appointments for location", "subscriptionId", sub.ID.Hex(), "location", sub.Location)
 			continue
 		}
 
 		// Load timezone from subscription
 		loc, err := time.LoadLocation(sub.Timezone)
 		if err != nil {
-			slog.Error("Failed to load timezone", "timezone", sub.Timezone, "error", err)
+			slog.Error("Failed to load timezone", "subscriptionId", sub.ID.Hex(), "timezone", sub.Timezone, "error", err)
 			continue
 		}
 
@@ -387,22 +502,22 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 			// Parse the timestamp in the subscription's timezone
 			t, err := time.ParseInLocation("2006-01-02T15:04", app.StartTimestamp, loc)
 			if err != nil {
-				slog.Error("Failed to parse timestamp", "topic", sub.NtfyTopic, "error", err)
+				slog.Error("Failed to parse timestamp", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", err)
 				continue
 			}
 			// Debug: Log subscription eligibility
-			slog.Debug("Checking eligibility", "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
+			slog.Debug("Checking eligibility", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
 
 			// Check if appointment is within latestDate
 			if t.Before(sub.LatestDate) || t.Equal(sub.LatestDate) {
 				eligibleAppointment = &app
 				break
 			}
-			slog.Debug("Appointment after latestDate", "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
+			slog.Debug("Appointment after latestDate", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "appointmentTime", t, "latestDate", sub.LatestDate)
 		}
 
 		if eligibleAppointment == nil {
-			slog.Debug("No eligible appointments for subscription", "topic", sub.NtfyTopic)
+			slog.Debug("No eligible appointments for subscription", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic)
 			continue
 		}
 
@@ -410,25 +525,34 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		t, _ := time.ParseInLocation("2006-01-02T15:04", eligibleAppointment.StartTimestamp, loc)
 		formattedTime := t.Format("Mon, Jan 2, 2006 at 3:04 PM MST")
 		message := fmt.Sprintf("Appointment available at %s on %s", sub.ShortName, formattedTime)
+		title := "Global Entry Appointment Notification"
 
-		// Send appointment notification
-		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Appointment Notification", message); err != nil {
-			slog.Error("Failed to send appointment notification", "topic", sub.NtfyTopic, "error", err)
-			if errors.Is(err, ErrMaxNtfyFailures) {
-				return globalNotifiedCount, ErrMaxNtfyFailures
+		ntfyOK := false
+		var ntfyErr error
+		if sub.NtfyTopic != "" {
+			ntfyErr = h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message)
+			if ntfyErr == nil {
+				ntfyOK = true
+			} else {
+				slog.Error("Failed to send appointment notification", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", ntfyErr)
+				if errors.Is(ntfyErr, ErrMaxNtfyFailures) {
+					return globalNotifiedCount, ErrMaxNtfyFailures
+				}
 			}
+		}
+		webOK := h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, sub.WebPushSubscriptions)
+		if !ntfyOK && !webOK {
 			continue
 		}
 
 		// Check if subscription has exceeded max notification count after sending
 		if sub.NotificationCount+1 >= h.Config.MaxNotificationCount {
 			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment!", sub.ShortName, sub.NotificationCount+1)
-			if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Ended", expireMessage); err != nil {
-				slog.Error("Failed to send max notification count expiration notice", "topic", sub.NtfyTopic, "error", err)
-			}
+			expireTitle := "Global Entry Subscription Ended"
+			h.notifySubscription(ctx, coll, &sub, expireTitle, expireMessage)
 			_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 			if err != nil {
-				slog.Error("Failed to delete subscription due to max notifications", "id", sub.ID, "error", err)
+				slog.Error("Failed to delete subscription due to max notifications", "subscriptionId", sub.ID.Hex(), "error", err)
 			}
 			globalNotifiedCount++
 			continue
@@ -465,15 +589,14 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 // deleteExpiredSubscription deletes a single expired subscription
 func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mongo.Collection, sub Subscription) error {
 	message := fmt.Sprintf("Your Global Entry appointment subscription for %s has expired(30 days subscription) or the latest appointment date set (%s) has passed.", sub.ShortName, sub.LatestDate.Format("2006-01-02"))
-	if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, "Global Entry Subscription Expired", message); err != nil {
-		slog.Error("Failed to send expiration notification", "topic", sub.NtfyTopic, "error", err)
-	}
+	title := "Global Entry Subscription Expired"
+	h.notifySubscription(ctx, coll, &sub, title, message)
 
 	_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 	if err != nil {
 		return fmt.Errorf("failed to delete subscription %s: %v", sub.ID, err)
 	}
-	slog.Info("Deleted expired subscription", "id", sub.ID)
+	slog.Info("Deleted expired subscription", "subscriptionId", sub.ID.Hex())
 	return nil
 }
 
@@ -501,7 +624,7 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 
 	for _, sub := range subscriptions {
 		if err := h.deleteExpiredSubscription(ctx, coll, sub); err != nil {
-			slog.Error("Failed to process expired subscription", "id", sub.ID, "error", err)
+			slog.Error("Failed to process expired subscription", "subscriptionId", sub.ID.Hex(), "error", err)
 		}
 	}
 	return nil
@@ -509,11 +632,63 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 
 // validateSubscriptionRequest validates the subscription request
 func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
-	if req.Location == "" || req.NtfyTopic == "" {
+	hasNtfy, hasWeb := req.channels()
+
+	if req.Location == "" {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
 			Headers:    h.cors(),
-			Body:       `{"error": "location and ntfyTopic are required"}`,
+			Body:       `{"error": "location is required"}`,
+		}, nil
+	}
+	if req.Action == "subscribe" {
+		if !hasNtfy && !hasWeb {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    h.cors(),
+				Body:       `{"error": "choose ntfy topic and/or browser notifications (web push)"}`,
+			}, nil
+		}
+		if hasWeb {
+			if !h.webPushConfigured() {
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 503,
+					Headers:    h.cors(),
+					Body:       `{"error": "browser notifications are not configured on this server"}`,
+				}, nil
+			}
+			if err := validateWebPushSubscription(req.WebPush); err != nil {
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 400,
+					Headers:    h.cors(),
+					Body:       fmt.Sprintf(`{"error": %q}`, err.Error()),
+				}, nil
+			}
+		}
+	} else if req.Action == "unsubscribe" {
+		if !hasNtfy && strings.TrimSpace(req.WebPushEndpoint) == "" {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    h.cors(),
+				Body:       `{"error": "ntfyTopic or webPushEndpoint is required to unsubscribe"}`,
+			}, nil
+		}
+		if strings.TrimSpace(req.WebPushEndpoint) != "" {
+			u, err := url.Parse(req.WebPushEndpoint)
+			if err != nil || (u.Scheme != "https" && u.Scheme != "http") {
+				return events.APIGatewayV2HTTPResponse{
+					StatusCode: 400,
+					Headers:    h.cors(),
+					Body:       `{"error": "invalid webPushEndpoint URL"}`,
+				}, nil
+			}
+		}
+	}
+	if hasNtfy && !validNtfyPattern.MatchString(req.NtfyTopic) {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    h.cors(),
+			Body:       `{"error": "Ntfy Topic must not contain spaces or special characters"}`,
 		}, nil
 	}
 
@@ -522,14 +697,6 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 			StatusCode: 400,
 			Headers:    h.cors(),
 			Body:       `{"error": "location must be a numeric enrollment center id"}`,
-		}, nil
-	}
-
-	if !validNtfyPattern.MatchString(req.NtfyTopic) {
-		return events.APIGatewayV2HTTPResponse{
-			StatusCode: 400,
-			Headers:    h.cors(),
-			Body:       `{"error": "Ntfy Topic must not contain spaces or special characters"}`,
 		}, nil
 	}
 
@@ -570,28 +737,40 @@ func (h *LambdaHandler) validateSubscriptionRequest(req SubscriptionRequest) (ev
 	return events.APIGatewayV2HTTPResponse{}, nil
 }
 
+// subscribeSendConfirmations sends welcome notifications and increments notificationCount if any channel succeeds.
+func (h *LambdaHandler) subscribeSendConfirmations(ctx context.Context, coll *mongo.Collection, docID bson.ObjectID, req SubscriptionRequest, latestDate time.Time, sendNtfy, sendWeb bool, webSubs []WebPushSubscription) {
+	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s before %s.", req.ShortName, latestDate.Format("2006-01-02"))
+	title := "Global Entry Subscription Confirmation"
+	confirmed := false
+	if sendNtfy && strings.TrimSpace(req.NtfyTopic) != "" {
+		if err := h.sendNtfyNotification(ctx, req.NtfyTopic, title, message); err != nil {
+			slog.Error("Failed to send confirmation notification", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "error", err)
+		} else {
+			confirmed = true
+		}
+	}
+	if sendWeb && len(webSubs) > 0 {
+		if h.sendWebPushNotifications(ctx, coll, docID, title, message, webSubs) {
+			confirmed = true
+		}
+	}
+	if confirmed {
+		slog.Debug("Updating notification count for subscription", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "location", req.Location)
+		if _, err := coll.UpdateOne(ctx,
+			bson.M{"_id": docID},
+			bson.M{"$inc": bson.M{"notificationCount": 1}}); err != nil {
+			slog.Error("Failed to increment notification count", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "error", err)
+		}
+	}
+}
+
 // handleSubscribe processes subscription requests
 func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
-	count, err := coll.CountDocuments(ctx, bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic})
-	if err != nil {
-		return events.APIGatewayV2HTTPResponse{
-			StatusCode: 500,
-			Headers:    h.cors(),
-			Body:       `{"error": "failed to check existing subscription"}`,
-		}, fmt.Errorf("failed to check existing subscription: %v", err)
-	}
-	if count > 0 {
-		return events.APIGatewayV2HTTPResponse{
-			StatusCode: 400,
-			Headers:    h.cors(),
-			Body:       `{"error": "subscription already exists"}`,
-		}, nil
-	}
+	hasNtfy, hasWeb := req.channels()
 
 	latestDate := time.Now().UTC().AddDate(1, 0, 0) // Default to 1 year from now
 	if req.LatestDate != "" {
-		var err error
-		latestDate, err = time.Parse("2006-01-02", req.LatestDate)
+		parsed, err := time.Parse("2006-01-02", req.LatestDate)
 		if err != nil {
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 400,
@@ -599,40 +778,124 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 				Body:       `{"error": "invalid latestDate format"}`,
 			}, fmt.Errorf("failed to parse latestDate: %v", err)
 		}
+		latestDate = parsed
 	}
 
-	now := time.Now().UTC()
-	result, err := coll.InsertOne(ctx, bson.M{
-		"_id":               bson.NewObjectID(),
-		"location":          req.Location,
-		"shortName":         req.ShortName,
-		"timezone":          req.Timezone,
-		"ntfyTopic":         req.NtfyTopic,
-		"latestDate":        latestDate,
-		"createdAt":         now,
-		"lastNotifiedAt":    now.Add(-h.Config.NotificationCooldownTime),
-		"notificationCount": 0,
-	})
-	if err != nil {
+	var dupOr []bson.M
+	if hasNtfy {
+		dupOr = append(dupOr, bson.M{"ntfyTopic": req.NtfyTopic})
+	}
+	if hasWeb {
+		dupOr = append(dupOr, bson.M{"webPushSubscriptions.endpoint": req.WebPush.Endpoint})
+	}
+	dupFilter := bson.M{"location": req.Location, "$or": dupOr}
+
+	var existing Subscription
+	err := coll.FindOne(ctx, dupFilter).Decode(&existing)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
 			Headers:    h.cors(),
-			Body:       `{"error": "failed to insert subscription"}`,
-		}, fmt.Errorf("failed to insert subscription: %v", err)
+			Body:       `{"error": "failed to check existing subscription"}`,
+		}, fmt.Errorf("failed to find subscription: %w", err)
 	}
-	slog.Info("Added subscription", "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic, "latestDate", latestDate, "insertedID", result.InsertedID)
 
-	message := fmt.Sprintf("You're all set! We'll notify you when an appointment slot is available at %s before %s.", req.ShortName, latestDate.Format("2006-01-02"))
-	if err := h.sendNtfyNotification(ctx, req.NtfyTopic, "Global Entry Subscription Confirmation", message); err != nil {
-		slog.Error("Failed to send confirmation notification", "topic", req.NtfyTopic, "error", err)
-	} else {
-		slog.Debug("Updating notification count for subscription", "topic", req.NtfyTopic, "location", req.Location, "insertedID", result.InsertedID)
-		_, err = coll.UpdateOne(ctx,
-			bson.M{"_id": result.InsertedID},
-			bson.M{"$inc": bson.M{"notificationCount": 1}})
-		if err != nil {
-			slog.Error("Failed to increment notification count", "topic", req.NtfyTopic, "error", err)
+	now := time.Now().UTC()
+
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		doc := bson.M{
+			"_id":               bson.NewObjectID(),
+			"location":          req.Location,
+			"shortName":         req.ShortName,
+			"timezone":          req.Timezone,
+			"ntfyTopic":         req.NtfyTopic,
+			"latestDate":        latestDate,
+			"createdAt":         now,
+			"lastNotifiedAt":    now.Add(-h.Config.NotificationCooldownTime),
+			"notificationCount": 0,
 		}
+		if hasWeb {
+			doc["webPushSubscriptions"] = []WebPushSubscription{*req.WebPush}
+		}
+
+		result, err := coll.InsertOne(ctx, doc)
+		if err != nil {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 500,
+				Headers:    h.cors(),
+				Body:       `{"error": "failed to insert subscription"}`,
+			}, fmt.Errorf("failed to insert subscription: %v", err)
+		}
+		insertedID, _ := result.InsertedID.(bson.ObjectID)
+		slog.Info("Added subscription", "subscriptionId", insertedID.Hex(), "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic, "latestDate", latestDate, "webPush", hasWeb)
+
+		var webSubs []WebPushSubscription
+		if hasWeb {
+			webSubs = []WebPushSubscription{*req.WebPush}
+		}
+		h.subscribeSendConfirmations(ctx, coll, insertedID, req, latestDate, hasNtfy, hasWeb, webSubs)
+
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 200,
+			Headers:    h.cors(),
+			Body:       `{"message": "Subscribed successfully"}`,
+		}, nil
+	}
+
+	// Same location + same ntfy topic and/or same push endpoint: merge instead of rejecting, so users can add
+	// "This device" after an older ntfy-only subscription (previously returned "subscription already exists").
+	mergedWeb := append([]WebPushSubscription(nil), existing.WebPushSubscriptions...)
+	addedWeb := false
+	if hasWeb {
+		found := false
+		for _, w := range mergedWeb {
+			if w.Endpoint == req.WebPush.Endpoint {
+				found = true
+				break
+			}
+		}
+		if !found {
+			mergedWeb = append(mergedWeb, *req.WebPush)
+			addedWeb = true
+		}
+	}
+
+	newNtfy := strings.TrimSpace(existing.NtfyTopic)
+	addedNtfy := false
+	if hasNtfy {
+		if newNtfy == "" {
+			newNtfy = req.NtfyTopic
+			addedNtfy = true
+		} else if newNtfy != req.NtfyTopic {
+			return events.APIGatewayV2HTTPResponse{
+				StatusCode: 400,
+				Headers:    h.cors(),
+				Body:       `{"error": "subscription already exists for a different ntfy topic at this location"}`,
+			}, nil
+		}
+	}
+
+	if _, err := coll.UpdateOne(ctx, bson.M{"_id": existing.ID}, bson.M{"$set": bson.M{
+		"latestDate":           latestDate,
+		"shortName":            req.ShortName,
+		"timezone":             req.Timezone,
+		"webPushSubscriptions": mergedWeb,
+		"ntfyTopic":            newNtfy,
+	}}); err != nil {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 500,
+			Headers:    h.cors(),
+			Body:       `{"error": "failed to update subscription"}`,
+		}, fmt.Errorf("failed to update subscription: %w", err)
+	}
+	slog.Info("Updated subscription (merge)", "subscriptionId", existing.ID.Hex(), "location", req.Location, "addedWeb", addedWeb, "addedNtfy", addedNtfy)
+
+	var newWebSubs []WebPushSubscription
+	if addedWeb && hasWeb {
+		newWebSubs = []WebPushSubscription{*req.WebPush}
+	}
+	if addedNtfy || addedWeb {
+		h.subscribeSendConfirmations(ctx, coll, existing.ID, req, latestDate, addedNtfy, addedWeb, newWebSubs)
 	}
 
 	return events.APIGatewayV2HTTPResponse{
@@ -644,7 +907,13 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 
 // handleUnsubscribe processes unsubscription requests
 func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
-	result, err := coll.DeleteOne(ctx, bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic})
+	var filter bson.M
+	if strings.TrimSpace(req.NtfyTopic) != "" {
+		filter = bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic}
+	} else {
+		filter = bson.M{"location": req.Location, "webPushSubscriptions.endpoint": req.WebPushEndpoint}
+	}
+	result, err := coll.DeleteOne(ctx, filter)
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
@@ -659,7 +928,7 @@ func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Colle
 			Body:       `{"error": "subscription not found"}`,
 		}, nil
 	}
-	slog.Info("Removed subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic)
+	slog.Info("Removed subscription", "location", req.Location, "ntfyTopic", req.NtfyTopic, "webPushEndpoint", req.WebPushEndpoint)
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
 		Headers:    h.cors(),
@@ -888,16 +1157,24 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 		body, _ := eventMap["body"].(string)
 
-		// GET / or GET /subscriptions: return simple info (e.g. for SAM local or browser)
+		// GET / or GET /subscriptions: API info and optional Web Push public key
 		if method == "GET" && (rawPath == "/" || rawPath == "/subscriptions") {
-			msg := `{"message": "Global Entry appointment notifications. Use POST /subscriptions with action, location, ntfyTopic, etc."}`
-			if rawPath == "/" {
-				msg = `{"message": "Global Entry appointment notification API", "subscriptions": "POST /subscriptions"}`
+			info := map[string]interface{}{
+				"message":        "Global Entry appointment notification API",
+				"subscriptions":  "POST /subscriptions",
+				"webPushEnabled": h.webPushConfigured(),
 			}
+			if rawPath == "/subscriptions" {
+				info["message"] = "Global Entry appointment notifications. Use POST /subscriptions with action, location, ntfyTopic and/or webPush, etc."
+			}
+			if h.webPushConfigured() {
+				info["vapidPublicKey"] = h.Config.VAPIDPublicKey
+			}
+			msg, _ := json.Marshal(info)
 			return events.APIGatewayV2HTTPResponse{
 				StatusCode: 200,
 				Headers:    h.cors(),
-				Body:       msg,
+				Body:       string(msg),
 			}, nil
 		}
 
@@ -919,7 +1196,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					Body:       `{"error": "invalid request body"}`,
 				}, nil
 			}
-			if subReq.Action == "" || subReq.Location == "" || subReq.NtfyTopic == "" {
+			if subReq.Action == "" || subReq.Location == "" {
 				slog.Error("Invalid subscription request: missing required fields")
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 400,

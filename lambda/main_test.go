@@ -645,6 +645,108 @@ func TestHandleRequest_APIGatewayUnsubscribe(t *testing.T) {
 	assert.Equal(t, int64(0), count, "Expected subscription to be removed")
 }
 
+func TestSubscriptionRequest_channels(t *testing.T) {
+	t.Parallel()
+	empty := SubscriptionRequest{}
+	n, w := empty.channels()
+	assert.False(t, n)
+	assert.False(t, w)
+
+	ntfyOnly := SubscriptionRequest{NtfyTopic: "  my-topic  "}
+	n, w = ntfyOnly.channels()
+	assert.True(t, n)
+	assert.False(t, w)
+
+	webOnly := SubscriptionRequest{WebPush: &WebPushSubscription{
+		Endpoint: "https://example.com/push/1",
+		Keys:     WebPushKeys{Auth: "x", P256dh: "y"},
+	}}
+	n, w = webOnly.channels()
+	assert.False(t, n)
+	assert.True(t, w)
+
+	both := SubscriptionRequest{
+		NtfyTopic: "a",
+		WebPush: &WebPushSubscription{
+			Endpoint: "https://example.com/push/2",
+			Keys:     WebPushKeys{Auth: "auth", P256dh: "dh"},
+		},
+	}
+	n, w = both.channels()
+	assert.True(t, n)
+	assert.True(t, w)
+}
+
+func TestHandleRequest_APIGatewaySubscribe_secondSubscribeMergesSameNtfyRow(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+	setupTest(t, coll)
+
+	recaptchaServer := setupRecaptchaServer(t, true, 0.9)
+	defer recaptchaServer.Close()
+	handler.Config.RecaptchaURL = recaptchaServer.URL
+
+	ntfyCalls := 0
+	ntfyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ntfyCalls++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ntfyServer.Close()
+	handler.Config.NtfyServer = ntfyServer.URL
+	handler.HTTPClient = newRetryableHTTPClient(handler.Config)
+
+	now := time.Now().UTC()
+	firstLatest := now.Add(20 * 24 * time.Hour)
+	secondLatest := now.Add(45 * 24 * time.Hour)
+
+	subscribe := func(latest time.Time) events.APIGatewayV2HTTPResponse {
+		req := SubscriptionRequest{
+			Action:         "subscribe",
+			Location:       "5446",
+			ShortName:      "SF Enrollment Center",
+			Timezone:       "America/Los_Angeles",
+			NtfyTopic:      "user-merge-sf",
+			LatestDate:     latest.Format("2006-01-02"),
+			RecaptchaToken: "valid-token",
+		}
+		body, _ := json.Marshal(req)
+		apiReq := events.APIGatewayV2HTTPRequest{
+			Version:  "2.0",
+			RouteKey: "POST /subscriptions",
+			RawPath:  "/subscriptions",
+			RequestContext: events.APIGatewayV2HTTPRequestContext{
+				HTTP: events.APIGatewayV2HTTPRequestContextHTTPDescription{Method: "POST", Path: "/subscriptions"},
+			},
+			Body:            string(body),
+			IsBase64Encoded: false,
+		}
+		eventJSON, _ := json.Marshal(apiReq)
+		resp, err := handler.HandleRequest(ctx, eventJSON)
+		assert.NoError(t, err)
+		return resp
+	}
+
+	resp1 := subscribe(firstLatest)
+	assert.Equal(t, 200, resp1.StatusCode)
+	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, resp1.Body)
+
+	resp2 := subscribe(secondLatest)
+	assert.Equal(t, 200, resp2.StatusCode)
+	assert.JSONEq(t, `{"message": "Subscribed successfully"}`, resp2.Body)
+
+	count, err := coll.CountDocuments(ctx, bson.M{"location": "5446", "ntfyTopic": "user-merge-sf"})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count, "merge should keep a single document")
+
+	var sub Subscription
+	err = coll.FindOne(ctx, bson.M{"location": "5446", "ntfyTopic": "user-merge-sf"}).Decode(&sub)
+	assert.NoError(t, err)
+	assert.WithinDuration(t, secondLatest, sub.LatestDate, 24*time.Hour, "latestDate should reflect second subscribe")
+
+	assert.Equal(t, 1, ntfyCalls, "only first subscribe sends confirmation ntfy")
+}
+
 func TestHandleRequest_InvalidEvent(t *testing.T) {
 	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()

@@ -16,27 +16,26 @@ Free, real-time push notifications when Global Entry appointment slots open up a
 
 ## What it does
 
-Stop refreshing the CBP website endlessly. Pick your enrollment center once, and the service watches it for you. When a slot opens up, you get a push notification within a minute via the free [ntfy](https://ntfy.sh) app.
+Stop refreshing the CBP website endlessly. Pick your enrollment center once, and the service watches it for you. When a slot opens up, you get a push within about a minute via the free [ntfy](https://ntfy.sh) app and/or **browser notifications** (installable PWA on Android and iPhone).
 
 - **100% free** — no ads, no signup, no personal data.
 - **Open source** — MIT licensed.
 - **Real-time** — checks every minute via CBP's public scheduler API.
-- **No accounts** — bring your own ntfy topic, no email or phone needed.
+- **No accounts** — bring your own ntfy topic and/or allow web push on this device; no email or phone needed.
 - **Auto-expires** — 30 alerts or 30 days, whichever comes first.
 
 ## Quick start
 
-1. Install ntfy: [iOS](https://apps.apple.com/app/ntfy/id1625396347) · [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
-2. In the ntfy app, create a unique topic name (e.g. `global-entry-alerts-arun`).
-3. Paste the same topic at [getglobalentryalerts.com](https://getglobalentryalerts.com/), pick your enrollment center, and submit.
+1. (Optional) Install ntfy: [iOS](https://apps.apple.com/app/ntfy/id1625396347) · [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy) and create a unique topic (e.g. `global-entry-alerts-arun`).
+2. Open [getglobalentryalerts.com](https://getglobalentryalerts.com/), pick your enrollment center, choose **ntfy** and/or **This device** (browser / PWA push), then submit.
 
-That's it — you'll get a push notification when slots open up.
+That's it — you'll get a notification when slots open up. On **iPhone**, add the site to your Home Screen first for the most reliable web push (iOS 16.4+).
 
 ## How it works
 
-A scheduled AWS Lambda runs every minute. For each subscribed location, it queries CBP's public scheduler API. If a slot is available before your latest acceptable date, it pushes a notification through ntfy. Subscriptions auto-expire after 30 alerts or 30 days, with a final "we're done" message.
+A scheduled AWS Lambda runs every minute. For each subscribed location, it queries CBP's public scheduler API. If a slot is available before your latest acceptable date, it sends ntfy and/or a **Web Push** to registered browsers. Subscriptions auto-expire after 30 alerts or 30 days, with a final "we're done" message.
 
-Stack: Go on AWS Lambda + MongoDB Atlas + [ntfy.sh](https://ntfy.sh), deployed via AWS CDK.
+Stack: Go on AWS Lambda + MongoDB Atlas + [ntfy.sh](https://ntfy.sh) + optional Web Push (VAPID), deployed via AWS CDK.
 
 ## For developers
 
@@ -64,22 +63,36 @@ Create `env.json`:
 {
   "Parameters": {
     "MONGODB_PASSWORD": "your-mongodb-password",
-    "RECAPTCHA_SECRET_KEY": "your-recaptcha-secret-key"
+    "RECAPTCHA_SECRET_KEY": "your-recaptcha-secret-key",
+    "VAPID_PUBLIC_KEY": "your-vapid-public-key",
+    "VAPID_PRIVATE_KEY": "your-vapid-private-key",
+    "VAPID_SUBJECT": "you@example.com"
   }
 }
 ```
+
+Generate a VAPID key pair (install [web-push](https://www.npmjs.com/package/web-push) globally or use `npx web-push generate-vapid-keys`). Set `VAPID_SUBJECT` to a **bare email** (e.g. `you@example.com`) or an `https://` URL you control. The push library turns a bare email into `mailto:…` in the VAPID JWT; if you set `VAPID_SUBJECT` to `mailto:…` yourself, the JWT ends up as `mailto:mailto:…` and **Apple Web Push returns 403**. If `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are omitted, the API still works for **ntfy-only** subscriptions; browser push is disabled until both keys are set.
 
 > If you serve the static site from both `getglobalentryalerts.com` and `*.github.io`, register both hostnames in [reCAPTCHA admin](https://www.google.com/recaptcha/admin). The API already allows both origins via CORS.
 
 ### MongoDB indexes
 
-For production performance, create these once on the `subscriptions` collection:
+For production performance, create these once on the `subscriptions` collection. If you previously created a unique index on `(location, ntfyTopic)` only, replace it with the partial index below so multiple **web-only** rows (empty `ntfyTopic`) are allowed.
 
 ```js
-// Unique subscription per (location, ntfyTopic)
+// Drop legacy unique index if it exists (name may differ — check db.subscriptions.getIndexes())
+// db.subscriptions.dropIndex("location_1_ntfyTopic_1");
+
+// Unique when an ntfy topic is present (non-empty string)
 db.subscriptions.createIndex(
   { location: 1, ntfyTopic: 1 },
-  { unique: true }
+  { unique: true, partialFilterExpression: { ntfyTopic: { $gt: "" } } }
+);
+
+// At most one subscription document per push endpoint per location
+db.subscriptions.createIndex(
+  { location: 1, "webPushSubscriptions.endpoint": 1 },
+  { unique: true, partialFilterExpression: { "webPushSubscriptions.0": { $exists: true } } }
 );
 
 // Cron query: subscriptions due for a notification check
