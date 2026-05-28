@@ -1,5 +1,5 @@
 /* global self, caches, clients */
-const CACHE = "gea-shell-v1";
+const CACHE = "gea-shell-v2";
 const SHELL = ["/", "/index.html", "/styles.css", "/favicon.png", "/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

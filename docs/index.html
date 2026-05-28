@@ -234,6 +234,9 @@
 
                 <!-- Web push: 2-step wizard (install → allow notifications) -->
                 <div id="web-push-setup" class="hidden setup-panel">
+                    <p id="pwa-installed-hint" class="hidden text-xs text-green-800 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mb-3">
+                        ✓ You're in the installed app — just turn on notifications below.
+                    </p>
                     <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"></p>
 
                     <div id="step-install-wrap">
@@ -302,7 +305,7 @@
                         <div class="step-dot">2</div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-slate-900">Connect the app</p>
-                            <p class="text-xs text-slate-500 mt-0.5">One tap opens ntfy and subscribes you to your private alert channel — no typing needed.</p>
+                            <p id="ntfy-step-desc" class="text-xs text-slate-500 mt-0.5">Tap below to open your private channel on ntfy and subscribe.</p>
                             <a id="btn-open-ntfy" href="https://ntfy.sh/" rel="noopener noreferrer"
                                class="mt-3 flex w-full items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -499,9 +502,37 @@
     function pickDefaultChannel(meta) {
         const ui = resolveWebPushUi(meta);
         if (ui.disableThisDevice) return "ntfy";
-        if (isIOS() && !isStandalonePWA()) return "ntfy";
+        // Installed GE Alerts PWA → web push only (ntfy deep links break in standalone)
+        if (isStandalonePWA()) return "web";
+        if (isIOS()) return "ntfy";
         if (meta.serverReady) return "web";
         return "ntfy";
+    }
+
+    /** ntfy is a Safari/Android-browser path — not for the installed GE Alerts app. */
+    function shouldOfferNtfyChannel() {
+        return !isStandalonePWA();
+    }
+
+    function enforceChannelForContext() {
+        const switchBtn = document.getElementById("btn-switch-channel");
+        if (!shouldOfferNtfyChannel()) {
+            switchBtn?.classList.add("hidden");
+            if (getActiveChannel() === "ntfy") {
+                selectChannel("web");
+            }
+        }
+    }
+
+    function openExternalUrl(url) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     }
 
     function selectChannel(channel) {
@@ -530,7 +561,7 @@
         const btn = document.getElementById("btn-switch-channel");
         const web = document.getElementById("channel-web");
         if (!btn) return;
-        if (web?.disabled) {
+        if (!shouldOfferNtfyChannel() || web?.disabled) {
             btn.classList.add("hidden");
             return;
         }
@@ -600,7 +631,7 @@
                 setReadinessItem("check-notify", "done",
                     ch === "ntfy" ? "ntfy connected" : "Notifications enabled");
             } else if (ch === "ntfy") {
-                setReadinessItem("check-notify", "action", "Tap Open & subscribe in ntfy");
+                setReadinessItem("check-notify", "action", isIOS() ? "Tap Open & subscribe in ntfy, then Subscribe on ntfy.sh" : "Tap Open & subscribe in ntfy");
             } else if (isIOS() && !isStandalonePWA()) {
                 setReadinessItem("check-notify", "action", "Add to Home Screen, then allow notifications");
             } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
@@ -609,7 +640,7 @@
                 setReadinessItem("check-notify", "action", "Tap Turn on notifications");
             }
 
-            if (locOk && dateOk && !notifyReady && ch === "web" && !isIOS()) {
+            if (locOk && dateOk && !notifyReady && ch === "web" && (!isIOS() || isStandalonePWA())) {
                 const enableBtn = document.getElementById("btn-enable-push");
                 if (enableBtn && !enableBtn.dataset.hinted) {
                     enableBtn.dataset.hinted = "1";
@@ -733,7 +764,11 @@
                 webStatus.textContent = "Off";
                 webStatus.className = "status-pill status-pill--off absolute top-3 right-3";
             }
-            selectChannel("ntfy");
+            if (shouldOfferNtfyChannel()) {
+                selectChannel("ntfy");
+            } else {
+                selectChannel("web");
+            }
         } else {
             if (webLabel) webLabel.classList.remove("opacity-60");
             if (webBadge) webBadge.textContent = "Recommended on this device";
@@ -841,6 +876,7 @@
     }
 
     function syncChannelUX() {
+        enforceChannelForContext();
         const ch = getActiveChannel();
         const ntfyOn = ch === "ntfy";
         const webOn = ch === "web";
@@ -851,6 +887,11 @@
 
         const webSetup = document.getElementById("web-push-setup");
         if (webSetup) webSetup.classList.toggle("hidden", !webOn);
+
+        const pwaInstalledHint = document.getElementById("pwa-installed-hint");
+        if (pwaInstalledHint) {
+            pwaInstalledHint.classList.toggle("hidden", !(webOn && isStandalonePWA()));
+        }
 
         const iosHint = document.getElementById("ios-pwa-hint");
         if (iosHint) iosHint.classList.toggle("hidden", !(webOn && isIOS() && !isStandalonePWA()));
@@ -939,19 +980,22 @@
         return true;
     }
 
-    function isMobilePhone() {
-        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")
-            || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    function isAndroidPhone() {
+        return /Android/i.test(navigator.userAgent || "") && !isIOS();
     }
 
-    /** URL that opens the ntfy app on phone (ntfy://) or the topic page in a browser on desktop. */
+    /**
+     * Subscribe link for ntfy.
+     * ntfy:// deep links are Android-only (docs.ntfy.sh/subscribe/phone).
+     * iOS must use https://ntfy.sh/{topic} — Safari/PWA cannot open ntfy:// URLs.
+     */
     function ntfySubscribeUrl(topic) {
-        const encoded = encodeURIComponent(topic);
-        if (isMobilePhone()) {
-            // Official ntfy deep link — opens app and subscribes (docs.ntfy.sh/subscribe/phone)
-            return `ntfy://ntfy.sh/${encoded}?display=Global%20Entry%20Alerts`;
+        const safe = String(topic || "").trim();
+        if (!safe) return "https://ntfy.sh/";
+        if (isAndroidPhone()) {
+            return `ntfy://ntfy.sh/${safe}?display=Global%20Entry%20Alerts`;
         }
-        return `https://ntfy.sh/${encoded}`;
+        return `https://ntfy.sh/${safe}`;
     }
 
     /** Sync the hidden topic field and ntfy deep-link button to the device's channel. */
@@ -962,12 +1006,25 @@
         const input = document.getElementById("ntfy-topic-custom");
         const hint = document.getElementById("ntfy-open-hint");
         if (topicHidden) topicHidden.value = topic;
-        if (openBtn) openBtn.href = ntfySubscribeUrl(topic);
+        if (openBtn) {
+            openBtn.href = ntfySubscribeUrl(topic);
+            openBtn.removeAttribute("target");
+        }
         if (input && document.activeElement !== input) input.value = topic;
+        const stepDesc = document.getElementById("ntfy-step-desc");
+        if (stepDesc) {
+            stepDesc.textContent = isAndroidPhone()
+                ? "One tap opens the ntfy app and subscribes you — no typing needed."
+                : "Tap below to open your channel on ntfy.sh and tap Subscribe.";
+        }
         if (hint) {
-            hint.textContent = isMobilePhone()
-                ? "Opens the ntfy app and subscribes you — install the app first if prompted."
-                : "Opens ntfy.sh in a new tab — use the app on your phone for push alerts.";
+            if (isAndroidPhone()) {
+                hint.textContent = "Opens the ntfy app and subscribes you automatically.";
+            } else if (isIOS()) {
+                hint.textContent = "Opens your private channel on ntfy.sh — tap Subscribe, then return here.";
+            } else {
+                hint.textContent = "Opens ntfy.sh in a new tab — use the app on your phone for push alerts.";
+            }
         }
     }
 
@@ -1508,15 +1565,23 @@
     window.addEventListener("DOMContentLoaded", () => {
         syncNtfyTopicUI();
 
-        if (isIOS()) {
+        if (isIOS() && !isStandalonePWA()) {
             const web = document.getElementById("channel-web");
             const ntfy = document.getElementById("channel-ntfy");
             if (web && ntfy) {
                 ntfy.checked = true;
                 web.checked = false;
             }
+        } else if (isStandalonePWA()) {
+            const web = document.getElementById("channel-web");
+            const ntfy = document.getElementById("channel-ntfy");
+            if (web && ntfy) {
+                web.checked = true;
+                ntfy.checked = false;
+            }
         }
         syncChannelVisibility();
+        enforceChannelForContext();
 
         // Handle ?subscriptions=unsubscribe deep-link (e.g. from email notification)
         const params = new URLSearchParams(window.location.search);
@@ -1539,7 +1604,17 @@
 
         const openNtfyBtn = document.getElementById("btn-open-ntfy");
         if (openNtfyBtn) {
-            openNtfyBtn.addEventListener("click", markNtfyOpened);
+            openNtfyBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const topic = getOrCreateNtfyTopic();
+                const url = ntfySubscribeUrl(topic);
+                if (isAndroidPhone()) {
+                    window.location.href = url;
+                } else {
+                    openExternalUrl(url);
+                }
+                markNtfyOpened();
+            });
         }
 
         const dateInput = document.getElementById("date");
