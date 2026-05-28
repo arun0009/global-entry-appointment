@@ -18,12 +18,23 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes hero-pulse {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(1.15); }
+}
+
 body {
     font-family: "Inter", sans-serif;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .animate-slide-up {
+    .animate-slide-up,
+    .animate-fade-in-up,
+    .hero-pulse {
         animation: none !important;
     }
     html {
@@ -32,6 +43,12 @@ body {
 }
 
 .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-fade-in-up {
+    animation: fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animation-delay-1 { animation-delay: 0.08s; }
+.animation-delay-2 { animation-delay: 0.16s; }
+.hero-pulse { animation: hero-pulse 2.5s ease-in-out infinite; transform-origin: center; }
 
 .skip-link {
     @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2.5 focus:bg-white focus:text-primary-700 focus:rounded-xl focus:shadow-lg focus:ring-2 focus:ring-primary-500 focus:font-semibold focus:text-sm;
@@ -157,9 +174,91 @@ body {
         @apply min-h-11 min-w-11 flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors;
     }
 
-    .hero-compact-mobile .hero-banner img {
-        @apply h-24 sm:h-52;
+    .hero-visual {
+        @apply grid gap-3 lg:gap-6 lg:grid-cols-[1fr_auto] items-center rounded-2xl border border-primary-500/20 bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700 px-4 py-4 sm:p-6 shadow-md overflow-hidden;
     }
+    .hero-copy {
+        @apply text-center sm:text-left;
+    }
+    .hero-copy h1 {
+        @apply text-white;
+    }
+    .hero-copy .hero-tagline {
+        @apply text-white/90;
+    }
+    .hero-copy .hero-subline {
+        @apply text-white/75;
+    }
+    .hero-illustration {
+        @apply mx-auto w-full;
+    }
+    .hero-illustration--desktop {
+        @apply max-w-[280px] sm:max-w-[300px];
+    }
+    .hero-illustration--mobile {
+        @apply w-full;
+    }
+    .hero-svg {
+        @apply w-full h-auto drop-shadow-sm;
+    }
+    .hero-scene-mobile {
+        @apply rounded-xl bg-white/10 backdrop-blur-[2px] border border-white/20 px-2.5 py-2.5 sm:px-3;
+    }
+    .hero-scene-row {
+        @apply flex items-center justify-center gap-2 w-full;
+    }
+    .hero-cal {
+        @apply shrink-0 w-[3.25rem] rounded-lg border border-slate-200/90 bg-white text-center shadow-sm overflow-hidden;
+    }
+    .hero-cal-head {
+        @apply bg-primary-600 text-white text-[0.5rem] font-semibold tracking-wide py-0.5 leading-none;
+    }
+    .hero-cal-day {
+        @apply text-base font-bold text-slate-900 leading-none py-1;
+    }
+    .hero-cal-badge {
+        @apply mx-auto mb-1 w-fit rounded-full bg-green-100 px-1.5 py-px text-[0.4375rem] font-bold text-green-700 leading-tight;
+    }
+    .hero-flow-arrow {
+        @apply shrink-0 w-5 h-5 text-white/85;
+    }
+    .hero-notif {
+        @apply flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-2 py-2 shadow-sm;
+    }
+    .hero-notif-icon {
+        @apply shrink-0 w-7 h-7 rounded-md;
+    }
+    .hero-notif-body {
+        @apply min-w-0 flex-1;
+    }
+    .hero-notif-title {
+        @apply text-[0.625rem] font-semibold text-slate-900 leading-tight truncate;
+    }
+    .hero-notif-msg {
+        @apply text-[0.5625rem] text-slate-600 leading-snug;
+    }
+    .hero-notif-meta {
+        @apply text-[0.5rem] text-slate-400 leading-tight mt-0.5;
+    }
+    .hero-badge {
+        @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 border border-white/40 text-slate-700 text-xs font-medium shadow-sm;
+    }
+    .hero-badge--link {
+        @apply text-slate-600 hover:border-white hover:text-primary-700 transition-colors;
+    }
+    .hero-trust-badges {
+        @apply justify-center;
+    }
+
+    @media (max-width: 1023px) {
+        .setup-step.setup-step--compact-mode.is-complete .setup-step-collapsible {
+            display: none;
+        }
+        .setup-step.setup-step--compact-mode.is-complete .setup-step-done:not(.hidden) {
+            display: block;
+        }
+    }
+
     .pwa-backdrop {
         @apply fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-[2px];
     }
@@ -170,9 +269,5 @@ body {
 
     .social-link {
         @apply inline-flex items-center justify-center gap-1.5 min-h-10 min-w-10 px-3 rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-all duration-200 hover:border-primary-500/40 hover:text-primary-600 hover:bg-primary-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
-    }
-
-    .hero-banner {
-        @apply relative overflow-hidden rounded-2xl border border-slate-200 shadow-lg;
     }
 }

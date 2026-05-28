@@ -107,39 +107,102 @@
 <div class="min-h-screen py-4 sm:py-10 px-4">
 <div class="max-w-4xl mx-auto space-y-5 sm:space-y-8">
 
-    <!-- Hero banner — compact on mobile so the form is above the fold -->
-    <header class="space-y-3 sm:space-y-5 hero-compact-mobile">
-        <div class="hero-banner">
-            <img src="global-entry-banner.png" alt="" class="w-full h-24 sm:h-52 object-cover" width="1200" height="400" fetchpriority="high" />
-            <div class="absolute inset-0 bg-gradient-to-r from-primary-600/85 via-primary-600/70 to-primary-500/55 flex items-center justify-center px-4 sm:px-6">
-                <div class="text-center space-y-0.5 sm:space-y-2 max-w-xl">
-                    <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                        Global Entry Alerts
-                    </h1>
-                    <p class="text-sm sm:text-lg text-white/90 leading-snug sm:leading-relaxed hidden sm:block">
-                        Get notified in ~30 seconds — no account needed
-                    </p>
+    <!-- Hero — illustrated slot → phone -->
+    <header class="space-y-3 sm:space-y-4 hero-header animate-fade-in-up">
+        <div class="hero-visual">
+            <div class="hero-copy">
+                <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                    Global Entry Alerts
+                </h1>
+                <p class="hero-tagline text-sm sm:text-lg leading-snug sm:leading-relaxed mt-1 sm:mt-2">
+                    Slot opens → your phone buzzes. Set up in ~30 seconds.
+                </p>
+                <p class="hero-subline sm:hidden text-xs font-medium mt-1">Free · No signup · No account</p>
+            </div>
+
+            <!-- Mobile: compact calendar → notification scene -->
+            <div class="hero-illustration hero-illustration--mobile lg:hidden" role="img" aria-label="Example: calendar shows June 12 slot open, then a push notification for SFO on June 12 at 2:30 PM">
+                <div class="hero-scene-mobile">
+                    <div class="hero-scene-row">
+                        <div class="hero-cal" aria-hidden="true">
+                            <div class="hero-cal-head">JUN</div>
+                            <div class="hero-cal-day">12</div>
+                            <div class="hero-cal-badge">OPEN</div>
+                        </div>
+                        <svg class="hero-flow-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+                            <path d="M14 8l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="hero-notif" aria-hidden="true">
+                            <img src="favicon.png" alt="" class="hero-notif-icon" width="28" height="28" />
+                            <div class="hero-notif-body">
+                                <p class="hero-notif-title">Global Entry Alerts</p>
+                                <p class="hero-notif-msg">SFO — slot open Jun 12 at 2:30 PM</p>
+                                <p class="hero-notif-meta">Tap to view · now</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Desktop: full calendar → phone illustration -->
+            <div class="hero-illustration hero-illustration--desktop hidden lg:block" aria-hidden="true">
+                <svg class="hero-svg" viewBox="0 0 320 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="hero-bg" x1="0" y1="0" x2="320" y2="140" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#E0EAFF"/>
+                            <stop offset="1" stop-color="#F0F4FF"/>
+                        </linearGradient>
+                        <filter id="notif-shadow" x="180" y="36" width="128" height="60" filterUnits="userSpaceOnUse">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+                        </filter>
+                    </defs>
+                    <rect width="320" height="140" rx="16" fill="url(#hero-bg)"/>
+                    <!-- Calendar / slot -->
+                    <rect x="24" y="28" width="88" height="84" rx="12" fill="white" stroke="#CBD5E1" stroke-width="1.5"/>
+                    <rect x="24" y="28" width="88" height="22" rx="12" fill="#3B6AE6"/>
+                    <rect x="24" y="38" width="88" height="12" fill="#3B6AE6"/>
+                    <text x="68" y="42" text-anchor="middle" fill="white" font-size="9" font-weight="600" font-family="Inter,sans-serif">JUN</text>
+                    <text x="68" y="72" text-anchor="middle" fill="#1E293B" font-size="22" font-weight="700" font-family="Inter,sans-serif">12</text>
+                    <rect x="44" y="82" width="48" height="18" rx="9" fill="#DCFCE7"/>
+                    <text x="68" y="94" text-anchor="middle" fill="#15803D" font-size="8" font-weight="700" font-family="Inter,sans-serif">OPEN</text>
+                    <!-- Pulse arrow -->
+                    <path d="M128 70h36" stroke="#4F7FFF" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>
+                    <path d="M158 64l8 6-8 6" stroke="#4F7FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- Phone -->
+                    <rect x="178" y="22" width="72" height="116" rx="14" fill="#1E293B"/>
+                    <rect x="184" y="32" width="60" height="96" rx="8" fill="#F8FAFC"/>
+                    <rect x="200" y="26" width="28" height="4" rx="2" fill="#334155"/>
+                    <!-- Notification -->
+                    <rect x="192" y="44" width="104" height="44" rx="10" fill="white" stroke="#E2E8F0" stroke-width="1.5" filter="url(#notif-shadow)"/>
+                    <rect x="200" y="52" width="20" height="20" rx="5" fill="#E0EAFF"/>
+                    <text x="210" y="65" text-anchor="middle" fill="#3B6AE6" font-size="10" font-weight="700" font-family="Inter,sans-serif">GE</text>
+                    <text x="226" y="58" fill="#0F172A" font-size="7" font-weight="600" font-family="Inter,sans-serif">Global Entry Alerts</text>
+                    <text x="226" y="70" fill="#64748B" font-size="6.5" font-family="Inter,sans-serif">SFO slot · Jun 12, 2:30 PM</text>
+                    <circle cx="268" cy="88" r="12" fill="#4F7FFF" opacity="0.2" class="hero-pulse"/>
+                </svg>
             </div>
         </div>
 
-        <p class="sm:hidden text-center text-xs text-slate-600 font-medium">Free · No signup · ~30 sec setup</p>
-
-        <div class="hidden sm:flex flex-wrap justify-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        <div class="flex flex-wrap justify-center gap-2 hero-trust-badges">
+            <span class="hero-badge">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                 100% free
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span class="hero-badge">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                 No signup
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <span class="hero-badge sm:hidden">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                ~30 sec
+            </span>
+            <span class="hero-badge hidden sm:inline-flex">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                 ~30 sec setup
             </span>
             <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-sm hover:border-primary-300 hover:text-primary-700 transition-colors">
+               class="hero-badge hero-badge--link">
                 Open source
             </a>
         </div>
@@ -240,11 +303,13 @@
                     </p>
                     <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"></p>
 
+                    <div id="web-step-install" class="setup-step">
                     <div id="step-install-wrap">
                         <div class="flex gap-3">
                             <div id="step-install-marker" class="step-dot">1</div>
                             <div class="flex-1 min-w-0 pb-1">
                                 <p class="text-sm font-semibold text-slate-900">Add to Home Screen</p>
+                                <div class="setup-step-collapsible">
                                 <p class="text-xs text-slate-500 mt-0.5">Required on iPhone for background alerts.</p>
                                 <div id="ios-pwa-hint" class="hidden mt-3 space-y-2">
                                     <div class="ios-share-hint"><span>1. Open this page in <strong>Safari</strong></span></div>
@@ -257,16 +322,19 @@
                                 <p id="android-pwa-hint" class="hidden text-xs text-slate-500 mt-2">
                                     Chrome <strong>⋮</strong> menu → <strong>Install app</strong>, or use the install prompt below.
                                 </p>
-                                <p id="step-install-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Installed on this device</p>
+                                </div>
+                                <p id="step-install-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Installed on this device</p>
                             </div>
                         </div>
                         <div id="step-connector" class="step-connector"></div>
                     </div>
+                    </div>
 
-                    <div class="flex gap-3">
+                    <div id="web-step-enable" class="setup-step flex gap-3">
                         <div id="step-enable-marker" class="step-dot">2</div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-slate-900">Allow notifications</p>
+                            <div class="setup-step-collapsible">
                             <p class="text-xs text-slate-500 mt-0.5">We only alert you when a slot opens — no spam.</p>
                             <div id="web-push-enable-row" class="hidden mt-3 space-y-2">
                                 <button type="button" id="btn-enable-push"
@@ -275,15 +343,16 @@
                                     Turn on notifications
                                 </button>
                             </div>
-                            <p id="step-enable-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Notifications enabled — you're ready to subscribe</p>
-                            <p id="step-enable-blocked" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                                Notifications are blocked. Enable them in your browser settings for this site, then try again.
-                            </p>
                             <p id="enable-push-status" class="text-xs text-red-600 min-h-[1.25rem] mt-1" aria-live="polite"></p>
                             <p id="pwa-ntfy-escape" class="hidden text-xs text-slate-600 mt-3 leading-relaxed">
                                 Having trouble with notifications?
                                 <a id="pwa-ntfy-escape-link" href="/" class="text-primary-600 hover:text-primary-800 underline underline-offset-2 font-medium">Open this page in Safari</a>
                                 to use the ntfy app instead.
+                            </p>
+                            </div>
+                            <p id="step-enable-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Notifications enabled — you're ready to subscribe</p>
+                            <p id="step-enable-blocked" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                                Notifications are blocked. Enable them in your browser settings for this site, then try again.
                             </p>
                         </div>
                     </div>
@@ -293,31 +362,33 @@
                 <div id="ntfy-setup" class="hidden setup-panel" role="group" aria-labelledby="ntfy-setup-heading">
                     <p id="ntfy-setup-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Set up ntfy</p>
 
-                    <div class="flex gap-3">
+                    <div id="ntfy-step-1" class="setup-step flex gap-3">
                         <div class="step-dot" id="ntfy-step-dot-1" aria-hidden="true">1</div>
                         <div class="flex-1">
                             <p class="text-sm font-semibold text-slate-900">Get the ntfy app</p>
-                            <p class="text-xs text-slate-500 mt-0.5">Free — alerts arrive even when this browser is closed.</p>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
-                                <a id="ntfy-link-appstore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
-                                    App Store
-                                </a>
-                                <a id="ntfy-link-playstore" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
-                                    Google Play
-                                </a>
-                                <button type="button" id="btn-ntfy-have-app"
-                                        aria-label="Skip — I already have the ntfy app installed"
-                                        class="text-xs font-medium text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11 px-1">
-                                    Already installed
-                                </button>
+                            <div class="setup-step-collapsible">
+                                <p class="text-xs text-slate-500 mt-0.5">Free — alerts arrive even when this browser is closed.</p>
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    <a id="ntfy-link-appstore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
+                                        App Store
+                                    </a>
+                                    <a id="ntfy-link-playstore" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
+                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
+                                        Google Play
+                                    </a>
+                                    <button type="button" id="btn-ntfy-have-app"
+                                            aria-label="Skip — I already have the ntfy app installed"
+                                            class="text-xs font-medium text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11 px-1">
+                                        Already installed
+                                    </button>
+                                </div>
                             </div>
-                            <p id="ntfy-step-1-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ ntfy app ready</p>
+                            <p id="ntfy-step-1-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ ntfy app ready</p>
                         </div>
                     </div>
                     <div class="step-connector" aria-hidden="true"></div>
-                    <div class="flex gap-3">
+                    <div id="ntfy-step-2" class="setup-step flex gap-3">
                         <div class="step-dot" id="ntfy-step-dot-2" aria-hidden="true">2</div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-slate-900">Copy your private channel</p>
@@ -331,12 +402,12 @@
                                         Copy
                                     </button>
                                 </div>
+                                <div class="setup-step-collapsible">
                                 <ol id="ntfy-topic-steps" class="ntfy-steps mt-3" aria-label="How to subscribe in ntfy">
                                     <li>Open <strong>ntfy</strong></li>
                                     <li>Tap <strong>+</strong> → <strong>Subscribe to topic</strong></li>
                                     <li>Paste your channel name → <strong>Subscribe</strong></li>
                                 </ol>
-                                <p id="ntfy-step-2-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Channel name copied</p>
                                 <details id="ntfy-customize-details" class="mt-3 group">
                                     <summary class="text-xs text-slate-600 cursor-pointer hover:text-slate-800 list-none min-h-11 flex items-center [&::-webkit-details-marker]:hidden rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
                                         <span class="underline underline-offset-2">Customize channel name</span>
@@ -353,15 +424,18 @@
                                         </button>
                                     </div>
                                 </details>
+                                </div>
+                                <p id="ntfy-step-2-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Channel name copied</p>
                             </div>
                             <input type="hidden" id="topic" name="topic" />
                         </div>
                     </div>
                     <div class="step-connector" aria-hidden="true"></div>
-                    <div class="flex gap-3">
+                    <div id="ntfy-step-3" class="setup-step flex gap-3">
                         <div class="step-dot" id="ntfy-step-dot-3" aria-hidden="true">3</div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-slate-900">Confirm you're subscribed</p>
+                            <div class="setup-step-collapsible">
                             <p class="text-xs text-slate-500 mt-0.5">Return here after subscribing in ntfy.</p>
                             <button type="button" id="btn-ntfy-confirm" disabled
                                     aria-label="Confirm you subscribed to this channel in the ntfy app"
@@ -370,7 +444,8 @@
                                 I've subscribed in ntfy
                             </button>
                             <p id="ntfy-confirm-hint" class="text-xs text-slate-500 mt-2 text-center">Copy your channel name first.</p>
-                            <p id="ntfy-confirm-status" class="hidden text-xs font-medium text-green-700 mt-2 text-center" role="status" aria-live="polite">
+                            </div>
+                            <p id="ntfy-confirm-status" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2 text-center" role="status" aria-live="polite">
                                 ✓ Subscribed — you can submit the form below.
                             </p>
                         </div>
@@ -435,7 +510,7 @@
         <!-- Alert preview (desktop) -->
         <div class="sidebar-panel hidden lg:block">
             <h3 class="text-sm font-bold text-slate-900 mb-3">What you'll receive</h3>
-            <div class="notif-preview-phone !max-w-none" role="img" aria-label="Example alert: SFO interview slot open June 12 at 2:30 PM">
+            <div class="notif-preview-phone !max-w-none" role="img" aria-label="Example: push notification when an SFO slot opens on June 12 at 2:30 PM">
                 <div class="notif-preview-screen !rounded-xl">
                     <div class="notif-preview-card">
                         <div class="flex items-start gap-2.5">
@@ -445,13 +520,13 @@
                                     <p class="text-xs font-semibold text-slate-900">Global Entry Alerts</p>
                                     <p class="text-[10px] text-slate-500 shrink-0">now</p>
                                 </div>
-                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">SFO — interview slot open Jun 12 at 2:30 PM</p>
+                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">SFO — slot open Jun 12 at 2:30 PM</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <p class="text-xs text-slate-500 mt-3 leading-relaxed">Instant push when a cancellation opens at your center — no need to refresh the CBP site.</p>
+            <p class="text-xs text-slate-500 mt-3 leading-relaxed">Instant push when an opening appears at your center — no need to refresh the CBP site.</p>
         </div>
 
         <!-- How it works -->
@@ -490,7 +565,7 @@
             <p id="bmc-supporter-count" class="hidden text-xs text-slate-600 mt-2" aria-live="polite"></p>
             <script>
                 document.getElementById("bmc-button").src =
-                    "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00&_=" + Date.now();
+                    "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Inter&outline_colour=000000&coffee_colour=FFDD00&_=" + Date.now();
             </script>
             <div class="flex flex-wrap justify-center items-center gap-2 pt-4 mt-4 border-t border-slate-100">
                 <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
@@ -527,6 +602,7 @@
     let globalLocations = [];
     let geaVapidPublicKey = null;
     let geaFormWasReady = false;
+    let locationActiveIndex = -1;
     /** True when GET /subscriptions reports Web Push is configured (VAPID); not the same as "user may check This device". */
     let geaWebPushServerEnabled = false;
 
@@ -631,6 +707,27 @@
     function announceProgress(message) {
         const announcer = document.getElementById("readiness-announcer");
         if (announcer && message) announcer.textContent = message;
+    }
+
+    function isCompactSetupLayout() {
+        return window.matchMedia("(max-width: 1023px)").matches;
+    }
+
+    function updateSetupStepCompact() {
+        const compact = isCompactSetupLayout();
+        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+        const steps = [
+            { el: document.getElementById("web-step-install"), done: isStandalonePWA() },
+            { el: document.getElementById("web-step-enable"), done: perm === "granted" },
+            { el: document.getElementById("ntfy-step-1"), done: isNtfyInstallDone() },
+            { el: document.getElementById("ntfy-step-2"), done: isNtfyCopied() && !isNtfySubscribed() },
+            { el: document.getElementById("ntfy-step-3"), done: isNtfySubscribed() },
+        ];
+        for (const { el, done } of steps) {
+            if (!el) continue;
+            el.classList.toggle("setup-step--compact-mode", compact);
+            el.classList.toggle("is-complete", compact && done);
+        }
     }
 
     function scrollToEl(el) {
@@ -741,6 +838,54 @@
         const list = document.getElementById("location-list");
         if (search) search.setAttribute("aria-expanded", expanded ? "true" : "false");
         if (list) list.classList.toggle("hidden", !expanded);
+        if (!expanded) {
+            locationActiveIndex = -1;
+            search?.removeAttribute("aria-activedescendant");
+        }
+    }
+
+    function selectLocationRow(row) {
+        if (!row) return;
+        const locList = document.getElementById("location-list");
+        document.getElementById("location").value = String(row.dataset.locationId);
+        document.getElementById("location-search").value = "";
+        locationActiveIndex = -1;
+        document.getElementById("location-search")?.removeAttribute("aria-activedescendant");
+        updateLocationSummary();
+        setLocationListExpanded(false);
+        if (locList) locList.innerHTML = "";
+    }
+
+    function highlightLocationOption(index) {
+        const list = document.getElementById("location-list");
+        const search = document.getElementById("location-search");
+        const options = list ? [...list.querySelectorAll(".location-row")] : [];
+        if (!options.length) {
+            locationActiveIndex = -1;
+            search?.removeAttribute("aria-activedescendant");
+            return;
+        }
+        locationActiveIndex = Math.max(0, Math.min(index, options.length - 1));
+        options.forEach((opt, i) => {
+            const on = i === locationActiveIndex;
+            opt.setAttribute("aria-selected", on ? "true" : "false");
+            opt.classList.toggle("bg-primary-50", on);
+        });
+        const active = options[locationActiveIndex];
+        if (active && search) {
+            search.setAttribute("aria-activedescendant", active.id);
+            active.scrollIntoView({ block: "nearest" });
+        }
+    }
+
+    function initNotificationNavigateListener() {
+        if (!("serviceWorker" in navigator)) return;
+        navigator.serviceWorker.addEventListener("message", (event) => {
+            if (event.data?.type !== "gea-notification-navigate") return;
+            const path = event.data.url;
+            if (typeof path !== "string" || !path.startsWith("/")) return;
+            window.location.assign(path);
+        });
     }
 
     function onSubmit(token) {
@@ -905,6 +1050,7 @@
         refreshChannelStatusPills();
         updateReadinessChecklist();
         updatePwaNtfyEscape();
+        updateSetupStepCompact();
     }
 
     function refreshChannelStatusPills() {
@@ -1159,6 +1305,7 @@
         }
         status?.classList.toggle("hidden", !subscribed);
         dot3?.classList.toggle("step-dot--done", subscribed);
+        updateSetupStepCompact();
     }
 
     function legacyCopyText(text) {
@@ -1331,6 +1478,9 @@
         const hidden = document.getElementById("location");
         if (!list || !search || !hidden) return;
 
+        locationActiveIndex = -1;
+        search.removeAttribute("aria-activedescendant");
+
         if (hidden.value) {
             setLocationListExpanded(false);
             list.innerHTML = "";
@@ -1358,7 +1508,7 @@
         let html = slice
             .map((loc) => {
                 const { primary, secondary } = getLocationDisplayLines(loc);
-                return `<button type="button" role="option" aria-selected="false" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
+                return `<button type="button" id="location-opt-${loc.id}" role="option" aria-selected="false" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
                 <div class="font-medium text-slate-800">${escapeHtml(primary)}</div>
                 ${secondary ? `<div class="text-xs text-slate-600 mt-0.5">${escapeHtml(secondary)}</div>` : ""}
             </button>`;
@@ -1552,7 +1702,10 @@
                 else if (j.error) msg = j.error;
             } catch { /* keep raw */ }
             if (res.ok && action === "subscribe") {
-                setFormStatus(`<span class="text-green-700 font-semibold">✓ You're subscribed!</span><br><span class="text-slate-600 font-normal">Check your phone — we just sent a test notification to confirm it's working.</span>`, "success-html");
+                setFormStatus(
+                    `<span class="text-green-700 font-semibold">✓ You're subscribed at ${escapeHtml(selectedLocation.name)}!</span><br><span class="text-slate-600 font-normal">Check your phone — we just sent a test notification to confirm it's working.</span>`,
+                    "success-html"
+                );
             } else {
                 setFormStatus(msg || "Done.", res.ok ? "success" : "error");
             }
@@ -1785,6 +1938,8 @@
         syncChannelVisibility();
         enforceChannelForContext();
         updateNotifyFieldsetHint();
+        updateSetupStepCompact();
+        window.addEventListener("resize", updateSetupStepCompact, { passive: true });
 
         // Handle ?subscriptions=unsubscribe deep-link (e.g. from email notification)
         const params = new URLSearchParams(window.location.search);
@@ -1794,6 +1949,7 @@
 
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("/sw.js").catch(() => {});
+            initNotificationNavigateListener();
         }
 
         const switchChannelBtn = document.getElementById("btn-switch-channel");
@@ -1862,15 +2018,7 @@
             locList.addEventListener("click", (e) => {
                 const row = e.target.closest(".location-row");
                 if (!row) return;
-                const selectedId = String(row.dataset.locationId);
-                document.getElementById("location").value = selectedId;
-                document.getElementById("location-search").value = "";
-                locList.querySelectorAll('[role="option"]').forEach((opt) => {
-                    opt.setAttribute("aria-selected", opt.dataset.locationId === selectedId ? "true" : "false");
-                });
-                updateLocationSummary();
-                setLocationListExpanded(false);
-                locList.innerHTML = "";
+                selectLocationRow(row);
             });
         }
         const locSum = document.getElementById("location-summary");
@@ -1901,6 +2049,30 @@
                     }
                 }
                 renderLocationList();
+            });
+            locSearch.addEventListener("keydown", (e) => {
+                const list = document.getElementById("location-list");
+                const options = list ? [...list.querySelectorAll(".location-row")] : [];
+                if (e.key === "ArrowDown") {
+                    if (!options.length) return;
+                    e.preventDefault();
+                    if (list?.classList.contains("hidden")) setLocationListExpanded(true);
+                    highlightLocationOption(locationActiveIndex + 1);
+                } else if (e.key === "ArrowUp") {
+                    if (!options.length) return;
+                    e.preventDefault();
+                    highlightLocationOption(locationActiveIndex <= 0 ? 0 : locationActiveIndex - 1);
+                } else if (e.key === "Enter") {
+                    if (locationActiveIndex >= 0 && options[locationActiveIndex]) {
+                        e.preventDefault();
+                        selectLocationRow(options[locationActiveIndex]);
+                    }
+                } else if (e.key === "Escape") {
+                    if (!list?.classList.contains("hidden")) {
+                        e.preventDefault();
+                        setLocationListExpanded(false);
+                    }
+                }
             });
         }
         setDefaultDate();

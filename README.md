@@ -75,7 +75,7 @@ Drop a legacy non-partial unique on `(location, ntfyTopic)` if present.
 
 Free to use. If this saved you a refresh war, a coffee or a [star](https://github.com/arun0009/global-entry-appointment/stargazers) is always welcome.
 
-[![Buy me a coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00?b)](https://www.buymeacoffee.com/arun0009)
+[![Buy me a coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Inter&outline_colour=000000&coffee_colour=FFDD00?b)](https://www.buymeacoffee.com/arun0009)
 
 ## License
 

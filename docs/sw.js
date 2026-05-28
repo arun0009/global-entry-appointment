@@ -1,5 +1,5 @@
 /* global self, caches, clients */
-const CACHE = "gea-shell-v6";
+const CACHE = "gea-shell-v12";
 const SHELL = ["/", "/index.html", "/styles.css", "/favicon.png", "/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -62,19 +62,31 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const raw = (event.notification.data && event.notification.data.url) || "/";
-  const target = new URL(raw, self.registration.scope).href;
-  event.waitUntil(
-    (async () => {
-      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      for (const c of all) {
-        if ("focus" in c) {
-          await c.focus();
-          return;
-        }
-      }
-      if (self.clients.openWindow) {
-        await self.clients.openWindow(target);
-      }
-    })()
-  );
+  event.waitUntil(openNotificationTarget(raw));
 });
+
+/** Focus an open window and navigate, or open a new one — works in browser tab and installed PWA. */
+async function openNotificationTarget(rawUrl) {
+  const urlToOpen = new URL(rawUrl, self.registration.scope);
+  const targetHref = urlToOpen.href;
+  const targetPath = urlToOpen.pathname + urlToOpen.search + urlToOpen.hash;
+  const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+
+  for (const client of allClients) {
+    try {
+      if (new URL(client.url).origin !== urlToOpen.origin) continue;
+      if ("focus" in client) await client.focus();
+      if ("navigate" in client) {
+        return client.navigate(targetHref);
+      }
+      client.postMessage({ type: "gea-notification-navigate", url: targetPath });
+      return;
+    } catch {
+      /* try next client */
+    }
+  }
+
+  if (self.clients.openWindow) {
+    return self.clients.openWindow(targetHref);
+  }
+}
