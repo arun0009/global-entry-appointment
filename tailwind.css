@@ -63,6 +63,7 @@ body {
     }
     .status-pill--ready    { @apply bg-green-50 text-green-700; }
     .status-pill--setup    { @apply bg-primary-50 text-primary-700; }
+    .status-pill--progress { @apply bg-amber-50 text-amber-800; }
     .status-pill--off      { @apply bg-slate-100 text-slate-500; }
 
     .setup-panel {
@@ -77,6 +78,28 @@ body {
     }
     .step-connector {
         @apply ml-3.5 h-4 w-px bg-slate-200;
+    }
+
+    .ntfy-topic-card {
+        @apply rounded-xl border border-slate-200 bg-white p-3 sm:p-4;
+    }
+    .ntfy-topic-display {
+        @apply flex items-stretch gap-2;
+    }
+    .ntfy-topic-value {
+        @apply flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-mono text-slate-900 break-all;
+    }
+    .ntfy-copy-btn {
+        @apply min-h-11;
+    }
+    .ntfy-confirm-highlight {
+        @apply ring-2 ring-primary-500 ring-offset-2;
+    }
+    .ntfy-steps {
+        @apply list-decimal list-inside space-y-1 text-xs text-slate-600 leading-relaxed;
+    }
+    .ntfy-steps strong {
+        @apply font-semibold text-slate-700;
     }
 
     .notif-preview-phone {

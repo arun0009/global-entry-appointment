@@ -191,7 +191,7 @@
             <!-- 3. Notification method -->
             <fieldset id="notify-fieldset" class="space-y-3 border-0 p-0 m-0 min-w-0">
                 <legend class="fieldset-legend">3. How should we notify you?</legend>
-                <p id="notify-fieldset-hint" class="text-xs text-slate-600 -mt-1 mb-2">We picked the fastest option for your device — switch below if you prefer another.</p>
+                <p id="notify-fieldset-hint" class="text-xs text-slate-600 -mt-1 mb-2">We picked the best option for your device — switch below if you prefer another.</p>
 
                 <input type="radio" name="notify-channel" id="channel-web" value="web" class="sr-only" checked />
                 <input type="radio" name="notify-channel" id="channel-ntfy" value="ntfy" class="sr-only" />
@@ -232,9 +232,10 @@
                     </button>
                 </p>
 
-                <!-- Web push: 2-step wizard (install → allow notifications) -->
-                <div id="web-push-setup" class="hidden setup-panel">
-                    <p id="pwa-installed-hint" class="hidden text-xs text-green-800 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mb-3">
+                <!-- Web push: install → allow notifications -->
+                <div id="web-push-setup" class="hidden setup-panel" role="group" aria-labelledby="web-push-setup-heading">
+                    <p id="web-push-setup-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Set up alerts</p>
+                    <p id="pwa-installed-hint" class="hidden text-xs text-green-800 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
                         ✓ You're in the installed app — just turn on notifications below.
                     </p>
                     <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"></p>
@@ -269,6 +270,7 @@
                             <p class="text-xs text-slate-500 mt-0.5">We only alert you when a slot opens — no spam.</p>
                             <div id="web-push-enable-row" class="hidden mt-3 space-y-2">
                                 <button type="button" id="btn-enable-push"
+                                        aria-label="Turn on push notifications for this device"
                                         class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
                                     Turn on notifications
                                 </button>
@@ -278,67 +280,99 @@
                                 Notifications are blocked. Enable them in your browser settings for this site, then try again.
                             </p>
                             <p id="enable-push-status" class="text-xs text-red-600 min-h-[1.25rem] mt-1" aria-live="polite"></p>
+                            <p id="pwa-ntfy-escape" class="hidden text-xs text-slate-600 mt-3 leading-relaxed">
+                                Having trouble with notifications?
+                                <a id="pwa-ntfy-escape-link" href="/" class="text-primary-600 hover:text-primary-800 underline underline-offset-2 font-medium">Open this page in Safari</a>
+                                to use the ntfy app instead.
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- ntfy setup -->
-                <div id="ntfy-setup" class="hidden setup-panel">
+                <!-- ntfy setup: manual subscribe (same flow on iOS & Android) -->
+                <div id="ntfy-setup" class="hidden setup-panel" role="group" aria-labelledby="ntfy-setup-heading">
+                    <p id="ntfy-setup-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Set up ntfy</p>
+
                     <div class="flex gap-3">
-                        <div class="step-dot">1</div>
+                        <div class="step-dot" id="ntfy-step-dot-1" aria-hidden="true">1</div>
                         <div class="flex-1">
-                            <p class="text-sm font-semibold text-slate-900">Install the ntfy app</p>
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors">
+                            <p class="text-sm font-semibold text-slate-900">Get the ntfy app</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Free — alerts arrive even when this browser is closed.</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <a id="ntfy-link-appstore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
                                     App Store
                                 </a>
-                                <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors">
+                                <a id="ntfy-link-playstore" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
                                     Google Play
                                 </a>
+                                <button type="button" id="btn-ntfy-have-app"
+                                        aria-label="Skip — I already have the ntfy app installed"
+                                        class="text-xs font-medium text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11 px-1">
+                                    Already installed
+                                </button>
                             </div>
+                            <p id="ntfy-step-1-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ ntfy app ready</p>
                         </div>
                     </div>
-                    <div class="step-connector"></div>
+                    <div class="step-connector" aria-hidden="true"></div>
                     <div class="flex gap-3">
-                        <div class="step-dot">2</div>
+                        <div class="step-dot" id="ntfy-step-dot-2" aria-hidden="true">2</div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900">Connect the app</p>
-                            <p id="ntfy-step-desc" class="text-xs text-slate-500 mt-0.5">Tap below to open your private channel on ntfy and subscribe.</p>
-                            <a id="btn-open-ntfy" href="https://ntfy.sh/" rel="noopener noreferrer"
-                               class="mt-3 flex w-full items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                                Open &amp; subscribe in ntfy
-                            </a>
-                            <p id="ntfy-open-hint" class="text-xs text-slate-600 mt-2 text-center leading-relaxed">
-                                Opens the ntfy app on your phone and subscribes you automatically.
-                            </p>
-                            <p class="text-xs text-slate-600 text-center leading-relaxed">
-                                Then return here and tap <strong class="text-slate-700">Start Receiving Alerts</strong>.
-                            </p>
-                            <input type="hidden" id="topic" name="topic" />
-                            <details class="mt-2 group">
-                                <summary class="text-xs text-slate-600 cursor-pointer hover:text-slate-800 list-none text-center min-h-11 flex items-center justify-center [&::-webkit-details-marker]:hidden">
-                                    <span class="underline underline-offset-2">Manual setup instead?</span>
-                                </summary>
-                                <div class="mt-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-                                    <label for="ntfy-topic-custom" class="text-xs text-slate-600">Private channel name — enter this in ntfy (tap <strong>+</strong>):</label>
-                                    <div class="flex items-stretch gap-2">
-                                        <input type="text" id="ntfy-topic-custom" autocomplete="off" spellcheck="false"
-                                               class="field-input flex-1 min-w-0 text-sm font-mono py-2.5" />
-                                        <button type="button" id="btn-copy-topic"
-                                                class="px-3 py-2.5 rounded-xl text-xs font-semibold text-primary-700 bg-white border border-primary-300 hover:bg-primary-50 transition-colors shrink-0 self-stretch">
-                                            Copy
-                                        </button>
-                                    </div>
-                                    <p id="ntfy-topic-error" class="hidden text-xs text-red-600">Use letters, numbers, underscores, and hyphens only.</p>
-                                    <button type="button" id="btn-regenerate-topic"
-                                            class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
-                                        Generate a new name
+                            <p class="text-sm font-semibold text-slate-900">Copy your private channel</p>
+                            <div class="ntfy-topic-card mt-3">
+                                <p class="text-xs font-medium text-slate-600" id="ntfy-topic-label">Your channel name</p>
+                                <div class="ntfy-topic-display mt-1.5">
+                                    <output id="ntfy-topic-display" for="topic" class="ntfy-topic-value" aria-live="polite" aria-labelledby="ntfy-topic-label"></output>
+                                    <button type="button" id="btn-copy-topic"
+                                            aria-label="Copy channel name to clipboard"
+                                            class="ntfy-copy-btn px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors shrink-0">
+                                        Copy
                                     </button>
                                 </div>
-                            </details>
+                                <ol id="ntfy-topic-steps" class="ntfy-steps mt-3" aria-label="How to subscribe in ntfy">
+                                    <li>Open <strong>ntfy</strong></li>
+                                    <li>Tap <strong>+</strong> → <strong>Subscribe to topic</strong></li>
+                                    <li>Paste your channel name → <strong>Subscribe</strong></li>
+                                </ol>
+                                <p id="ntfy-step-2-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Channel name copied</p>
+                                <details id="ntfy-customize-details" class="mt-3 group">
+                                    <summary class="text-xs text-slate-600 cursor-pointer hover:text-slate-800 list-none min-h-11 flex items-center [&::-webkit-details-marker]:hidden rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
+                                        <span class="underline underline-offset-2">Customize channel name</span>
+                                    </summary>
+                                    <div class="mt-2 space-y-2">
+                                        <label for="ntfy-topic-custom" class="text-xs text-slate-600">Custom name (letters, numbers, <strong>-</strong> and <strong>_</strong> only):</label>
+                                        <input type="text" id="ntfy-topic-custom" autocomplete="off" spellcheck="false" inputmode="verbatim"
+                                               class="field-input w-full text-sm font-mono py-2.5"
+                                               aria-describedby="ntfy-topic-steps ntfy-topic-error" />
+                                        <p id="ntfy-topic-error" class="hidden text-xs text-red-600" role="alert">Use letters, numbers, underscores, and hyphens only.</p>
+                                        <button type="button" id="btn-regenerate-topic"
+                                                class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
+                                            Generate a new name
+                                        </button>
+                                    </div>
+                                </details>
+                            </div>
+                            <input type="hidden" id="topic" name="topic" />
+                        </div>
+                    </div>
+                    <div class="step-connector" aria-hidden="true"></div>
+                    <div class="flex gap-3">
+                        <div class="step-dot" id="ntfy-step-dot-3" aria-hidden="true">3</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">Confirm you're subscribed</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Return here after subscribing in ntfy.</p>
+                            <button type="button" id="btn-ntfy-confirm" disabled
+                                    aria-label="Confirm you subscribed to this channel in the ntfy app"
+                                    aria-describedby="ntfy-confirm-hint"
+                                    class="mt-3 flex w-full items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary-600">
+                                I've subscribed in ntfy
+                            </button>
+                            <p id="ntfy-confirm-hint" class="text-xs text-slate-500 mt-2 text-center">Copy your channel name first.</p>
+                            <p id="ntfy-confirm-status" class="hidden text-xs font-medium text-green-700 mt-2 text-center" role="status" aria-live="polite">
+                                ✓ Subscribed — you can submit the form below.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -486,7 +520,9 @@
     const API_BASE = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws";
     const LS_WEB_PUSH = "gea_web_push_endpoint";
     const LS_NTFY_TOPIC = "gea_ntfy_topic";
-    const LS_NTFY_OPENED = "gea_ntfy_opened";
+    const LS_NTFY_INSTALL = "gea_ntfy_install";
+    const LS_NTFY_COPIED = "gea_ntfy_copied";
+    const LS_NTFY_CONFIRMED = "gea_ntfy_opened";
 
     let globalLocations = [];
     let geaVapidPublicKey = null;
@@ -514,6 +550,37 @@
         return !isStandalonePWA();
     }
 
+    function updateNotifyFieldsetHint() {
+        const hint = document.getElementById("notify-fieldset-hint");
+        if (!hint) return;
+        if (!shouldOfferNtfyChannel()) {
+            hint.textContent = "Turn on notifications below to receive alerts in this app.";
+        } else if (getActiveChannel() === "ntfy") {
+            hint.textContent = "Follow the steps below to connect the ntfy app — switch if you'd rather install GE Alerts instead.";
+        } else if (isIOS() && !isStandalonePWA()) {
+            hint.textContent = "Add to Home Screen for the fastest alerts — or switch to the ntfy app.";
+        } else {
+            hint.textContent = "We picked the best option for your device — switch below if you prefer another.";
+        }
+    }
+
+    function updatePwaNtfyEscape() {
+        const el = document.getElementById("pwa-ntfy-escape");
+        const link = document.getElementById("pwa-ntfy-escape-link");
+        if (!el || !isStandalonePWA() || getActiveChannel() !== "web") {
+            el?.classList.add("hidden");
+            return;
+        }
+        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+        const pushFailed = document.getElementById("enable-push-status")?.textContent?.trim();
+        const show = perm === "denied" || !!pushFailed;
+        el.classList.toggle("hidden", !show);
+        if (link) {
+            link.href = `${window.location.origin}${window.location.pathname}`;
+            link.textContent = isIOS() ? "Open this page in Safari" : "Open this page in your browser";
+        }
+    }
+
     function enforceChannelForContext() {
         const switchBtn = document.getElementById("btn-switch-channel");
         if (!shouldOfferNtfyChannel()) {
@@ -522,17 +589,6 @@
                 selectChannel("web");
             }
         }
-    }
-
-    function openExternalUrl(url) {
-        const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
     }
 
     function selectChannel(channel) {
@@ -548,6 +604,7 @@
         syncChannelVisibility();
         syncChannelUX();
         updateReadinessChecklist();
+        updateNotifyFieldsetHint();
     }
 
     function syncChannelVisibility() {
@@ -571,6 +628,17 @@
             : "Use install-as-app instead";
     }
 
+    function announceProgress(message) {
+        const announcer = document.getElementById("readiness-announcer");
+        if (announcer && message) announcer.textContent = message;
+    }
+
+    function scrollToEl(el) {
+        if (!el) return;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    }
+
     function setReadinessItem(id, state, text) {
         const el = document.getElementById(id);
         const textEl = document.getElementById(`${id}-text`);
@@ -591,11 +659,7 @@
     function isNotificationsReady() {
         const ch = getActiveChannel();
         if (ch === "ntfy") {
-            try {
-                return localStorage.getItem(LS_NTFY_OPENED) === "1";
-            } catch {
-                return false;
-            }
+            return isNtfySubscribed();
         }
         if (!geaWebPushServerEnabled) return false;
         if (isIOS() && !isStandalonePWA()) return false;
@@ -631,7 +695,11 @@
                 setReadinessItem("check-notify", "done",
                     ch === "ntfy" ? "ntfy connected" : "Notifications enabled");
             } else if (ch === "ntfy") {
-                setReadinessItem("check-notify", "action", isIOS() ? "Tap Open & subscribe in ntfy, then Subscribe on ntfy.sh" : "Tap Open & subscribe in ntfy");
+                if (!isNtfyCopied()) {
+                    setReadinessItem("check-notify", "action", "Copy your ntfy channel name");
+                } else {
+                    setReadinessItem("check-notify", "action", "Confirm you subscribed in ntfy");
+                }
             } else if (isIOS() && !isStandalonePWA()) {
                 setReadinessItem("check-notify", "action", "Add to Home Screen, then allow notifications");
             } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
@@ -644,7 +712,7 @@
                 const enableBtn = document.getElementById("btn-enable-push");
                 if (enableBtn && !enableBtn.dataset.hinted) {
                     enableBtn.dataset.hinted = "1";
-                    enableBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    scrollToEl(enableBtn);
                 }
             }
         }
@@ -824,6 +892,11 @@
             enableDone?.classList.add("hidden");
             enableBlocked?.classList.add("hidden");
             if (webStatus) {
+                webStatus.textContent = "In progress";
+                webStatus.className = "status-pill status-pill--progress absolute top-3 right-3";
+            }
+        } else if (webOn && serverOk && needsInstall && !installed) {
+            if (webStatus) {
                 webStatus.textContent = "Setup";
                 webStatus.className = "status-pill status-pill--setup absolute top-3 right-3";
             }
@@ -831,6 +904,7 @@
 
         refreshChannelStatusPills();
         updateReadinessChecklist();
+        updatePwaNtfyEscape();
     }
 
     function refreshChannelStatusPills() {
@@ -839,12 +913,14 @@
         const webStatus = document.getElementById("web-channel-status");
         if (ntfyStatus && ch === "ntfy") {
             ntfyStatus.classList.remove("hidden");
-            let ready = false;
-            try { ready = localStorage.getItem(LS_NTFY_OPENED) === "1"; } catch { /* ignore */ }
-            ntfyStatus.textContent = ready ? "Ready" : "Setup";
+            const ready = isNtfySubscribed();
+            const inProgress = !ready && isNtfyCopied();
+            ntfyStatus.textContent = ready ? "Ready" : inProgress ? "In progress" : "Setup";
             ntfyStatus.className = ready
                 ? "status-pill status-pill--ready absolute top-3 right-3"
-                : "status-pill status-pill--setup absolute top-3 right-3";
+                : inProgress
+                    ? "status-pill status-pill--progress absolute top-3 right-3"
+                    : "status-pill status-pill--setup absolute top-3 right-3";
         } else if (ntfyStatus) {
             ntfyStatus.classList.add("hidden");
         }
@@ -905,6 +981,8 @@
         refreshChannelStatusPills();
         maybeShowPwaBanner();
         updateWebPushStepState();
+        updateNotifyFieldsetHint();
+        updatePwaNtfyEscape();
         updateReadinessChecklist();
     }
 
@@ -967,65 +1045,190 @@
     }
 
     /** Persist a validated channel name and refresh all ntfy UI. */
-    function setNtfyTopic(topic) {
+    function setNtfyTopic(topic, { clearProgress = true } = {}) {
         const t = String(topic || "").trim();
         const errEl = document.getElementById("ntfy-topic-error");
+        const input = document.getElementById("ntfy-topic-custom");
         if (!t || !NTFY_TOPIC_PATTERN.test(t)) {
             if (errEl) errEl.classList.remove("hidden");
+            if (input) {
+                input.setAttribute("aria-invalid", "true");
+                input.setAttribute("aria-describedby", "ntfy-topic-steps ntfy-topic-error");
+            }
             return false;
         }
         if (errEl) errEl.classList.add("hidden");
+        if (input) {
+            input.removeAttribute("aria-invalid");
+            input.setAttribute("aria-describedby", "ntfy-topic-steps");
+        }
+        let prev = "";
+        try { prev = localStorage.getItem(LS_NTFY_TOPIC) || ""; } catch { /* ignore */ }
         try { localStorage.setItem(LS_NTFY_TOPIC, t); } catch { /* ignore */ }
+        if (clearProgress && prev && prev !== t) clearNtfyProgress({ keepInstall: true });
         syncNtfyTopicUI();
         return true;
     }
 
-    function isAndroidPhone() {
-        return /Android/i.test(navigator.userAgent || "") && !isIOS();
+    function isNtfyInstallDone() {
+        try { return localStorage.getItem(LS_NTFY_INSTALL) === "1"; } catch { return false; }
     }
 
-    /**
-     * Subscribe link for ntfy.
-     * ntfy:// deep links are Android-only (docs.ntfy.sh/subscribe/phone).
-     * iOS must use https://ntfy.sh/{topic} — Safari/PWA cannot open ntfy:// URLs.
-     */
-    function ntfySubscribeUrl(topic) {
-        const safe = String(topic || "").trim();
-        if (!safe) return "https://ntfy.sh/";
-        if (isAndroidPhone()) {
-            return `ntfy://ntfy.sh/${safe}?display=Global%20Entry%20Alerts`;
+    function isNtfyCopied() {
+        try { return localStorage.getItem(LS_NTFY_COPIED) === "1"; } catch { return false; }
+    }
+
+    function isNtfySubscribed() {
+        try { return localStorage.getItem(LS_NTFY_CONFIRMED) === "1"; } catch { return false; }
+    }
+
+    function markNtfyInstallDone() {
+        try { localStorage.setItem(LS_NTFY_INSTALL, "1"); } catch { /* ignore */ }
+        updateNtfyStepUI();
+        announceProgress("ntfy app ready. Copy your channel name next.");
+    }
+
+    function markNtfyCopied() {
+        try { localStorage.setItem(LS_NTFY_COPIED, "1"); } catch { /* ignore */ }
+        updateNtfyStepUI();
+        updateReadinessChecklist();
+        refreshChannelStatusPills();
+    }
+
+    function clearNtfyProgress({ keepInstall = false } = {}) {
+        try {
+            if (!keepInstall) localStorage.removeItem(LS_NTFY_INSTALL);
+            localStorage.removeItem(LS_NTFY_COPIED);
+            localStorage.removeItem(LS_NTFY_CONFIRMED);
+        } catch { /* ignore */ }
+        updateNtfyStepUI();
+        updateReadinessChecklist();
+        refreshChannelStatusPills();
+    }
+
+    function clearNtfySubscribed() {
+        try { localStorage.removeItem(LS_NTFY_CONFIRMED); } catch { /* ignore */ }
+        updateNtfyStepUI();
+        updateReadinessChecklist();
+        refreshChannelStatusPills();
+    }
+
+    function markNtfySubscribed() {
+        if (!isNtfyCopied()) return;
+        try { localStorage.setItem(LS_NTFY_CONFIRMED, "1"); } catch { /* ignore */ }
+        updateNtfyStepUI();
+        updateReadinessChecklist();
+        refreshChannelStatusPills();
+        announceProgress("ntfy connected. Finish location and date to subscribe.");
+    }
+
+    function updateNtfyStepUI() {
+        const subscribed = isNtfySubscribed();
+        const copied = isNtfyCopied();
+        const installed = isNtfyInstallDone();
+
+        document.getElementById("ntfy-step-dot-1")?.classList.toggle("step-dot--done", installed);
+        document.getElementById("ntfy-step-1-done")?.classList.toggle("hidden", !installed);
+
+        document.getElementById("ntfy-step-dot-2")?.classList.toggle("step-dot--done", copied);
+        document.getElementById("ntfy-step-2-done")?.classList.toggle("hidden", !copied);
+
+        const btn = document.getElementById("btn-ntfy-confirm");
+        const hint = document.getElementById("ntfy-confirm-hint");
+        const status = document.getElementById("ntfy-confirm-status");
+        const dot3 = document.getElementById("ntfy-step-dot-3");
+
+        if (btn) {
+            btn.textContent = subscribed ? "Subscribed in ntfy" : "I've subscribed in ntfy";
+            btn.disabled = subscribed || !copied;
+            btn.setAttribute("aria-disabled", subscribed || !copied ? "true" : "false");
+            btn.classList.toggle("bg-green-600", subscribed);
+            btn.classList.toggle("hover:bg-green-700", !subscribed && copied);
+            btn.classList.toggle("bg-primary-600", !subscribed);
+            btn.classList.toggle("hover:bg-primary-700", !subscribed && copied);
+            btn.classList.toggle("opacity-90", subscribed);
+            btn.classList.remove("ntfy-confirm-highlight");
         }
-        return `https://ntfy.sh/${safe}`;
+        if (hint) {
+            hint.textContent = subscribed
+                ? ""
+                : copied
+                    ? "Tap after you've subscribed in the ntfy app."
+                    : "Copy your channel name first.";
+            hint.classList.toggle("hidden", subscribed);
+        }
+        status?.classList.toggle("hidden", !subscribed);
+        dot3?.classList.toggle("step-dot--done", subscribed);
     }
 
-    /** Sync the hidden topic field and ntfy deep-link button to the device's channel. */
+    function legacyCopyText(text) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch { /* ignore */ }
+        ta.remove();
+        return ok;
+    }
+
+    function copyNtfyTopic() {
+        const text = getOrCreateNtfyTopic();
+        const copyBtn = document.getElementById("btn-copy-topic");
+        const finishCopy = () => {
+            if (copyBtn) {
+                copyBtn.textContent = "Copied!";
+                setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
+            }
+            markNtfyCopied();
+            announceProgress("Channel name copied. Subscribe in ntfy, then confirm below.");
+            const confirmBtn = document.getElementById("btn-ntfy-confirm");
+            if (confirmBtn && !isNtfySubscribed()) {
+                confirmBtn.classList.add("ntfy-confirm-highlight");
+                scrollToEl(confirmBtn);
+                setTimeout(() => confirmBtn.classList.remove("ntfy-confirm-highlight"), 2000);
+            }
+        };
+        const failCopy = () => {
+            const details = document.getElementById("ntfy-customize-details");
+            if (details) details.open = true;
+            const input = document.getElementById("ntfy-topic-custom");
+            input?.focus();
+            input?.select();
+            announceProgress("Could not copy automatically. Select the channel name and copy it manually.");
+        };
+
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(finishCopy).catch(() => {
+                if (legacyCopyText(text)) finishCopy();
+                else failCopy();
+            });
+            return;
+        }
+        if (legacyCopyText(text)) finishCopy();
+        else failCopy();
+    }
+
+    /** Sync topic display, store links, and step progress. */
     function syncNtfyTopicUI() {
         const topic = getOrCreateNtfyTopic();
         const topicHidden = document.getElementById("topic");
-        const openBtn = document.getElementById("btn-open-ntfy");
+        const display = document.getElementById("ntfy-topic-display");
         const input = document.getElementById("ntfy-topic-custom");
-        const hint = document.getElementById("ntfy-open-hint");
+        const appStore = document.getElementById("ntfy-link-appstore");
+        const playStore = document.getElementById("ntfy-link-playstore");
         if (topicHidden) topicHidden.value = topic;
-        if (openBtn) {
-            openBtn.href = ntfySubscribeUrl(topic);
-            openBtn.removeAttribute("target");
-        }
+        if (display) display.textContent = topic;
         if (input && document.activeElement !== input) input.value = topic;
-        const stepDesc = document.getElementById("ntfy-step-desc");
-        if (stepDesc) {
-            stepDesc.textContent = isAndroidPhone()
-                ? "One tap opens the ntfy app and subscribes you — no typing needed."
-                : "Tap below to open your channel on ntfy.sh and tap Subscribe.";
+        if (appStore && playStore) {
+            const ios = isIOS();
+            const android = /Android/i.test(navigator.userAgent || "") && !ios;
+            appStore.classList.toggle("hidden", android);
+            playStore.classList.toggle("hidden", ios);
         }
-        if (hint) {
-            if (isAndroidPhone()) {
-                hint.textContent = "Opens the ntfy app and subscribes you automatically.";
-            } else if (isIOS()) {
-                hint.textContent = "Opens your private channel on ntfy.sh — tap Subscribe, then return here.";
-            } else {
-                hint.textContent = "Opens ntfy.sh in a new tab — use the app on your phone for push alerts.";
-            }
-        }
+        updateNtfyStepUI();
     }
 
     function applyNtfyTopicFromInput() {
@@ -1040,7 +1243,9 @@
     }
 
     function regenerateNtfyTopic() {
-        setNtfyTopic(generateNtfyTopic());
+        if (setNtfyTopic(generateNtfyTopic())) {
+            announceProgress("New channel name generated. Copy it before subscribing in ntfy.");
+        }
     }
 
     async function enableWebPushFromGesture() {
@@ -1048,10 +1253,12 @@
         const setErr = (msg) => {
             st.textContent = msg;
             st.className = "text-xs text-red-600 min-h-[1.25rem] mt-1";
+            updatePwaNtfyEscape();
         };
         const setOk = (msg) => {
             st.textContent = msg;
             st.className = "text-xs text-green-700 min-h-[1.25rem] mt-1";
+            updatePwaNtfyEscape();
         };
         // iOS requires the PWA to be installed first — give a clear next-step message
         if (isIOS() && !isStandalonePWA()) {
@@ -1089,6 +1296,7 @@
                 return;
             }
             setOk(WEB_PUSH_COPY.deviceReady);
+            announceProgress("Notifications enabled. Finish location and date to subscribe.");
             updateWebPushStepState();
             updateReadinessChecklist();
         } catch (e) {
@@ -1466,12 +1674,6 @@
         } catch {}
     }
 
-    function markNtfyOpened() {
-        try { localStorage.setItem(LS_NTFY_OPENED, "1"); } catch { /* ignore */ }
-        updateReadinessChecklist();
-        refreshChannelStatusPills();
-    }
-
     function setFormStatus(message, type) {
         const status = document.getElementById("status");
         if (!status) return;
@@ -1582,6 +1784,7 @@
         }
         syncChannelVisibility();
         enforceChannelForContext();
+        updateNotifyFieldsetHint();
 
         // Handle ?subscriptions=unsubscribe deep-link (e.g. from email notification)
         const params = new URLSearchParams(window.location.search);
@@ -1602,20 +1805,16 @@
             });
         }
 
-        const openNtfyBtn = document.getElementById("btn-open-ntfy");
-        if (openNtfyBtn) {
-            openNtfyBtn.addEventListener("click", (e) => {
-                e.preventDefault();
-                const topic = getOrCreateNtfyTopic();
-                const url = ntfySubscribeUrl(topic);
-                if (isAndroidPhone()) {
-                    window.location.href = url;
-                } else {
-                    openExternalUrl(url);
-                }
-                markNtfyOpened();
+        const confirmNtfyBtn = document.getElementById("btn-ntfy-confirm");
+        if (confirmNtfyBtn) {
+            confirmNtfyBtn.addEventListener("click", () => {
+                if (!isNtfySubscribed() && isNtfyCopied()) markNtfySubscribed();
             });
         }
+
+        document.getElementById("btn-ntfy-have-app")?.addEventListener("click", markNtfyInstallDone);
+        document.getElementById("ntfy-link-appstore")?.addEventListener("click", markNtfyInstallDone);
+        document.getElementById("ntfy-link-playstore")?.addEventListener("click", markNtfyInstallDone);
 
         const dateInput = document.getElementById("date");
         if (dateInput) {
@@ -1637,21 +1836,8 @@
         const regenBtn = document.getElementById("btn-regenerate-topic");
         if (regenBtn) regenBtn.addEventListener("click", regenerateNtfyTopic);
 
-        // Copy channel name (manual setup)
-        const copyTopicBtn = document.getElementById("btn-copy-topic");
-        if (copyTopicBtn) {
-            copyTopicBtn.addEventListener("click", () => {
-                const text = document.getElementById("ntfy-topic-custom")?.value
-                    || document.getElementById("topic")?.value || "";
-                if (!text) return;
-                navigator.clipboard.writeText(text).then(() => {
-                    copyTopicBtn.textContent = "Copied!";
-                    setTimeout(() => { copyTopicBtn.textContent = "Copy"; }, 2000);
-                }).catch(() => {
-                    topicInput?.select();
-                });
-            });
-        }
+        // Copy channel name
+        document.getElementById("btn-copy-topic")?.addEventListener("click", copyNtfyTopic);
 
         // Unsubscribe toggle link
         const unsubToggle = document.getElementById("btn-toggle-unsub");
