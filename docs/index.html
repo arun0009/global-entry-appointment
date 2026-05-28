@@ -261,7 +261,6 @@
 
                 <div id="channel-web-wrap">
                     <label id="web-push-label-row" for="channel-web" class="channel-card channel-card--solo cursor-pointer">
-                        <span id="web-channel-status" class="status-pill status-pill--setup absolute top-3 right-3">Setup</span>
                         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -275,7 +274,6 @@
 
                 <div id="channel-ntfy-wrap" class="hidden">
                     <label id="ntfy-label-row" for="channel-ntfy" class="channel-card channel-card--solo cursor-pointer">
-                        <span id="ntfy-channel-status" class="status-pill status-pill--setup absolute top-3 right-3">Setup</span>
                         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
@@ -323,7 +321,6 @@
                                     Chrome <strong>⋮</strong> menu → <strong>Install app</strong>, or use the install prompt below.
                                 </p>
                                 </div>
-                                <p id="step-install-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Installed on this device</p>
                             </div>
                         </div>
                         <div id="step-connector" class="step-connector"></div>
@@ -350,7 +347,6 @@
                                 to use the ntfy app instead.
                             </p>
                             </div>
-                            <p id="step-enable-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Notifications enabled — you're ready to subscribe</p>
                             <p id="step-enable-blocked" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
                                 Notifications are blocked. Enable them in your browser settings for this site, then try again.
                             </p>
@@ -384,7 +380,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <p id="ntfy-step-1-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ ntfy app ready</p>
                         </div>
                     </div>
                     <div class="step-connector" aria-hidden="true"></div>
@@ -395,37 +390,29 @@
                             <div class="ntfy-topic-card mt-3">
                                 <p class="text-xs font-medium text-slate-600" id="ntfy-topic-label">Your channel name</p>
                                 <div class="ntfy-topic-display mt-1.5">
-                                    <output id="ntfy-topic-display" for="topic" class="ntfy-topic-value" aria-live="polite" aria-labelledby="ntfy-topic-label"></output>
+                                    <input type="text" id="ntfy-topic-input" autocomplete="off" spellcheck="false" inputmode="verbatim"
+                                           class="ntfy-topic-input field-input"
+                                           aria-labelledby="ntfy-topic-label"
+                                           aria-describedby="ntfy-topic-hint ntfy-topic-steps ntfy-topic-error" />
                                     <button type="button" id="btn-copy-topic"
                                             aria-label="Copy channel name to clipboard"
                                             class="ntfy-copy-btn px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors shrink-0">
                                         Copy
                                     </button>
                                 </div>
+                                <p id="ntfy-topic-hint" class="text-[11px] text-slate-500 mt-1">Tap to edit · letters, numbers, <strong>-</strong> and <strong>_</strong> only</p>
+                                <p id="ntfy-topic-error" class="hidden text-xs text-red-600 mt-1" role="alert">Use letters, numbers, underscores, and hyphens only.</p>
+                                <button type="button" id="btn-regenerate-topic"
+                                        class="mt-2 text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
+                                    Generate a new name
+                                </button>
                                 <div class="setup-step-collapsible">
                                 <ol id="ntfy-topic-steps" class="ntfy-steps mt-3" aria-label="How to subscribe in ntfy">
                                     <li>Open <strong>ntfy</strong></li>
                                     <li>Tap <strong>+</strong> → <strong>Subscribe to topic</strong></li>
                                     <li>Paste your channel name → <strong>Subscribe</strong></li>
                                 </ol>
-                                <details id="ntfy-customize-details" class="mt-3 group">
-                                    <summary class="text-xs text-slate-600 cursor-pointer hover:text-slate-800 list-none min-h-11 flex items-center [&::-webkit-details-marker]:hidden rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
-                                        <span class="underline underline-offset-2">Customize channel name</span>
-                                    </summary>
-                                    <div class="mt-2 space-y-2">
-                                        <label for="ntfy-topic-custom" class="text-xs text-slate-600">Custom name (letters, numbers, <strong>-</strong> and <strong>_</strong> only):</label>
-                                        <input type="text" id="ntfy-topic-custom" autocomplete="off" spellcheck="false" inputmode="verbatim"
-                                               class="field-input w-full text-sm font-mono py-2.5"
-                                               aria-describedby="ntfy-topic-steps ntfy-topic-error" />
-                                        <p id="ntfy-topic-error" class="hidden text-xs text-red-600" role="alert">Use letters, numbers, underscores, and hyphens only.</p>
-                                        <button type="button" id="btn-regenerate-topic"
-                                                class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
-                                            Generate a new name
-                                        </button>
-                                    </div>
-                                </details>
                                 </div>
-                                <p id="ntfy-step-2-done" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2">✓ Channel name copied</p>
                             </div>
                             <input type="hidden" id="topic" name="topic" />
                         </div>
@@ -445,9 +432,6 @@
                             </button>
                             <p id="ntfy-confirm-hint" class="text-xs text-slate-500 mt-2 text-center">Copy your channel name first.</p>
                             </div>
-                            <p id="ntfy-confirm-status" class="hidden setup-step-done text-xs font-medium text-green-700 mt-2 text-center" role="status" aria-live="polite">
-                                ✓ Subscribed — you can submit the form below.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -959,7 +943,6 @@
         const webCh = document.getElementById("channel-web");
         const webLabel = document.getElementById("web-push-label-row");
         const webBadge = document.getElementById("web-label-badge");
-        const webStatus = document.getElementById("web-channel-status");
 
         if (ui.hint) {
             hint.textContent = ui.hint;
@@ -973,10 +956,6 @@
             webCh.checked = false;
             if (webLabel) webLabel.classList.add("opacity-60");
             if (webBadge) webBadge.textContent = "Unavailable";
-            if (webStatus) {
-                webStatus.textContent = "Off";
-                webStatus.className = "status-pill status-pill--off absolute top-3 right-3";
-            }
             if (shouldOfferNtfyChannel()) {
                 selectChannel("ntfy");
             } else {
@@ -988,7 +967,7 @@
         }
     }
 
-    /** Reflect install + permission progress in the step wizard and channel status pills. */
+    /** Reflect install + permission progress in the setup steps. */
     async function updateWebPushStepState() {
         const installed = isStandalonePWA();
         const needsInstall = isIOS() && !installed;
@@ -996,20 +975,16 @@
 
         const installWrap = document.getElementById("step-install-wrap");
         const installMarker = document.getElementById("step-install-marker");
-        const installDone = document.getElementById("step-install-done");
         const enableMarker = document.getElementById("step-enable-marker");
         const enableRow = document.getElementById("web-push-enable-row");
-        const enableDone = document.getElementById("step-enable-done");
         const enableBlocked = document.getElementById("step-enable-blocked");
         const webCh = document.getElementById("channel-web");
-        const webStatus = document.getElementById("web-channel-status");
 
         if (installWrap) installWrap.classList.toggle("hidden", !needsInstall);
         if (enableMarker) enableMarker.textContent = needsInstall ? "2" : "1";
 
-        if (installed && installDone) {
-            installDone.classList.remove("hidden");
-            if (installMarker) installMarker.classList.add("step-dot--done");
+        if (installed && installMarker) {
+            installMarker.classList.add("step-dot--done");
         }
 
         const webOn = webCh?.checked && !webCh.disabled;
@@ -1017,63 +992,19 @@
 
         if (perm === "granted" && serverOk) {
             enableRow?.classList.add("hidden");
-            enableDone?.classList.remove("hidden");
             enableBlocked?.classList.add("hidden");
             if (enableMarker) enableMarker.classList.add("step-dot--done");
-            if (webStatus && webOn) {
-                webStatus.textContent = "Ready";
-                webStatus.className = "status-pill status-pill--ready absolute top-3 right-3";
-            }
         } else if (perm === "denied") {
             enableRow?.classList.add("hidden");
-            enableDone?.classList.add("hidden");
             enableBlocked?.classList.remove("hidden");
-            if (webStatus && webOn) {
-                webStatus.textContent = "Blocked";
-                webStatus.className = "status-pill status-pill--off absolute top-3 right-3";
-            }
         } else if (webOn && serverOk && (!isIOS() || installed)) {
             enableRow?.classList.remove("hidden");
-            enableDone?.classList.add("hidden");
             enableBlocked?.classList.add("hidden");
-            if (webStatus) {
-                webStatus.textContent = "In progress";
-                webStatus.className = "status-pill status-pill--progress absolute top-3 right-3";
-            }
-        } else if (webOn && serverOk && needsInstall && !installed) {
-            if (webStatus) {
-                webStatus.textContent = "Setup";
-                webStatus.className = "status-pill status-pill--setup absolute top-3 right-3";
-            }
         }
 
-        refreshChannelStatusPills();
         updateReadinessChecklist();
         updatePwaNtfyEscape();
         updateSetupStepCompact();
-    }
-
-    function refreshChannelStatusPills() {
-        const ch = getActiveChannel();
-        const ntfyStatus = document.getElementById("ntfy-channel-status");
-        const webStatus = document.getElementById("web-channel-status");
-        if (ntfyStatus && ch === "ntfy") {
-            ntfyStatus.classList.remove("hidden");
-            const ready = isNtfySubscribed();
-            const inProgress = !ready && isNtfyCopied();
-            ntfyStatus.textContent = ready ? "Ready" : inProgress ? "In progress" : "Setup";
-            ntfyStatus.className = ready
-                ? "status-pill status-pill--ready absolute top-3 right-3"
-                : inProgress
-                    ? "status-pill status-pill--progress absolute top-3 right-3"
-                    : "status-pill status-pill--setup absolute top-3 right-3";
-        } else if (ntfyStatus) {
-            ntfyStatus.classList.add("hidden");
-        }
-        if (webStatus && ch !== "web") {
-            webStatus.textContent = "Setup";
-            webStatus.className = "status-pill status-pill--setup absolute top-3 right-3";
-        }
     }
 
     async function loadApiMeta() {
@@ -1124,7 +1055,6 @@
             androidHint.classList.toggle("hidden", !(webOn && isAndroid && !isStandalonePWA()));
         }
 
-        refreshChannelStatusPills();
         maybeShowPwaBanner();
         updateWebPushStepState();
         updateNotifyFieldsetHint();
@@ -1194,19 +1124,19 @@
     function setNtfyTopic(topic, { clearProgress = true } = {}) {
         const t = String(topic || "").trim();
         const errEl = document.getElementById("ntfy-topic-error");
-        const input = document.getElementById("ntfy-topic-custom");
+        const input = document.getElementById("ntfy-topic-input");
         if (!t || !NTFY_TOPIC_PATTERN.test(t)) {
             if (errEl) errEl.classList.remove("hidden");
             if (input) {
                 input.setAttribute("aria-invalid", "true");
-                input.setAttribute("aria-describedby", "ntfy-topic-steps ntfy-topic-error");
+                input.setAttribute("aria-describedby", "ntfy-topic-hint ntfy-topic-steps ntfy-topic-error");
             }
             return false;
         }
         if (errEl) errEl.classList.add("hidden");
         if (input) {
             input.removeAttribute("aria-invalid");
-            input.setAttribute("aria-describedby", "ntfy-topic-steps");
+            input.setAttribute("aria-describedby", "ntfy-topic-hint ntfy-topic-steps");
         }
         let prev = "";
         try { prev = localStorage.getItem(LS_NTFY_TOPIC) || ""; } catch { /* ignore */ }
@@ -1238,7 +1168,6 @@
         try { localStorage.setItem(LS_NTFY_COPIED, "1"); } catch { /* ignore */ }
         updateNtfyStepUI();
         updateReadinessChecklist();
-        refreshChannelStatusPills();
     }
 
     function clearNtfyProgress({ keepInstall = false } = {}) {
@@ -1249,14 +1178,12 @@
         } catch { /* ignore */ }
         updateNtfyStepUI();
         updateReadinessChecklist();
-        refreshChannelStatusPills();
     }
 
     function clearNtfySubscribed() {
         try { localStorage.removeItem(LS_NTFY_CONFIRMED); } catch { /* ignore */ }
         updateNtfyStepUI();
         updateReadinessChecklist();
-        refreshChannelStatusPills();
     }
 
     function markNtfySubscribed() {
@@ -1264,7 +1191,6 @@
         try { localStorage.setItem(LS_NTFY_CONFIRMED, "1"); } catch { /* ignore */ }
         updateNtfyStepUI();
         updateReadinessChecklist();
-        refreshChannelStatusPills();
         announceProgress("ntfy connected. Finish location and date to subscribe.");
     }
 
@@ -1274,14 +1200,10 @@
         const installed = isNtfyInstallDone();
 
         document.getElementById("ntfy-step-dot-1")?.classList.toggle("step-dot--done", installed);
-        document.getElementById("ntfy-step-1-done")?.classList.toggle("hidden", !installed);
-
         document.getElementById("ntfy-step-dot-2")?.classList.toggle("step-dot--done", copied);
-        document.getElementById("ntfy-step-2-done")?.classList.toggle("hidden", !copied);
 
         const btn = document.getElementById("btn-ntfy-confirm");
         const hint = document.getElementById("ntfy-confirm-hint");
-        const status = document.getElementById("ntfy-confirm-status");
         const dot3 = document.getElementById("ntfy-step-dot-3");
 
         if (btn) {
@@ -1303,7 +1225,6 @@
                     : "Copy your channel name first.";
             hint.classList.toggle("hidden", subscribed);
         }
-        status?.classList.toggle("hidden", !subscribed);
         dot3?.classList.toggle("step-dot--done", subscribed);
         updateSetupStepCompact();
     }
@@ -1322,6 +1243,9 @@
     }
 
     function copyNtfyTopic() {
+        const input = document.getElementById("ntfy-topic-input");
+        const val = (input?.value || "").trim();
+        if (val && !setNtfyTopic(val)) return;
         const text = getOrCreateNtfyTopic();
         const copyBtn = document.getElementById("btn-copy-topic");
         const finishCopy = () => {
@@ -1339,9 +1263,7 @@
             }
         };
         const failCopy = () => {
-            const details = document.getElementById("ntfy-customize-details");
-            if (details) details.open = true;
-            const input = document.getElementById("ntfy-topic-custom");
+            const input = document.getElementById("ntfy-topic-input");
             input?.focus();
             input?.select();
             announceProgress("Could not copy automatically. Select the channel name and copy it manually.");
@@ -1362,12 +1284,10 @@
     function syncNtfyTopicUI() {
         const topic = getOrCreateNtfyTopic();
         const topicHidden = document.getElementById("topic");
-        const display = document.getElementById("ntfy-topic-display");
-        const input = document.getElementById("ntfy-topic-custom");
+        const input = document.getElementById("ntfy-topic-input");
         const appStore = document.getElementById("ntfy-link-appstore");
         const playStore = document.getElementById("ntfy-link-playstore");
         if (topicHidden) topicHidden.value = topic;
-        if (display) display.textContent = topic;
         if (input && document.activeElement !== input) input.value = topic;
         if (appStore && playStore) {
             const ios = isIOS();
@@ -1379,7 +1299,7 @@
     }
 
     function applyNtfyTopicFromInput() {
-        const input = document.getElementById("ntfy-topic-custom");
+        const input = document.getElementById("ntfy-topic-input");
         if (!input) return;
         const val = input.value.trim();
         if (!val) {
@@ -1979,9 +1899,13 @@
         }
 
         // Manual setup: editable channel name
-        const topicInput = document.getElementById("ntfy-topic-custom");
+        const topicInput = document.getElementById("ntfy-topic-input");
         if (topicInput) {
             topicInput.addEventListener("blur", applyNtfyTopicFromInput);
+            topicInput.addEventListener("input", () => {
+                document.getElementById("ntfy-topic-error")?.classList.add("hidden");
+                topicInput.removeAttribute("aria-invalid");
+            });
             topicInput.addEventListener("keydown", (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();

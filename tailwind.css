@@ -75,14 +75,6 @@ body {
         @apply ring-2 ring-primary-500 ring-offset-2;
     }
 
-    .status-pill {
-        @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
-    }
-    .status-pill--ready    { @apply bg-green-50 text-green-700; }
-    .status-pill--setup    { @apply bg-primary-50 text-primary-700; }
-    .status-pill--progress { @apply bg-amber-50 text-amber-800; }
-    .status-pill--off      { @apply bg-slate-100 text-slate-500; }
-
     .setup-panel {
         @apply rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 space-y-4;
     }
@@ -103,8 +95,8 @@ body {
     .ntfy-topic-display {
         @apply flex items-stretch gap-2;
     }
-    .ntfy-topic-value {
-        @apply flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-mono text-slate-900 break-all;
+    .ntfy-topic-input {
+        @apply flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-mono text-slate-900;
     }
     .ntfy-copy-btn {
         @apply min-h-11;
@@ -253,9 +245,6 @@ body {
     @media (max-width: 1023px) {
         .setup-step.setup-step--compact-mode.is-complete .setup-step-collapsible {
             display: none;
-        }
-        .setup-step.setup-step--compact-mode.is-complete .setup-step-done:not(.hidden) {
-            display: block;
         }
     }
 
