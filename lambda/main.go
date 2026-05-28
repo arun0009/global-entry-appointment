@@ -29,6 +29,19 @@ import (
 
 const primarySiteOrigin = "https://getglobalentryalerts.com"
 
+// cbpLocationsURL is the upstream CBP scheduler API for Global Entry enrollment centers.
+const cbpLocationsURL = "https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry"
+
+// locationsCache is a package-level in-memory cache for the CBP locations list.
+// Lambda execution environments are reused across invocations, so a warm instance
+// serves the cached list without hitting CBP on every request.
+var (
+	locationsCacheMu  sync.RWMutex
+	locationsCache    json.RawMessage
+	locationsCachedAt time.Time
+	locationsCacheTTL = 1 * time.Hour
+)
+
 // Browser Origin for GitHub project Pages is https://arun0009.github.io (path not included).
 var allowedCORSOrigins = map[string]bool{
 	primarySiteOrigin:                      true,
@@ -768,17 +781,13 @@ func (h *LambdaHandler) subscribeSendConfirmations(ctx context.Context, coll *mo
 func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
 	hasNtfy, hasWeb := req.channels()
 
-	latestDate := time.Now().UTC().AddDate(1, 0, 0) // Default to 1 year from now
-	if req.LatestDate != "" {
-		parsed, err := time.Parse("2006-01-02", req.LatestDate)
-		if err != nil {
-			return events.APIGatewayV2HTTPResponse{
-				StatusCode: 400,
-				Headers:    h.cors(),
-				Body:       `{"error": "invalid latestDate format"}`,
-			}, fmt.Errorf("failed to parse latestDate: %v", err)
-		}
-		latestDate = parsed
+	latestDate, err := time.Parse("2006-01-02", req.LatestDate)
+	if err != nil {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    h.cors(),
+			Body:       `{"error": "invalid latestDate format"}`,
+		}, fmt.Errorf("failed to parse latestDate: %v", err)
 	}
 
 	var dupOr []bson.M
@@ -791,7 +800,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 	dupFilter := bson.M{"location": req.Location, "$or": dupOr}
 
 	var existing Subscription
-	err := coll.FindOne(ctx, dupFilter).Decode(&existing)
+	err = coll.FindOne(ctx, dupFilter).Decode(&existing)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
@@ -983,6 +992,77 @@ func (h *LambdaHandler) handleSubscription(ctx context.Context, coll *mongo.Coll
 	}
 }
 
+// handleLocations proxies the CBP Global Entry enrollment centers list with an in-memory cache.
+// The list changes rarely (new/removed centers); 1-hour TTL is a reasonable balance between
+// freshness and avoiding hammering the upstream CBP API from browser clients.
+func (h *LambdaHandler) handleLocations(ctx context.Context) (events.APIGatewayV2HTTPResponse, error) {
+	locationsCacheMu.RLock()
+	if len(locationsCache) > 0 && time.Since(locationsCachedAt) < locationsCacheTTL {
+		cached := locationsCache
+		locationsCacheMu.RUnlock()
+		headers := h.cors()
+		headers["Cache-Control"] = "public, max-age=3600"
+		headers["Content-Type"] = "application/json"
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 200,
+			Headers:    headers,
+			Body:       string(cached),
+		}, nil
+	}
+	locationsCacheMu.RUnlock()
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, cbpLocationsURL, nil)
+	if err != nil {
+		slog.Error("Failed to create CBP locations request", "error", err)
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 502,
+			Headers:    h.cors(),
+			Body:       `{"error": "could not build upstream request"}`,
+		}, nil
+	}
+	resp, err := h.HTTPClient.Do(req)
+	if err != nil {
+		slog.Error("Failed to fetch CBP locations", "error", err)
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 502,
+			Headers:    h.cors(),
+			Body:       `{"error": "could not reach enrollment center list"}`,
+		}, nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		slog.Error("CBP locations returned non-200", "status", resp.StatusCode)
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 502,
+			Headers:    h.cors(),
+			Body:       fmt.Sprintf(`{"error": "upstream returned %d"}`, resp.StatusCode),
+		}, nil
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 502,
+			Headers:    h.cors(),
+			Body:       `{"error": "could not read upstream response"}`,
+		}, nil
+	}
+
+	locationsCacheMu.Lock()
+	locationsCache = json.RawMessage(body)
+	locationsCachedAt = time.Now()
+	locationsCacheMu.Unlock()
+
+	slog.Info("Refreshed locations cache", "bytes", len(body))
+	headers := h.cors()
+	headers["Cache-Control"] = "public, max-age=3600"
+	headers["Content-Type"] = "application/json"
+	return events.APIGatewayV2HTTPResponse{
+		StatusCode: 200,
+		Headers:    headers,
+		Body:       string(body),
+	}, nil
+}
+
 // HandleRequest handles Scheduled Events and API requests
 func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage) (events.APIGatewayV2HTTPResponse, error) {
 	// Lambda runs one request per execution environment at a time, so a fresh
@@ -1044,17 +1124,13 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			cooldownThreshold := time.Now().UTC().Add(-h.Config.NotificationCooldownTime)
 			slog.Debug("Cooldown threshold", "threshold", cooldownThreshold)
 			pipeline := mongo.Pipeline{
-				bson.D{{
-					"$match", bson.M{
-						"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
-						"latestDate":     bson.M{"$gt": time.Now().UTC()},
-					},
-				}},
-				bson.D{{
-					"$sort", bson.M{
-						"lastNotifiedAt": 1,
-					},
-				}},
+				{{Key: "$match", Value: bson.M{
+					"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
+					"latestDate":     bson.M{"$gt": time.Now().UTC()},
+				}}},
+				{{Key: "$sort", Value: bson.M{
+					"lastNotifiedAt": 1,
+				}}},
 			}
 			cursor, err := coll.Aggregate(ctx, pipeline)
 			if err != nil {
@@ -1079,15 +1155,6 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 			globalNotifiedCount := 0
 			if len(subscriptions) > 0 {
-				if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
-					slog.Error("Terminating due to maximum ntfy failures")
-					return events.APIGatewayV2HTTPResponse{
-						StatusCode: 500,
-						Headers:    h.cors(),
-						Body:       `{"error": "maximum notification failures reached"}`,
-					}, ErrMaxNtfyFailures
-				}
-
 				var err error
 				globalNotifiedCount, err = h.checkAvailabilityAndNotify(ctx, subscriptions, globalNotifiedCount)
 				if err != nil {
@@ -1157,7 +1224,12 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 		}
 		body, _ := eventMap["body"].(string)
 
-		// GET / or GET /subscriptions: API info and optional Web Push public key
+		// GET /locations: cached CBP enrollment center list
+		if method == "GET" && rawPath == "/locations" {
+			return h.handleLocations(ctx)
+		}
+
+		// GET / or GET /subscriptions: API info, Web Push config, and subscriber count
 		if method == "GET" && (rawPath == "/" || rawPath == "/subscriptions") {
 			info := map[string]interface{}{
 				"message":        "Global Entry appointment notification API",
@@ -1166,6 +1238,10 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			}
 			if rawPath == "/subscriptions" {
 				info["message"] = "Global Entry appointment notifications. Use POST /subscriptions with action, location, ntfyTopic and/or webPush, etc."
+				// Include active subscriber count for social proof on the frontend
+				if count, err := coll.CountDocuments(ctx, bson.M{}); err == nil {
+					info["subscriberCount"] = count
+				}
 			}
 			if h.webPushConfigured() {
 				info["vapidPublicKey"] = h.Config.VAPIDPublicKey
@@ -1213,7 +1289,6 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					Body:       `{"error": "internal server error"}`,
 				}, fmt.Errorf("failed to handle subscription: %v", err)
 			}
-			resp.Headers = h.cors()
 			slog.Debug("Returning response", "statusCode", resp.StatusCode, "body", resp.Body)
 			return resp, nil
 		}
@@ -1234,7 +1309,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cpbURL := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
+	cbpURL := "https://ttp.cbp.dhs.gov/schedulerapi/slots?orderBy=soonest&limit=1&locationId=%s&minimum=1"
 	dbURL := "mongodb+srv://arun0009:%s@global-entry-appointmen.fcwlj2v.mongodb.net/?retryWrites=true&w=majority&appName=global-entry-appointment-cluster"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().
@@ -1258,6 +1333,6 @@ func main() {
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	handler := NewLambdaHandler(config, cpbURL, client)
+	handler := NewLambdaHandler(config, cbpURL, client)
 	lambda.Start(handler.HandleRequest)
 }

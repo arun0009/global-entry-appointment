@@ -4,26 +4,27 @@
     <meta charset="UTF-8" />
     <title>Global Entry Appointment Alerts — Free Notifications</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Free Global Entry appointment alerts via ntfy and/or browser push. Optional install as app." />
-    <meta name="keywords" content="Global Entry Appointment Alerts via ntfy notifications" />
+    <meta name="description" content="Free Global Entry appointment alerts on your phone or browser — no account, no signup, instant notifications." />
+    <meta name="keywords" content="Global Entry Appointment Alerts, free notifications, phone push alerts" />
     <meta name="robots" content="index, follow" />
 
     <meta property="og:title" content="Global Entry Appointment Alerts" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Get Global Entry Alerts" />
-    <meta property="og:description" content="Free Global Entry slot alerts — ntfy or this device. Install as app optional." />
+    <meta property="og:description" content="Free Global Entry slot alerts on your phone or browser — instant, no account needed." />
     <meta property="og:url" content="https://getglobalentryalerts.com/" />
     <meta property="og:image" content="https://getglobalentryalerts.com/preview.png" />
 
     <meta name="twitter:title" content="Global Entry Appointment Alerts">
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Free Global Entry slot alerts via ntfy or browser push. Optional PWA install." />
+    <meta name="twitter:description" content="Free Global Entry slot alerts on your phone or browser — instant, no account needed." />
     <meta name="twitter:url" content="https://getglobalentryalerts.com/" />
     <meta name="twitter:image" content="https://getglobalentryalerts.com/preview.png" />
     <meta name="twitter:image:alt" content="Get free Global Entry appointment alerts on your phone." />
 
     <meta name="theme-color" content="#4F7FFF" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="GE Alerts" />
@@ -34,6 +35,8 @@
     <link rel="stylesheet" href="styles.css">
 
     <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
 
     <script src="https://www.google.com/recaptcha/api.js?render=6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"></script>
 
@@ -52,7 +55,7 @@
             "@context": "https://schema.org",
             "@type": "WebApplication",
             "name": "Global Entry Appointment Alerts",
-            "description": "Free Global Entry appointment alerts via ntfy and/or browser push; installable as a web app.",
+            "description": "Free Global Entry appointment alerts on your phone or browser — instant, no account needed.",
             "url": "https://getglobalentryalerts.com/",
             "applicationCategory": "Travel",
             "operatingSystem": "iOS, Android",
@@ -64,284 +67,582 @@
         }
     </script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 text-slate-800 min-h-screen font-inter">
+<body class="bg-slate-50 text-slate-800 min-h-screen font-inter antialiased">
+<a href="#main-content" class="skip-link">Skip to setup form</a>
 <noscript>
     <div class="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm text-center py-3 px-4">
         This site needs JavaScript to load enrollment centers and submit alerts. Please enable it in your browser.
     </div>
 </noscript>
-<div class="min-h-screen py-8 px-4">
-    <div class="max-w-4xl mx-auto space-y-8">
-        <!-- Hero Section -->
-        <div class="text-center space-y-6">
-            <div class="relative overflow-hidden rounded-2xl shadow-2xl">
-                <img src="global-entry-banner.png"
-                     alt="Global Entry Appointment Service"
-                     class="w-full h-64 object-cover">
-                <div class="absolute inset-0 bg-gradient-to-r from-primary-600/80 to-primary-500/60 flex items-center justify-center">
-                    <div class="text-center space-y-4 z-10">
-                        <div class="animate-float">
-                            <svg class="w-16 h-16 text-white mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+
+<!-- PWA install sheet (contextual — shown when user picks "Install as app") -->
+<div id="pwa-backdrop" class="pwa-backdrop hidden" aria-hidden="true"></div>
+<div id="pwa-install-banner" class="pwa-sheet hidden animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="pwa-sheet-title" tabindex="-1">
+    <div class="flex items-start gap-3">
+        <img src="icon-192.png" alt="Global Entry Alerts app icon" class="w-12 h-12 rounded-2xl shadow-md shrink-0" width="48" height="48" />
+        <div class="flex-1 min-w-0 space-y-1">
+            <p id="pwa-sheet-title" class="font-semibold text-slate-900">Install Global Entry Alerts</p>
+            <p id="pwa-instructions-text" class="text-xs text-slate-500 leading-relaxed">Get instant slot alerts like a native app — lives on your Home Screen.</p>
+        </div>
+        <button type="button" id="btn-pwa-dismiss-x" class="btn-icon-dismiss shrink-0 -mr-1 -mt-1" aria-label="Dismiss install instructions">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div id="pwa-ios-steps" class="hidden mt-4 space-y-2">
+        <div class="ios-share-hint">
+            <svg class="w-5 h-5 text-primary-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span>Tap <strong>Share</strong> in Safari</span>
+        </div>
+        <div class="ios-share-hint">
+            <svg class="w-5 h-5 text-primary-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            <span>Select <strong>Add to Home Screen</strong></span>
+        </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+        <button type="button" id="pwa-action-btn" class="flex-1 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">Install app</button>
+        <button type="button" id="btn-pwa-dismiss" class="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">Not now</button>
+    </div>
+</div>
+
+<div class="min-h-screen py-4 sm:py-10 px-4">
+<div class="max-w-4xl mx-auto space-y-5 sm:space-y-8">
+
+    <!-- Hero banner — compact on mobile so the form is above the fold -->
+    <header class="space-y-3 sm:space-y-5 hero-compact-mobile">
+        <div class="hero-banner">
+            <img src="global-entry-banner.png" alt="" class="w-full h-24 sm:h-52 object-cover" width="1200" height="400" fetchpriority="high" />
+            <div class="absolute inset-0 bg-gradient-to-r from-primary-600/85 via-primary-600/70 to-primary-500/55 flex items-center justify-center px-4 sm:px-6">
+                <div class="text-center space-y-0.5 sm:space-y-2 max-w-xl">
+                    <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
+                        Global Entry Alerts
+                    </h1>
+                    <p class="text-sm sm:text-lg text-white/90 leading-snug sm:leading-relaxed hidden sm:block">
+                        Get notified in ~30 seconds — no account needed
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <p class="sm:hidden text-center text-xs text-slate-600 font-medium">Free · No signup · ~30 sec setup</p>
+
+        <div class="hidden sm:flex flex-wrap justify-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                100% free
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                No signup
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-medium shadow-sm">
+                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                ~30 sec setup
+            </span>
+            <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium shadow-sm hover:border-primary-300 hover:text-primary-700 transition-colors">
+                Open source
+            </a>
+        </div>
+        <p id="social-proof" class="hidden text-center text-xs text-primary-600 font-medium" aria-live="polite"></p>
+    </header>
+
+    <main id="main-content" class="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+
+    <!-- Form -->
+    <div class="lg:col-span-2">
+    <div id="setup-instructions" class="bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
+        <div class="px-6 sm:px-8 pt-5 sm:pt-6 pb-2 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900">Set up your alerts</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Three quick steps — most people finish in under 30 seconds.</p>
+        </div>
+        <form id="alert-form" class="p-6 sm:p-8 space-y-6">
+
+            <!-- 1. Location -->
+            <div class="space-y-2">
+                <label for="location-search" class="block text-sm font-semibold text-slate-800">1. Enrollment center</label>
+                <input type="hidden" id="location" name="location" value="" />
+                <div class="relative">
+                    <svg class="w-5 h-5 text-slate-500 absolute left-3 top-3.5 pointer-events-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <input type="search" id="location-search" autocomplete="off" disabled placeholder="Loading locations…"
+                           class="field-input pl-10" role="combobox" aria-expanded="false" aria-controls="location-list"
+                           aria-autocomplete="list" aria-haspopup="listbox" aria-describedby="location-hint" />
+                </div>
+                <p id="location-hint" class="text-xs text-slate-600">Search by city, airport code, or ZIP — e.g. SFO, Miami, 10001.</p>
+                <p id="location-summary" class="hidden rounded-xl border border-primary-200 bg-primary-50 px-3 py-2.5 text-sm" role="status"></p>
+                <div id="location-list" class="hidden max-h-48 overflow-y-auto overscroll-y-contain rounded-xl border border-slate-200 bg-white divide-y divide-slate-100" role="listbox" aria-label="Enrollment centers"></div>
+            </div>
+
+            <!-- 2. Date -->
+            <div id="date-field" class="space-y-2">
+                <label for="date" class="block text-sm font-semibold text-slate-800">2. Latest acceptable date</label>
+                <input type="date" id="date" name="date" required class="field-input" aria-describedby="date-hint" />
+                <p id="date-hint" class="text-xs text-slate-600">We'll alert you about slots on or before this date. Pre-filled one year out — change if you need sooner.</p>
+            </div>
+
+            <!-- Unsubscribe banner -->
+            <div id="unsub-banner" class="hidden items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                <span class="text-sm font-medium text-amber-800">Stopping alerts — confirm your center and notification method below.</span>
+                <button type="button" id="btn-back-subscribe" class="text-xs font-semibold text-primary-600 hover:text-primary-800 whitespace-nowrap shrink-0">← Back</button>
+            </div>
+
+            <!-- 3. Notification method -->
+            <fieldset id="notify-fieldset" class="space-y-3 border-0 p-0 m-0 min-w-0">
+                <legend class="fieldset-legend">3. How should we notify you?</legend>
+                <p id="notify-fieldset-hint" class="text-xs text-slate-600 -mt-1 mb-2">We picked the fastest option for your device — switch below if you prefer another.</p>
+
+                <input type="radio" name="notify-channel" id="channel-web" value="web" class="sr-only" checked />
+                <input type="radio" name="notify-channel" id="channel-ntfy" value="ntfy" class="sr-only" />
+
+                <div id="channel-web-wrap">
+                    <label id="web-push-label-row" for="channel-web" class="channel-card channel-card--solo cursor-pointer">
+                        <span id="web-channel-status" class="status-pill status-pill--setup absolute top-3 right-3">Setup</span>
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                        </span>
+                        <span id="web-label-text" class="font-semibold text-sm text-slate-900">Install as app</span>
+                        <span id="web-label-subtext" class="text-xs text-slate-500 leading-relaxed">Add to Home Screen for push alerts on this device.</span>
+                        <span id="web-label-badge" class="text-xs font-medium text-primary-600">Recommended on this device</span>
+                    </label>
+                </div>
+
+                <div id="channel-ntfy-wrap" class="hidden">
+                    <label id="ntfy-label-row" for="channel-ntfy" class="channel-card channel-card--solo cursor-pointer">
+                        <span id="ntfy-channel-status" class="status-pill status-pill--setup absolute top-3 right-3">Setup</span>
+                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
                             </svg>
+                        </span>
+                        <span id="ntfy-label-text" class="font-semibold text-sm text-slate-900">ntfy app</span>
+                        <span id="ntfy-label-subtext" class="text-xs text-slate-500 leading-relaxed">Free app — reliable alerts when your browser is closed.</span>
+                        <span id="ntfy-label-badge" class="text-xs font-medium text-primary-600">Recommended on this device</span>
+                    </label>
+                </div>
+
+                <p class="text-center pt-1">
+                    <button type="button" id="btn-switch-channel"
+                            class="text-xs font-medium text-primary-600 hover:text-primary-800 underline underline-offset-2 transition-colors min-h-11 px-3">
+                        Use ntfy app instead
+                    </button>
+                </p>
+
+                <!-- Web push: 2-step wizard (install → allow notifications) -->
+                <div id="web-push-setup" class="hidden setup-panel">
+                    <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"></p>
+
+                    <div id="step-install-wrap">
+                        <div class="flex gap-3">
+                            <div id="step-install-marker" class="step-dot">1</div>
+                            <div class="flex-1 min-w-0 pb-1">
+                                <p class="text-sm font-semibold text-slate-900">Add to Home Screen</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Required on iPhone for background alerts.</p>
+                                <div id="ios-pwa-hint" class="hidden mt-3 space-y-2">
+                                    <div class="ios-share-hint"><span>1. Open this page in <strong>Safari</strong></span></div>
+                                    <div class="ios-share-hint">
+                                        <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        <span>2. Tap <strong>Share</strong> → <strong>Add to Home Screen</strong></span>
+                                    </div>
+                                    <div class="ios-share-hint"><span>3. Open the app from your Home Screen</span></div>
+                                </div>
+                                <p id="android-pwa-hint" class="hidden text-xs text-slate-500 mt-2">
+                                    Chrome <strong>⋮</strong> menu → <strong>Install app</strong>, or use the install prompt below.
+                                </p>
+                                <p id="step-install-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Installed on this device</p>
+                            </div>
                         </div>
-                        <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                            Global Entry Alerts
-                        </h1>
-                        <p class="text-xl text-white/90 max-w-2xl">
-                            Free, real-time alerts the moment a slot opens up
-                        </p>
+                        <div id="step-connector" class="step-connector"></div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <div id="step-enable-marker" class="step-dot">2</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">Allow notifications</p>
+                            <p class="text-xs text-slate-500 mt-0.5">We only alert you when a slot opens — no spam.</p>
+                            <div id="web-push-enable-row" class="hidden mt-3 space-y-2">
+                                <button type="button" id="btn-enable-push"
+                                        class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
+                                    Turn on notifications
+                                </button>
+                            </div>
+                            <p id="step-enable-done" class="hidden text-xs font-medium text-green-700 mt-2">✓ Notifications enabled — you're ready to subscribe</p>
+                            <p id="step-enable-blocked" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                                Notifications are blocked. Enable them in your browser settings for this site, then try again.
+                            </p>
+                            <p id="enable-push-status" class="text-xs text-red-600 min-h-[1.25rem] mt-1" aria-live="polite"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ntfy setup -->
+                <div id="ntfy-setup" class="hidden setup-panel">
+                    <div class="flex gap-3">
+                        <div class="step-dot">1</div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-slate-900">Install the ntfy app</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors">
+                                    App Store
+                                </a>
+                                <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors">
+                                    Google Play
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="flex gap-3">
+                        <div class="step-dot">2</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-900">Connect the app</p>
+                            <p class="text-xs text-slate-500 mt-0.5">One tap opens ntfy and subscribes you to your private alert channel — no typing needed.</p>
+                            <a id="btn-open-ntfy" href="https://ntfy.sh/" rel="noopener noreferrer"
+                               class="mt-3 flex w-full items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                                Open &amp; subscribe in ntfy
+                            </a>
+                            <p id="ntfy-open-hint" class="text-xs text-slate-600 mt-2 text-center leading-relaxed">
+                                Opens the ntfy app on your phone and subscribes you automatically.
+                            </p>
+                            <p class="text-xs text-slate-600 text-center leading-relaxed">
+                                Then return here and tap <strong class="text-slate-700">Start Receiving Alerts</strong>.
+                            </p>
+                            <input type="hidden" id="topic" name="topic" />
+                            <details class="mt-2 group">
+                                <summary class="text-xs text-slate-600 cursor-pointer hover:text-slate-800 list-none text-center min-h-11 flex items-center justify-center [&::-webkit-details-marker]:hidden">
+                                    <span class="underline underline-offset-2">Manual setup instead?</span>
+                                </summary>
+                                <div class="mt-2 rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                                    <label for="ntfy-topic-custom" class="text-xs text-slate-600">Private channel name — enter this in ntfy (tap <strong>+</strong>):</label>
+                                    <div class="flex items-stretch gap-2">
+                                        <input type="text" id="ntfy-topic-custom" autocomplete="off" spellcheck="false"
+                                               class="field-input flex-1 min-w-0 text-sm font-mono py-2.5" />
+                                        <button type="button" id="btn-copy-topic"
+                                                class="px-3 py-2.5 rounded-xl text-xs font-semibold text-primary-700 bg-white border border-primary-300 hover:bg-primary-50 transition-colors shrink-0 self-stretch">
+                                            Copy
+                                        </button>
+                                    </div>
+                                    <p id="ntfy-topic-error" class="hidden text-xs text-red-600">Use letters, numbers, underscores, and hyphens only.</p>
+                                    <button type="button" id="btn-regenerate-topic"
+                                            class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
+                                        Generate a new name
+                                    </button>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+
+            <input type="hidden" id="action-field" name="action" value="subscribe" />
+            <input type="hidden" id="recaptcha_token" name="recaptcha_token" />
+
+            <div id="readiness-wrap" class="space-y-2">
+                <p id="readiness-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Ready to subscribe?</p>
+                <ul id="readiness-checklist" class="readiness-list" aria-labelledby="readiness-heading">
+                    <li id="check-location" class="readiness-item readiness-item--pending">
+                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">1</span>
+                        <span id="check-location-text">Pick your enrollment center</span>
+                    </li>
+                    <li id="check-date" class="readiness-item readiness-item--pending">
+                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">2</span>
+                        <span id="check-date-text">Choose your latest acceptable date</span>
+                    </li>
+                    <li id="check-notify" class="readiness-item readiness-item--pending">
+                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">3</span>
+                        <span id="check-notify-text">Turn on notifications</span>
+                    </li>
+                </ul>
+                <p id="readiness-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+            </div>
+
+            <div class="pt-2 space-y-3 border-t border-slate-100">
+                <button type="submit" id="submit-btn" disabled
+                        aria-describedby="readiness-checklist notify-fieldset-hint"
+                        class="w-full py-4 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:saturate-75 g-recaptcha"
+                        data-sitekey="6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"
+                        data-callback="onSubmit"
+                        data-action="submit">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                    Start Receiving Alerts
+                </button>
+                <p id="status" class="text-center font-medium text-sm" role="status" aria-live="polite"></p>
+                <p class="text-center text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    No account required. We use reCAPTCHA to block spam — not to collect personal info.
+                    <a href="https://github.com/arun0009/global-entry-appointment" class="text-primary-600 hover:text-primary-800 underline underline-offset-2">Open source &amp; privacy</a>
+                </p>
+                <p class="text-center">
+                    <button type="button" id="btn-toggle-unsub"
+                            class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 transition-colors min-h-11 px-3">
+                        Already subscribed? Stop alerts
+                    </button>
+                </p>
+            </div>
+        </form>
+    </div>
+    </div><!-- /form column -->
+
+    <!-- Sidebar -->
+    <aside class="space-y-5 lg:sticky lg:top-6" aria-label="Help, preview, and support">
+
+        <!-- Alert preview (desktop) -->
+        <div class="sidebar-panel hidden lg:block">
+            <h3 class="text-sm font-bold text-slate-900 mb-3">What you'll receive</h3>
+            <div class="notif-preview-phone !max-w-none" role="img" aria-label="Example alert: SFO interview slot open June 12 at 2:30 PM">
+                <div class="notif-preview-screen !rounded-xl">
+                    <div class="notif-preview-card">
+                        <div class="flex items-start gap-2.5">
+                            <img src="favicon.png" alt="" class="w-9 h-9 rounded-lg shrink-0" width="36" height="36" />
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-semibold text-slate-900">Global Entry Alerts</p>
+                                    <p class="text-[10px] text-slate-500 shrink-0">now</p>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">SFO — interview slot open Jun 12 at 2:30 PM</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            <p class="text-xs text-slate-500 mt-3 leading-relaxed">Instant push when a cancellation opens at your center — no need to refresh the CBP site.</p>
+        </div>
 
-            <div class="flex flex-wrap justify-center gap-2 text-xs font-semibold">
-                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">100% Free</span>
-                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No signup</span>
-                <span class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm">No personal data</span>
-                <span class="px-3 py-1 rounded-full bg-primary-50 border border-primary-200 text-primary-800 shadow-sm">PWA Ready</span>
-                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 shadow-sm hover:border-slate-400 hover:shadow transition-all duration-200">Open source</a>
-            </div>
-
-            <p class="text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                Alerts via <span class="font-semibold text-primary-600">ntfy</span>, <span class="font-semibold text-primary-600">this device</span>, or both. Optional: install as app. Phone push details are in <strong class="text-slate-700">Setup Instructions</strong>.
+        <!-- How it works -->
+        <div class="sidebar-panel">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2 mb-4">
+                <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                How it works
+            </h3>
+            <ol class="space-y-3">
+                <li class="flex gap-3 text-sm text-slate-600">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">1</span>
+                    <span>Pick your enrollment center and latest acceptable date.</span>
+                </li>
+                <li class="flex gap-3 text-sm text-slate-600">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">2</span>
+                    <span>Turn on notifications — we pick the fastest method for your phone.</span>
+                </li>
+                <li class="flex gap-3 text-sm text-slate-600">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">3</span>
+                    <span>We check every minute and alert you instantly.</span>
+                </li>
+            </ol>
+            <p class="text-xs text-slate-600 mt-4 pt-4 border-t border-slate-100 leading-relaxed">
+                Each subscription sends up to <strong class="text-slate-500">30 alerts</strong> or runs for <strong class="text-slate-500">30 days</strong> — whichever comes first.
             </p>
         </div>
 
-        <div class="grid lg:grid-cols-3 gap-8">
-            <!-- Main Form -->
-            <div class="lg:col-span-2">
-                <div id="setup-instructions" class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="text-center pb-6 pt-8 px-8">
-                        <h2 class="text-2xl font-bold text-slate-800 mb-2">
-                            Set Up Your Alerts
-                        </h2>
-                        <p class="text-slate-600">
-                            Pick your enrollment center and choose ntfy, this device, or both.
-                        </p>
-                    </div>
-                    <div class="px-8 pb-8">
-                        <form id="alert-form" class="space-y-6">
-                            <div class="space-y-2">
-                                <label for="location-search" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                                    </svg>
-                                    Enrollment Center
-                                </label>
-                                <input type="hidden" id="location" name="location" value="" />
-                                <div class="space-y-2">
-                                    <input type="search" id="location-search" autocomplete="off" disabled
-                                           placeholder="Loading locations…"
-                                           class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
-                                    <p id="location-summary" class="hidden rounded-lg border border-primary-200 bg-primary-50/80 px-3 py-2 text-sm"></p>
-                                    <div id="location-list" class="hidden max-h-[min(50vh,17rem)] overflow-y-auto overscroll-y-contain rounded-lg border border-slate-200 bg-white shadow-inner divide-y divide-slate-100"></div>
-                                </div>
-                                <p class="text-xs text-slate-500">Search by city, airport name, or ZIP — faster than scrolling the full list.</p>
-                            </div>
-
-                            <div id="date-field" class="space-y-2">
-                                <label for="date" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V8h14v12zM7 10h5v5H7z"/>
-                                    </svg>
-                                    Latest Appointment Date
-                                </label>
-                                <input type="date" id="date" name="date"
-                                       required
-                                       class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
-                                <p class="text-xs text-slate-500">
-                                    Receive alerts for appointments before this date
-                                </p>
-                            </div>
-
-                            <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-                                <span class="block text-sm font-semibold text-slate-700">Notify me via</span>
-                                <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" id="channel-ntfy" checked class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
-                                    <span class="text-sm text-slate-700"><span class="font-medium">ntfy</span> — app notifications via your topic.</span>
-                                </label>
-                                <label class="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" id="channel-web" class="mt-1 text-primary-500 focus:ring-primary-500 rounded border-slate-300" />
-                                    <span class="text-sm text-slate-700"><span class="font-medium">This device</span> — browser push.</span>
-                                </label>
-                                <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"></p>
-                                <p id="ios-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
-                                    <strong>iPhone / iPad (16.4+), Safari:</strong> Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>, then open from the new icon.
-                                </p>
-                                <p id="android-pwa-hint" class="hidden text-xs text-slate-600 leading-relaxed">
-                                    <strong>Android (Chrome):</strong> Tap <strong>⋮</strong> (menu) → <strong>Install app</strong> or <strong>Add to Home screen</strong> (optional).
-                                </p>
-                                <div id="web-push-enable-row" class="hidden space-y-2 pt-1 border-t border-slate-200 mt-2">
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Tap once before submit.
-                                    </p>
-                                    <button type="button" id="btn-enable-push"
-                                            class="w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-primary-700 bg-white border-2 border-primary-400 hover:bg-primary-50 transition-colors">
-                                        Allow notifications on this device
-                                    </button>
-                                    <p id="enable-push-status" class="text-xs text-slate-500 min-h-[1.25rem]" aria-live="polite"></p>
-                                </div>
-                            </div>
-
-                            <div id="topic-field" class="space-y-2">
-                                <label for="topic" class="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
-                                    </svg>
-                                    Ntfy Topic
-                                </label>
-                                <input type="text" id="topic" name="topic"
-                                       placeholder="e.g. global-entry-alerts-yourname"
-                                       class="w-full p-3 rounded-lg border border-slate-300 bg-white/70 backdrop-blur-sm text-slate-800 transition-all duration-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:bg-white h-12" />
-                                <p class="text-xs text-slate-500">
-                                    Only letters, numbers, underscores, and hyphens — required when ntfy is checked above
-                                </p>
-                            </div>
-
-                            <div class="space-y-3">
-                                <span class="block text-sm font-semibold text-slate-700">Action</span>
-                                <div class="flex gap-8">
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input type="radio" id="subscribe" name="action" value="subscribe" checked class="mr-2 text-primary-500 focus:ring-primary-500">
-                                        <span class="font-medium text-slate-700">Subscribe</span>
-                                    </label>
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input type="radio" id="unsubscribe" name="action" value="unsubscribe" class="mr-2 text-primary-500 focus:ring-primary-500">
-                                        <span class="font-medium text-slate-700">Unsubscribe</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <input type="hidden" id="recaptcha_token" name="recaptcha_token" />
-                            <button type="button"
-                                    class="w-full py-4 rounded-lg text-base font-semibold text-white h-14 flex items-center justify-center gap-2 bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 animate-pulse-glow g-recaptcha"
-                                    data-sitekey="6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"
-                                    data-callback="onSubmit"
-                                    data-action="submit">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                                </svg>
-                                Start Receiving Alerts
-                            </button>
-
-                            <p id="status" class="text-center font-medium text-sm mt-4"></p>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="space-y-6">
-                <!-- Support / project trust -->
-                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="p-5 text-center space-y-3">
-                        <h4 class="font-semibold flex items-center justify-center gap-2 text-slate-800">
-                            <svg class="w-5 h-5 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M18.5 2h-13C4.67 2 4 2.67 4 3.5v17l8-3 8 3v-17C20 2.67 19.33 2 18.5 2z"/>
-                            </svg>
-                            Support This Project
-                        </h4>
-                        <a href="https://www.buymeacoffee.com/arun0009" target="_blank" rel="noopener noreferrer" class="inline-block">
-                            <img id="bmc-button"
-                                 alt="Buy me a coffee"
-                                 width="217" height="60"
-                                 loading="eager" decoding="async"
-                                 style="display:block;height:60px;width:auto;max-width:100%;" />
-                        </a>
-                        <p id="bmc-supporter-count"
-                           class="hidden text-xs font-medium text-slate-500 pt-1"
-                           aria-live="polite"></p>
-                        <script>
-                            const bmcBtnUrl = "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00";
-                            const bmcBtnImg = document.getElementById("bmc-button");
-                            bmcBtnImg.src = `${bmcBtnUrl}&_=${Date.now()}`;
-                        </script>
-                        <div class="flex justify-center items-center gap-5 pt-1">
-                            <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" aria-label="X" class="text-slate-400 hover:text-primary-600 transition-colors duration-300">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                                </svg>
-                            </a>
-                            <a href="https://www.reddit.com/user/arun0009/" target="_blank" rel="noopener noreferrer" aria-label="Reddit" class="text-slate-400 hover:text-primary-600 transition-colors duration-300">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
-                                </svg>
-                            </a>
-                            <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" aria-label="Star on GitHub" title="Star on GitHub" class="inline-flex items-center gap-1 text-slate-400 hover:text-primary-600 transition-colors duration-300">
-                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                </svg>
-                                <span id="gh-star-count" class="text-xs font-semibold tabular-nums" aria-hidden="true"></span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Setup Instructions -->
-                <div class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl border border-slate-200/50">
-                    <div class="px-6 pt-6 pb-2">
-                        <h3 class="text-xl font-bold flex items-center gap-2 text-slate-800">
-                            <svg class="w-6 h-6 text-primary-500" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17 2H7c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 4h10v16H7V4zm8.5 11.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5 1.5.7 1.5 1.5zm-4 0c0 .8-.7 1.5-1.5 1.5S8 16.3 8 15.5s.7-1.5 1.5-1.5 1.5.7 1.5 1.5z"/>
-                            </svg>
-                            Setup Instructions
-                        </h3>
-                    </div>
-                    <div class="px-6 pb-6">
-                        <ol class="space-y-4 text-sm">
-                            <li class="flex gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">1</span>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-800">Install ntfy</p>
-                                    <p class="mt-1 text-slate-600">
-                                        <a href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer" class="text-primary-700 hover:underline font-medium">iOS</a>
-                                        <span class="mx-1 text-slate-300">·</span>
-                                        <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer" class="text-primary-700 hover:underline font-medium">Android</a>
-                                    </p>
-                                </div>
-                            </li>
-                            <li class="flex gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">2</span>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-800">Create a topic</p>
-                                    <p class="mt-1 text-slate-600">Pick a unique name in the ntfy app (e.g. <code class="bg-slate-100 px-1 rounded text-xs">global-entry-alerts-arun</code>), then paste it in the form.</p>
-                                    <p class="mt-2 text-slate-600">For <strong>This device</strong>: <strong>iPhone / iPad (16.4+), Safari:</strong> <strong>Share</strong> → <strong>Add to Home Screen</strong>, then open from the icon (required for push). <strong>Android (Chrome):</strong> <strong>⋮</strong> → <strong>Install app</strong> or <strong>Add to Home screen</strong> (optional); push works in a tab.</p>
-                                </div>
-                            </li>
-                            <li class="flex gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">3</span>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-800">Set your latest date</p>
-                                    <p class="mt-1 text-slate-600">We'll alert you for slots before this date. Defaults to one year out.</p>
-                                </div>
-                            </li>
-                            <li class="flex gap-3">
-                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 text-primary-700 font-bold text-xs flex items-center justify-center">4</span>
-                                <div class="flex-1">
-                                    <p class="font-semibold text-slate-800">Get up to 30 alerts</p>
-                                    <p class="mt-1 text-slate-600">Your free subscription runs for 30 alerts or 30 days, whichever comes first. We'll notify you when it ends.</p>
-                                </div>
-                            </li>
-                        </ol>
-                    </div>
-                </div>
+        <!-- Support -->
+        <div class="sidebar-panel text-center">
+            <h3 class="text-sm font-bold text-slate-900 mb-3">Support this project</h3>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Free and open source — if it saved you time, consider buying me a coffee.</p>
+            <a href="https://www.buymeacoffee.com/arun0009" target="_blank" rel="noopener noreferrer" class="inline-block">
+                <img id="bmc-button" alt="Buy me a coffee" width="217" height="60" loading="lazy" decoding="async"
+                     style="display:block;height:48px;width:auto;max-width:100%;margin:0 auto;" />
+            </a>
+            <p id="bmc-supporter-count" class="hidden text-xs text-slate-600 mt-2" aria-live="polite"></p>
+            <script>
+                document.getElementById("bmc-button").src =
+                    "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00&_=" + Date.now();
+            </script>
+            <div class="flex flex-wrap justify-center items-center gap-2 pt-4 mt-4 border-t border-slate-100">
+                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
+                   aria-label="View project on GitHub" title="Star on GitHub"
+                   class="social-link">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    <span id="gh-star-count" class="text-xs font-semibold tabular-nums"></span>
+                </a>
+                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" aria-label="Follow on X"
+                   class="social-link">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://www.reddit.com/user/Excellent-Rule-7887/" target="_blank" rel="noopener noreferrer" aria-label="Reddit profile"
+                   class="social-link">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                </a>
             </div>
         </div>
 
-    </div>
-</div>
+    </aside>
+
+    </main><!-- /main -->
+</div><!-- /max-w-4xl -->
+</div><!-- /min-h-screen -->
 
 <script>
     const API_BASE = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws";
     const LS_WEB_PUSH = "gea_web_push_endpoint";
+    const LS_NTFY_TOPIC = "gea_ntfy_topic";
+    const LS_NTFY_OPENED = "gea_ntfy_opened";
 
     let globalLocations = [];
     let geaVapidPublicKey = null;
+    let geaFormWasReady = false;
     /** True when GET /subscriptions reports Web Push is configured (VAPID); not the same as "user may check This device". */
     let geaWebPushServerEnabled = false;
+
+    function getActiveChannel() {
+        const web = document.getElementById("channel-web");
+        return web?.checked ? "web" : "ntfy";
+    }
+
+    function pickDefaultChannel(meta) {
+        const ui = resolveWebPushUi(meta);
+        if (ui.disableThisDevice) return "ntfy";
+        if (isIOS() && !isStandalonePWA()) return "ntfy";
+        if (meta.serverReady) return "web";
+        return "ntfy";
+    }
+
+    function selectChannel(channel) {
+        const web = document.getElementById("channel-web");
+        const ntfy = document.getElementById("channel-ntfy");
+        if (channel === "web" && web && !web.disabled) {
+            web.checked = true;
+            ntfy.checked = false;
+        } else if (ntfy) {
+            ntfy.checked = true;
+            if (web) web.checked = false;
+        }
+        syncChannelVisibility();
+        syncChannelUX();
+        updateReadinessChecklist();
+    }
+
+    function syncChannelVisibility() {
+        const ch = getActiveChannel();
+        document.getElementById("channel-web-wrap")?.classList.toggle("hidden", ch !== "web");
+        document.getElementById("channel-ntfy-wrap")?.classList.toggle("hidden", ch !== "ntfy");
+        updateSwitchChannelLabel();
+    }
+
+    function updateSwitchChannelLabel() {
+        const btn = document.getElementById("btn-switch-channel");
+        const web = document.getElementById("channel-web");
+        if (!btn) return;
+        if (web?.disabled) {
+            btn.classList.add("hidden");
+            return;
+        }
+        btn.classList.remove("hidden");
+        btn.textContent = getActiveChannel() === "web"
+            ? "Use ntfy app instead"
+            : "Use install-as-app instead";
+    }
+
+    function setReadinessItem(id, state, text) {
+        const el = document.getElementById(id);
+        const textEl = document.getElementById(`${id}-text`);
+        if (textEl) textEl.textContent = text;
+        if (!el) return;
+        const icons = { location: "1", date: "2", notify: "3" };
+        const icon = el.querySelector(".readiness-icon");
+        const stateClass = state === "done" ? "done" : state === "action" ? "action" : "pending";
+        const stateLabel = state === "done" ? "Complete" : state === "action" ? "Action needed" : "Pending";
+        el.className = `readiness-item readiness-item--${stateClass}`;
+        el.setAttribute("aria-label", `${stateLabel}: ${text}`);
+        if (icon) {
+            icon.className = `readiness-icon readiness-icon--${stateClass}`;
+            icon.textContent = state === "done" ? "✓" : icons[id.replace("check-", "")] || "•";
+        }
+    }
+
+    function isNotificationsReady() {
+        const ch = getActiveChannel();
+        if (ch === "ntfy") {
+            try {
+                return localStorage.getItem(LS_NTFY_OPENED) === "1";
+            } catch {
+                return false;
+            }
+        }
+        if (!geaWebPushServerEnabled) return false;
+        if (isIOS() && !isStandalonePWA()) return false;
+        return typeof Notification !== "undefined" && Notification.permission === "granted";
+    }
+
+    function updateReadinessChecklist() {
+        const action = document.getElementById("action-field")?.value || "subscribe";
+        const locOk = !!document.getElementById("location")?.value;
+        const dateOk = action !== "subscribe" || !!document.getElementById("date")?.value;
+        const notifyReady = isNotificationsReady();
+        const ch = getActiveChannel();
+
+        if (locOk) {
+            const loc = globalLocations.find((l) => String(l.id) === String(document.getElementById("location").value));
+            setReadinessItem("check-location", "done", loc ? `${loc.name} selected` : "Enrollment center selected");
+        } else {
+            setReadinessItem("check-location", "pending", "Pick your enrollment center");
+        }
+
+        if (action === "subscribe") {
+            document.getElementById("check-date")?.classList.remove("hidden");
+            document.getElementById("check-notify")?.classList.remove("hidden");
+            setReadinessItem("check-date", dateOk ? "done" : "pending",
+                dateOk ? "Date selected" : "Choose your latest acceptable date");
+        } else {
+            document.getElementById("check-date")?.classList.add("hidden");
+            document.getElementById("check-notify")?.classList.add("hidden");
+        }
+
+        if (action === "subscribe") {
+            if (notifyReady) {
+                setReadinessItem("check-notify", "done",
+                    ch === "ntfy" ? "ntfy connected" : "Notifications enabled");
+            } else if (ch === "ntfy") {
+                setReadinessItem("check-notify", "action", "Tap Open & subscribe in ntfy");
+            } else if (isIOS() && !isStandalonePWA()) {
+                setReadinessItem("check-notify", "action", "Add to Home Screen, then allow notifications");
+            } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+                setReadinessItem("check-notify", "action", "Unblock notifications in browser settings");
+            } else {
+                setReadinessItem("check-notify", "action", "Tap Turn on notifications");
+            }
+
+            if (locOk && dateOk && !notifyReady && ch === "web" && !isIOS()) {
+                const enableBtn = document.getElementById("btn-enable-push");
+                if (enableBtn && !enableBtn.dataset.hinted) {
+                    enableBtn.dataset.hinted = "1";
+                    enableBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+            }
+        }
+
+        const submitBtn = document.getElementById("submit-btn");
+        if (submitBtn) {
+            const ready = action === "unsubscribe"
+                ? locOk
+                : locOk && dateOk && notifyReady;
+            submitBtn.disabled = !ready;
+            submitBtn.setAttribute("aria-disabled", ready ? "false" : "true");
+            const announcer = document.getElementById("readiness-announcer");
+            if (announcer && action === "subscribe") {
+                if (ready && !geaFormWasReady) {
+                    announcer.textContent = "All steps complete. You can start receiving alerts.";
+                } else if (!ready) {
+                    announcer.textContent = "";
+                }
+                geaFormWasReady = ready;
+            }
+        }
+    }
+
+    function setLocationListExpanded(expanded) {
+        const search = document.getElementById("location-search");
+        const list = document.getElementById("location-list");
+        if (search) search.setAttribute("aria-expanded", expanded ? "true" : "false");
+        if (list) list.classList.toggle("hidden", !expanded);
+    }
 
     function onSubmit(token) {
         document.getElementById("recaptcha_token").value = token;
@@ -369,18 +670,16 @@
 
     /** All user-visible Web Push / “This device” copy in one place. */
     const WEB_PUSH_COPY = {
-        bannerServerUnreachable: "Could not reach the notification server. Check your connection, pull to refresh, or try again in a moment. You can still use ntfy.",
-        bannerServerOff: "This device notifications are unavailable right now. You can still use ntfy.",
-        bannerNeedsPwa: "On iPhone or iPad, tap Share, then Add to Home Screen, and open from the icon (iOS 16.4+).",
-        bannerBrowserUnsupported: "This browser does not support push notifications here. You can still use ntfy.",
+        bannerInstallUnavailable: "Install-as-app alerts aren't available right now. Use the ntfy app instead.",
+        bannerBrowserUnsupported: "This browser doesn't support push notifications. Use the ntfy app instead.",
         notificationsBlocked: "Notifications are blocked. Allow them in browser settings, then try again.",
         enableFailed: "Could not enable this device. Please try again.",
-        deviceReady: "This device is ready — submit the form below.",
-        submitTapAllowFirst: "Tap 'Allow notifications on this device' above, then submit again.",
-        submitVerifyDevice: "Could not verify this device. Tap 'Allow notifications on this device' above, then try again.",
+        deviceReady: "Notifications enabled — submit the form below.",
+        submitTapAllowFirst: "Tap 'Turn on notifications' above, then submit again.",
+        submitVerifyDevice: "Could not verify this device. Tap 'Turn on notifications' above, then try again.",
     };
 
-    /** GET /subscriptions → whether the call succeeded and whether Web Push is configured on the server. */
+    /** GET /subscriptions → server capabilities and subscriber count for social proof. */
     async function fetchWebPushServerMeta() {
         try {
             const res = await fetch(`${API_BASE}/subscriptions`);
@@ -388,38 +687,136 @@
             const j = await res.json();
             const vapid = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
             const serverReady = j.webPushEnabled === true && !!vapid;
-            return { apiOk: true, serverReady, vapidPublicKey: vapid };
+            const subscriberCount = typeof j.subscriberCount === "number" ? j.subscriberCount : null;
+            return { apiOk: true, serverReady, vapidPublicKey: vapid, subscriberCount };
         } catch {
-            return { apiOk: false, serverReady: false, vapidPublicKey: null };
+            return { apiOk: false, serverReady: false, vapidPublicKey: null, subscriberCount: null };
         }
     }
 
     /**
-     * Pure UI resolution for "This device". Order: network → server keys → iOS PWA requirement → Push API.
-     * Android Chrome can use push in a normal tab; iOS only exposes Web Push for installed (standalone) web apps.
+     * Resolve UI state for "Install app notifications" (web push).
+     * iOS non-standalone is NOT disabled here — the install steps inside the setup section
+     * guide the user through adding to Home Screen, and clicking Enable gives a clear next-step message.
+     * Only hard-disable when the server or browser fundamentally can't support push.
      * @returns {{ hint: string|null, disableThisDevice: boolean }}
      */
     function resolveWebPushUi(meta) {
         const browserPushCapable = "serviceWorker" in navigator && "PushManager" in window;
-        const standalone = isStandalonePWA();
-        if (!meta.apiOk) return { hint: WEB_PUSH_COPY.bannerServerUnreachable, disableThisDevice: true };
-        if (!meta.serverReady) return { hint: WEB_PUSH_COPY.bannerServerOff, disableThisDevice: true };
-        if (isIOS() && !standalone) return { hint: WEB_PUSH_COPY.bannerNeedsPwa, disableThisDevice: true };
-        if (!browserPushCapable) return { hint: WEB_PUSH_COPY.bannerBrowserUnsupported, disableThisDevice: true };
+        if (!meta.apiOk || !meta.serverReady) return { hint: WEB_PUSH_COPY.bannerInstallUnavailable, disableThisDevice: true };
+        // On iOS, push only works after adding to Home Screen — but we guide the user
+        // through that in the setup section rather than disabling the option entirely.
+        if (!browserPushCapable && !isIOS()) return { hint: WEB_PUSH_COPY.bannerBrowserUnsupported, disableThisDevice: true };
         return { hint: null, disableThisDevice: false };
     }
 
     function applyWebPushUiState(ui) {
         const hint = document.getElementById("web-push-unavailable");
         const webCh = document.getElementById("channel-web");
+        const webLabel = document.getElementById("web-push-label-row");
+        const webBadge = document.getElementById("web-label-badge");
+        const webStatus = document.getElementById("web-channel-status");
+
         if (ui.hint) {
             hint.textContent = ui.hint;
             hint.classList.remove("hidden");
         } else {
             hint.classList.add("hidden");
         }
+
         webCh.disabled = ui.disableThisDevice;
-        if (ui.disableThisDevice) webCh.checked = false;
+        if (ui.disableThisDevice) {
+            webCh.checked = false;
+            if (webLabel) webLabel.classList.add("opacity-60");
+            if (webBadge) webBadge.textContent = "Unavailable";
+            if (webStatus) {
+                webStatus.textContent = "Off";
+                webStatus.className = "status-pill status-pill--off absolute top-3 right-3";
+            }
+            selectChannel("ntfy");
+        } else {
+            if (webLabel) webLabel.classList.remove("opacity-60");
+            if (webBadge) webBadge.textContent = "Recommended on this device";
+        }
+    }
+
+    /** Reflect install + permission progress in the step wizard and channel status pills. */
+    async function updateWebPushStepState() {
+        const installed = isStandalonePWA();
+        const needsInstall = isIOS() && !installed;
+        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+
+        const installWrap = document.getElementById("step-install-wrap");
+        const installMarker = document.getElementById("step-install-marker");
+        const installDone = document.getElementById("step-install-done");
+        const enableMarker = document.getElementById("step-enable-marker");
+        const enableRow = document.getElementById("web-push-enable-row");
+        const enableDone = document.getElementById("step-enable-done");
+        const enableBlocked = document.getElementById("step-enable-blocked");
+        const webCh = document.getElementById("channel-web");
+        const webStatus = document.getElementById("web-channel-status");
+
+        if (installWrap) installWrap.classList.toggle("hidden", !needsInstall);
+        if (enableMarker) enableMarker.textContent = needsInstall ? "2" : "1";
+
+        if (installed && installDone) {
+            installDone.classList.remove("hidden");
+            if (installMarker) installMarker.classList.add("step-dot--done");
+        }
+
+        const webOn = webCh?.checked && !webCh.disabled;
+        const serverOk = geaWebPushServerEnabled;
+
+        if (perm === "granted" && serverOk) {
+            enableRow?.classList.add("hidden");
+            enableDone?.classList.remove("hidden");
+            enableBlocked?.classList.add("hidden");
+            if (enableMarker) enableMarker.classList.add("step-dot--done");
+            if (webStatus && webOn) {
+                webStatus.textContent = "Ready";
+                webStatus.className = "status-pill status-pill--ready absolute top-3 right-3";
+            }
+        } else if (perm === "denied") {
+            enableRow?.classList.add("hidden");
+            enableDone?.classList.add("hidden");
+            enableBlocked?.classList.remove("hidden");
+            if (webStatus && webOn) {
+                webStatus.textContent = "Blocked";
+                webStatus.className = "status-pill status-pill--off absolute top-3 right-3";
+            }
+        } else if (webOn && serverOk && (!isIOS() || installed)) {
+            enableRow?.classList.remove("hidden");
+            enableDone?.classList.add("hidden");
+            enableBlocked?.classList.add("hidden");
+            if (webStatus) {
+                webStatus.textContent = "Setup";
+                webStatus.className = "status-pill status-pill--setup absolute top-3 right-3";
+            }
+        }
+
+        refreshChannelStatusPills();
+        updateReadinessChecklist();
+    }
+
+    function refreshChannelStatusPills() {
+        const ch = getActiveChannel();
+        const ntfyStatus = document.getElementById("ntfy-channel-status");
+        const webStatus = document.getElementById("web-channel-status");
+        if (ntfyStatus && ch === "ntfy") {
+            ntfyStatus.classList.remove("hidden");
+            let ready = false;
+            try { ready = localStorage.getItem(LS_NTFY_OPENED) === "1"; } catch { /* ignore */ }
+            ntfyStatus.textContent = ready ? "Ready" : "Setup";
+            ntfyStatus.className = ready
+                ? "status-pill status-pill--ready absolute top-3 right-3"
+                : "status-pill status-pill--setup absolute top-3 right-3";
+        } else if (ntfyStatus) {
+            ntfyStatus.classList.add("hidden");
+        }
+        if (webStatus && ch !== "web") {
+            webStatus.textContent = "Setup";
+            webStatus.className = "status-pill status-pill--setup absolute top-3 right-3";
+        }
     }
 
     async function loadApiMeta() {
@@ -427,48 +824,185 @@
         geaVapidPublicKey = meta.vapidPublicKey;
         geaWebPushServerEnabled = meta.serverReady;
         applyWebPushUiState(resolveWebPushUi(meta));
-
-        const iosHint = document.getElementById("ios-pwa-hint");
-        if (isIOS()) iosHint.classList.remove("hidden");
-        else iosHint.classList.add("hidden");
-        const androidHint = document.getElementById("android-pwa-hint");
-        if (androidHint) {
-            const ua = navigator.userAgent || "";
-            const android = /Android/i.test(ua) && !isIOS();
-            androidHint.classList.toggle("hidden", !android);
+        if (!document.getElementById("channel-web")?.disabled) {
+            selectChannel(pickDefaultChannel(meta));
         }
+        if (typeof meta.subscriberCount === "number" && meta.subscriberCount > 0) {
+            const el = document.getElementById("social-proof");
+            if (el) {
+                el.textContent = `${meta.subscriberCount.toLocaleString()} ${meta.subscriberCount === 1 ? "traveler" : "travelers"} currently monitoring Global Entry slots`;
+                el.classList.remove("hidden");
+            }
+        }
+        // syncChannelUX handles iOS/Android hint visibility based on selected channel
         syncChannelUX();
-        toggleWebPushPrep();
-    }
-
-    function toggleWebPushPrep() {
-        const row = document.getElementById("web-push-enable-row");
-        const web = document.getElementById("channel-web");
-        if (!row || !web) return;
-        const show = web.checked && !web.disabled && geaWebPushServerEnabled;
-        row.classList.toggle("hidden", !show);
+        updateWebPushStepState();
+        updateReadinessChecklist();
     }
 
     function syncChannelUX() {
-        const ntfyOn = document.getElementById("channel-ntfy").checked;
-        const topicEl = document.getElementById("topic");
-        topicEl.disabled = !ntfyOn;
-        document.getElementById("topic-field").classList.toggle("opacity-60", !ntfyOn);
-        toggleWebPushPrep();
+        const ch = getActiveChannel();
+        const ntfyOn = ch === "ntfy";
+        const webOn = ch === "web";
+
+        const ntfySetup = document.getElementById("ntfy-setup");
+        if (ntfySetup) ntfySetup.classList.toggle("hidden", !ntfyOn);
+        if (ntfyOn) syncNtfyTopicUI();
+
+        const webSetup = document.getElementById("web-push-setup");
+        if (webSetup) webSetup.classList.toggle("hidden", !webOn);
+
+        const iosHint = document.getElementById("ios-pwa-hint");
+        if (iosHint) iosHint.classList.toggle("hidden", !(webOn && isIOS() && !isStandalonePWA()));
+
+        const androidHint = document.getElementById("android-pwa-hint");
+        if (androidHint) {
+            const isAndroid = /Android/i.test(navigator.userAgent || "") && !isIOS();
+            androidHint.classList.toggle("hidden", !(webOn && isAndroid && !isStandalonePWA()));
+        }
+
+        refreshChannelStatusPills();
+        maybeShowPwaBanner();
+        updateWebPushStepState();
+        updateReadinessChecklist();
+    }
+
+    /** Switch the form into subscribe or unsubscribe mode. */
+    function setFormMode(mode) {
+        const actionField = document.getElementById("action-field");
+        const unsubBanner = document.getElementById("unsub-banner");
+        const dateField = document.getElementById("date-field");
+        const submitBtn = document.getElementById("submit-btn");
+        const toggleBtn = document.getElementById("btn-toggle-unsub");
+        const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+        </svg>`;
+        if (mode === "unsubscribe") {
+            actionField.value = "unsubscribe";
+            unsubBanner.classList.remove("hidden");
+            unsubBanner.classList.add("flex");
+            dateField.classList.add("hidden");
+            document.getElementById("date").required = false;
+            submitBtn.innerHTML = `${icon} Stop Alerts`;
+            submitBtn.className = "w-full py-4 rounded-xl text-base font-semibold text-white bg-red-600 hover:bg-red-700 shadow-lg transition-all duration-300 flex items-center justify-center gap-2 g-recaptcha";
+            submitBtn.disabled = false;
+            if (toggleBtn) toggleBtn.classList.add("hidden");
+        } else {
+            actionField.value = "subscribe";
+            unsubBanner.classList.add("hidden");
+            unsubBanner.classList.remove("flex");
+            dateField.classList.remove("hidden");
+            document.getElementById("date").required = true;
+            submitBtn.innerHTML = `${icon} Start Receiving Alerts`;
+            submitBtn.className = "w-full py-4 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 g-recaptcha";
+            if (toggleBtn) toggleBtn.classList.remove("hidden");
+        }
+        updateReadinessChecklist();
+    }
+
+    /**
+     * Generate a private ntfy channel name (used once per device, then persisted).
+     * 12 hex chars (~48 bits) makes accidental collision with another subscriber negligible.
+     */
+    function generateNtfyTopic() {
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        const suffix = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+        return `ge-alerts-${suffix}`;
+    }
+
+    const NTFY_TOPIC_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+    /** Return the stable ntfy channel for this device — generate and persist only on first use. */
+    function getOrCreateNtfyTopic() {
+        try {
+            const stored = localStorage.getItem(LS_NTFY_TOPIC);
+            if (stored && NTFY_TOPIC_PATTERN.test(stored)) return stored;
+        } catch { /* ignore */ }
+        const topic = generateNtfyTopic();
+        try { localStorage.setItem(LS_NTFY_TOPIC, topic); } catch { /* ignore */ }
+        return topic;
+    }
+
+    /** Persist a validated channel name and refresh all ntfy UI. */
+    function setNtfyTopic(topic) {
+        const t = String(topic || "").trim();
+        const errEl = document.getElementById("ntfy-topic-error");
+        if (!t || !NTFY_TOPIC_PATTERN.test(t)) {
+            if (errEl) errEl.classList.remove("hidden");
+            return false;
+        }
+        if (errEl) errEl.classList.add("hidden");
+        try { localStorage.setItem(LS_NTFY_TOPIC, t); } catch { /* ignore */ }
+        syncNtfyTopicUI();
+        return true;
+    }
+
+    function isMobilePhone() {
+        return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "")
+            || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+
+    /** URL that opens the ntfy app on phone (ntfy://) or the topic page in a browser on desktop. */
+    function ntfySubscribeUrl(topic) {
+        const encoded = encodeURIComponent(topic);
+        if (isMobilePhone()) {
+            // Official ntfy deep link — opens app and subscribes (docs.ntfy.sh/subscribe/phone)
+            return `ntfy://ntfy.sh/${encoded}?display=Global%20Entry%20Alerts`;
+        }
+        return `https://ntfy.sh/${encoded}`;
+    }
+
+    /** Sync the hidden topic field and ntfy deep-link button to the device's channel. */
+    function syncNtfyTopicUI() {
+        const topic = getOrCreateNtfyTopic();
+        const topicHidden = document.getElementById("topic");
+        const openBtn = document.getElementById("btn-open-ntfy");
+        const input = document.getElementById("ntfy-topic-custom");
+        const hint = document.getElementById("ntfy-open-hint");
+        if (topicHidden) topicHidden.value = topic;
+        if (openBtn) openBtn.href = ntfySubscribeUrl(topic);
+        if (input && document.activeElement !== input) input.value = topic;
+        if (hint) {
+            hint.textContent = isMobilePhone()
+                ? "Opens the ntfy app and subscribes you — install the app first if prompted."
+                : "Opens ntfy.sh in a new tab — use the app on your phone for push alerts.";
+        }
+    }
+
+    function applyNtfyTopicFromInput() {
+        const input = document.getElementById("ntfy-topic-custom");
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val) {
+            syncNtfyTopicUI();
+            return;
+        }
+        if (!setNtfyTopic(val)) return;
+    }
+
+    function regenerateNtfyTopic() {
+        setNtfyTopic(generateNtfyTopic());
     }
 
     async function enableWebPushFromGesture() {
         const st = document.getElementById("enable-push-status");
         const setErr = (msg) => {
             st.textContent = msg;
-            st.className = "text-xs text-red-600 min-h-[1.25rem]";
+            st.className = "text-xs text-red-600 min-h-[1.25rem] mt-1";
         };
         const setOk = (msg) => {
             st.textContent = msg;
-            st.className = "text-xs text-green-700 min-h-[1.25rem]";
+            st.className = "text-xs text-green-700 min-h-[1.25rem] mt-1";
         };
+        // iOS requires the PWA to be installed first — give a clear next-step message
+        if (isIOS() && !isStandalonePWA()) {
+            setErr("Complete steps 1–3 above first: add this page to your Home Screen in Safari, then open it from there.");
+            return;
+        }
         if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-            setErr(WEB_PUSH_COPY.bannerServerOff);
+            setErr(WEB_PUSH_COPY.bannerInstallUnavailable);
             return;
         }
         if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -498,16 +1032,12 @@
                 return;
             }
             setOk(WEB_PUSH_COPY.deviceReady);
+            updateWebPushStepState();
+            updateReadinessChecklist();
         } catch (e) {
             console.error(e);
             setErr(WEB_PUSH_COPY.enableFailed);
         }
-    }
-
-    function ensureAtLeastOneChannel() {
-        const n = document.getElementById("channel-ntfy");
-        const w = document.getElementById("channel-web");
-        if (!n.checked && !w.checked) n.checked = true;
     }
 
     function escapeHtml(s) {
@@ -537,40 +1067,40 @@
         if (!list || !search || !hidden) return;
 
         if (hidden.value) {
-            list.classList.add("hidden");
+            setLocationListExpanded(false);
             list.innerHTML = "";
             return;
         }
 
         const q = (search.value || "").trim().toLowerCase();
         if (q.length < 2) {
-            list.classList.remove("hidden");
+            setLocationListExpanded(true);
             list.innerHTML =
-                '<div class="px-3 py-4 text-sm text-slate-600 text-center">Type at least 2 letters (city, airport name, or ZIP).</div>';
+                '<div class="px-3 py-4 text-sm text-slate-600 text-center" role="status">Type at least 2 letters (city, airport name, or ZIP).</div>';
             return;
         }
 
         const filtered = globalLocations.filter((loc) => locationHaystack(loc).includes(q));
         const MAX = 50;
         const slice = filtered.slice(0, MAX);
-        list.classList.remove("hidden");
+        setLocationListExpanded(true);
 
         if (slice.length === 0) {
-            list.innerHTML = '<div class="px-3 py-4 text-sm text-slate-500 text-center">No matches. Try another spelling or nearby city.</div>';
+            list.innerHTML = '<div class="px-3 py-4 text-sm text-slate-600 text-center" role="status">No matches. Try another spelling or nearby city.</div>';
             return;
         }
 
         let html = slice
             .map((loc) => {
                 const { primary, secondary } = getLocationDisplayLines(loc);
-                return `<button type="button" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
+                return `<button type="button" role="option" aria-selected="false" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
                 <div class="font-medium text-slate-800">${escapeHtml(primary)}</div>
-                ${secondary ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(secondary)}</div>` : ""}
+                ${secondary ? `<div class="text-xs text-slate-600 mt-0.5">${escapeHtml(secondary)}</div>` : ""}
             </button>`;
             })
             .join("");
         if (filtered.length > MAX) {
-            html += `<div class="px-3 py-2 text-xs text-slate-500 text-center border-t border-slate-100 bg-slate-50">Showing ${MAX} of ${filtered.length} — type more to narrow.</div>`;
+            html += `<div class="px-3 py-2 text-xs text-slate-600 text-center border-t border-slate-100 bg-slate-50" role="status">Showing ${MAX} of ${filtered.length} — type more to narrow.</div>`;
         }
         list.innerHTML = html;
     }
@@ -583,6 +1113,7 @@
         if (!id) {
             sum.classList.add("hidden");
             sum.innerHTML = "";
+            updateReadinessChecklist();
             return;
         }
         const loc = globalLocations.find((l) => String(l.id) === String(id));
@@ -598,14 +1129,24 @@
             <button type="button" class="location-change shrink-0 text-primary-600 font-semibold text-xs pt-0.5" aria-label="Change enrollment center">Change</button>
         </div>`;
         sum.classList.remove("hidden");
+        updateReadinessChecklist();
     }
 
     async function fetchLocations() {
         const search = document.getElementById("location-search");
         const list = document.getElementById("location-list");
         try {
-            const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
-            const locations = await res.json();
+            // Try our cached Lambda proxy first; fall back to CBP directly if it fails
+            let locations;
+            try {
+                const res = await fetch(`${API_BASE}/locations`);
+                if (!res.ok) throw new Error("proxy unavailable");
+                locations = await res.json();
+            } catch {
+                const res = await fetch("https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry");
+                if (!res.ok) throw new Error("CBP API unavailable");
+                locations = await res.json();
+            }
             globalLocations = locations.sort((a, b) => a.name.localeCompare(b.name));
             search.disabled = false;
             search.placeholder = "Search city, airport name, or ZIP…";
@@ -613,11 +1154,12 @@
             document.getElementById("location").value = "";
             document.getElementById("location-summary").classList.add("hidden");
             document.getElementById("location-summary").innerHTML = "";
-            renderLocationList();
+            search.focus();
+            // Don't open the dropdown on load — only when the user starts typing.
         } catch {
             search.disabled = true;
             search.placeholder = "Locations unavailable";
-            list.classList.remove("hidden");
+            setLocationListExpanded(true);
             list.innerHTML =
                 '<div class="px-3 py-4 text-sm text-red-600 text-center">Could not load enrollment centers. Refresh and try again.</div>';
         }
@@ -635,84 +1177,72 @@
 
     async function submitForm() {
         const locationId = document.getElementById("location").value;
+        const useNtfy = getActiveChannel() === "ntfy";
+        const useWeb = getActiveChannel() === "web";
+        if (useNtfy) applyNtfyTopicFromInput();
         const topic = document.getElementById("topic").value.trim();
         const date = document.getElementById("date").value;
-        const action = document.querySelector('input[name="action"]:checked').value;
+        const action = document.getElementById("action-field").value;
         const recaptchaToken = document.getElementById("recaptcha_token").value;
-        const submitButton = document.querySelector(".g-recaptcha");
-        const status = document.getElementById("status");
-        const useNtfy = document.getElementById("channel-ntfy").checked;
-        const useWeb = document.getElementById("channel-web").checked;
+        const submitButton = document.getElementById("submit-btn");
 
         if (!locationId || !recaptchaToken) {
-            status.textContent = "Please select an enrollment center and complete reCAPTCHA.";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Please select an enrollment center and complete verification.", "error");
             return;
         }
         if (!useNtfy && !useWeb) {
-            status.textContent = "Select at least one notification method (ntfy and/or this device).";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Select a notification method.", "error");
             return;
         }
         if (action === "subscribe" && !date) {
-            status.textContent = "Please select a Latest Appointment Date for subscription.";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Please select a latest acceptable date.", "error");
             return;
         }
         if (action === "subscribe" && useNtfy) {
-            const topicPattern = /^[a-zA-Z0-9_-]+$/;
-            if (!topic || !topicPattern.test(topic)) {
-                status.textContent = "Enter a valid ntfy topic (letters, numbers, underscores, hyphens only).";
-                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            if (!topic || !NTFY_TOPIC_PATTERN.test(topic)) {
+                setFormStatus("Enter a valid alert channel name.", "error");
                 return;
             }
         }
         if (action === "unsubscribe" && useNtfy && !topic) {
-            status.textContent = "Enter your ntfy topic to unsubscribe, or turn off ntfy and use browser unsubscribe if you subscribed with this device only.";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Enter your alert channel name to unsubscribe, or switch to install-as-app.", "error");
             return;
         }
         if (action === "unsubscribe" && !useNtfy) {
             const ep = localStorage.getItem(LS_WEB_PUSH);
             if (!ep) {
-                status.textContent = "No saved browser subscription on this device. If you used ntfy, check “ntfy” and enter your topic.";
-                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                setFormStatus("No saved device subscription found. Switch to ntfy app and enter your channel name.", "error");
                 return;
             }
         }
 
         const selectedLocation = globalLocations.find(loc => loc.id === Number(locationId));
         if (!selectedLocation) {
-            status.textContent = "Selected location not found.";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Selected location not found.", "error");
             return;
         }
 
         let webPushPayload = null;
         if (action === "subscribe" && useWeb) {
             if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-                status.textContent = WEB_PUSH_COPY.bannerServerOff;
-                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                setFormStatus(WEB_PUSH_COPY.bannerInstallUnavailable, "error");
                 return;
             }
             if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-                status.textContent = WEB_PUSH_COPY.bannerBrowserUnsupported;
-                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                setFormStatus(WEB_PUSH_COPY.bannerBrowserUnsupported, "error");
                 return;
             }
             try {
                 const reg = await navigator.serviceWorker.ready;
                 const pushSub = await reg.pushManager.getSubscription();
                 if (!pushSub || !pushSub.endpoint) {
-                    status.textContent = WEB_PUSH_COPY.submitTapAllowFirst;
-                    status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                    setFormStatus(WEB_PUSH_COPY.submitTapAllowFirst, "error");
                     return;
                 }
                 webPushPayload = pushSub.toJSON();
             } catch (e) {
                 console.error(e);
-                status.textContent = WEB_PUSH_COPY.submitVerifyDevice;
-                status.className = "text-center font-medium text-sm mt-4 text-red-600";
+                setFormStatus(WEB_PUSH_COPY.submitVerifyDevice, "error");
                 return;
             }
         }
@@ -756,10 +1286,11 @@
                 if (j.message) msg = j.message;
                 else if (j.error) msg = j.error;
             } catch { /* keep raw */ }
-            status.textContent = msg || "Done.";
-            status.className = res.ok
-                ? "text-center font-medium text-sm mt-4 text-green-600"
-                : "text-center font-medium text-sm mt-4 text-red-600";
+            if (res.ok && action === "subscribe") {
+                setFormStatus(`<span class="text-green-700 font-semibold">✓ You're subscribed!</span><br><span class="text-slate-600 font-normal">Check your phone — we just sent a test notification to confirm it's working.</span>`, "success-html");
+            } else {
+                setFormStatus(msg || "Done.", res.ok ? "success" : "error");
+            }
 
             if (res.ok && action === "subscribe" && webPushPayload && webPushPayload.endpoint) {
                 try {
@@ -773,8 +1304,8 @@
             }
 
             if (res.ok && action === "subscribe") {
-                document.getElementById("topic").value = "";
                 document.getElementById("location").value = "";
+                syncNtfyTopicUI();
                 const locSearch = document.getElementById("location-search");
                 if (locSearch) locSearch.value = "";
                 const locSum = document.getElementById("location-summary");
@@ -785,28 +1316,13 @@
                 renderLocationList();
                 document.getElementById("recaptcha_token").value = "";
                 setDefaultDate();
+                updateReadinessChecklist();
             }
         } catch {
-            status.textContent = "Error submitting request.";
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Error submitting request.", "error");
         } finally {
-            updateSubmitButton();
-            submitButton.disabled = false;
+            setFormMode(document.getElementById("action-field").value);
         }
-    }
-
-    function updateSubmitButton() {
-        const action = document.querySelector('input[name="action"]:checked').value;
-        const submitButton = document.querySelector(".g-recaptcha");
-        const dateField = document.getElementById("date-field");
-        const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-            </svg>`;
-        submitButton.innerHTML = `${icon} ${action === "subscribe" ? "Start Receiving Alerts" : "Stop Alerts"}`;
-        dateField.classList.toggle("hidden", action === "unsubscribe");
-        dateField.classList.toggle("block", action === "subscribe");
-        document.getElementById("date").required = action === "subscribe";
     }
 
     document.getElementById("alert-form").addEventListener("submit", async (e) => {
@@ -815,18 +1331,57 @@
             onSubmit(token);
         }).catch(function (error) {
             console.error("reCAPTCHA Error:", error);
-            document.getElementById("status").textContent = "reCAPTCHA failed. Please try again.";
-            document.getElementById("status").className = "text-center font-medium text-sm mt-4 text-red-600";
+            setFormStatus("Verification failed. Please try again.", "error");
         });
     });
 
     document.addEventListener("change", function (e) {
-        if (e.target.name === "action") updateSubmitButton();
-        if (e.target.id === "channel-ntfy" || e.target.id === "channel-web") {
-            ensureAtLeastOneChannel();
+        if (e.target.name === "notify-channel") {
+            syncChannelVisibility();
             syncChannelUX();
         }
     });
+
+    let geaDeferredInstallPrompt = null;
+    let geaPwaFocusReturn = null;
+    let geaPwaFocusTrapHandler = null;
+
+    function trapPwaFocus() {
+        const banner = document.getElementById("pwa-install-banner");
+        if (!banner) return;
+        geaPwaFocusReturn = document.activeElement;
+        const focusables = banner.querySelectorAll(
+            'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length) focusables[0].focus();
+        else banner.focus();
+
+        geaPwaFocusTrapHandler = (e) => {
+            if (e.key !== "Tab" || focusables.length === 0) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        banner.addEventListener("keydown", geaPwaFocusTrapHandler);
+    }
+
+    function releasePwaFocus() {
+        const banner = document.getElementById("pwa-install-banner");
+        if (banner && geaPwaFocusTrapHandler) {
+            banner.removeEventListener("keydown", geaPwaFocusTrapHandler);
+            geaPwaFocusTrapHandler = null;
+        }
+        if (geaPwaFocusReturn && typeof geaPwaFocusReturn.focus === "function") {
+            geaPwaFocusReturn.focus();
+        }
+        geaPwaFocusReturn = null;
+    }
 
     async function fetchGitHubStars() {
         try {
@@ -854,18 +1409,185 @@
         } catch {}
     }
 
+    function markNtfyOpened() {
+        try { localStorage.setItem(LS_NTFY_OPENED, "1"); } catch { /* ignore */ }
+        updateReadinessChecklist();
+        refreshChannelStatusPills();
+    }
+
+    function setFormStatus(message, type) {
+        const status = document.getElementById("status");
+        if (!status) return;
+        if (type === "error") {
+            status.innerHTML = message;
+            status.className = "text-center font-medium text-sm mt-4 text-red-600";
+            status.setAttribute("role", "alert");
+        } else if (type === "success-html") {
+            status.innerHTML = message;
+            status.className = "text-center text-sm mt-4";
+            status.setAttribute("role", "status");
+        } else {
+            status.textContent = message;
+            status.className = type === "success"
+                ? "text-center font-medium text-sm mt-4 text-green-600"
+                : "text-center font-medium text-sm mt-4 text-red-600";
+            status.setAttribute("role", type === "success" ? "status" : "alert");
+        }
+    }
+
+    function dismissPwaBanner() {
+        document.getElementById("pwa-install-banner")?.classList.add("hidden");
+        document.getElementById("pwa-backdrop")?.classList.add("hidden");
+        document.getElementById("pwa-backdrop")?.setAttribute("aria-hidden", "true");
+        sessionStorage.setItem("gea_pwa_banner_dismissed", "1");
+        releasePwaFocus();
+    }
+
+    /** Show install sheet only when user selects "Install as app" — not on page load (web.dev best practice). */
+    function maybeShowPwaBanner() {
+        const banner = document.getElementById("pwa-install-banner");
+        const backdrop = document.getElementById("pwa-backdrop");
+        const iosSteps = document.getElementById("pwa-ios-steps");
+        const actionBtn = document.getElementById("pwa-action-btn");
+        const webOn = document.getElementById("channel-web")?.checked;
+        if (!banner || !webOn || isStandalonePWA()) return;
+        if (sessionStorage.getItem("gea_pwa_banner_dismissed")) return;
+
+        if (isIOS()) {
+            iosSteps?.classList.remove("hidden");
+            actionBtn?.classList.add("hidden");
+            banner.classList.remove("hidden");
+            backdrop?.classList.remove("hidden");
+            backdrop?.setAttribute("aria-hidden", "false");
+            trapPwaFocus();
+        } else if (geaDeferredInstallPrompt) {
+            iosSteps?.classList.add("hidden");
+            actionBtn?.classList.remove("hidden");
+            banner.classList.remove("hidden");
+            backdrop?.classList.remove("hidden");
+            backdrop?.setAttribute("aria-hidden", "false");
+            trapPwaFocus();
+        }
+    }
+
+    function initPwaBanner() {
+        const actionBtn = document.getElementById("pwa-action-btn");
+        document.getElementById("btn-pwa-dismiss")?.addEventListener("click", dismissPwaBanner);
+        document.getElementById("btn-pwa-dismiss-x")?.addEventListener("click", dismissPwaBanner);
+        document.getElementById("pwa-backdrop")?.addEventListener("click", dismissPwaBanner);
+
+        document.addEventListener("keydown", (e) => {
+            const banner = document.getElementById("pwa-install-banner");
+            if (e.key === "Escape" && banner && !banner.classList.contains("hidden")) {
+                dismissPwaBanner();
+            }
+        });
+
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            geaDeferredInstallPrompt = e;
+        });
+
+        window.addEventListener("appinstalled", () => {
+            geaDeferredInstallPrompt = null;
+            dismissPwaBanner();
+            updateWebPushStepState();
+        });
+
+        if (actionBtn) {
+            actionBtn.addEventListener("click", async () => {
+                if (!geaDeferredInstallPrompt) return;
+                geaDeferredInstallPrompt.prompt();
+                const { outcome } = await geaDeferredInstallPrompt.userChoice;
+                if (outcome === "accepted") dismissPwaBanner();
+                geaDeferredInstallPrompt = null;
+            });
+        }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
-        syncChannelUX();
+        syncNtfyTopicUI();
+
+        if (isIOS()) {
+            const web = document.getElementById("channel-web");
+            const ntfy = document.getElementById("channel-ntfy");
+            if (web && ntfy) {
+                ntfy.checked = true;
+                web.checked = false;
+            }
+        }
+        syncChannelVisibility();
+
+        // Handle ?subscriptions=unsubscribe deep-link (e.g. from email notification)
         const params = new URLSearchParams(window.location.search);
         if (params.get("subscriptions") === "unsubscribe") {
-            document.getElementById("unsubscribe").checked = true;
-            updateSubmitButton();
+            setFormMode("unsubscribe");
         }
+
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("/sw.js").catch(() => {});
         }
-        document.getElementById("channel-ntfy").addEventListener("change", ensureAtLeastOneChannel);
-        document.getElementById("channel-web").addEventListener("change", ensureAtLeastOneChannel);
+
+        const switchChannelBtn = document.getElementById("btn-switch-channel");
+        if (switchChannelBtn) {
+            switchChannelBtn.addEventListener("click", () => {
+                const next = getActiveChannel() === "web" ? "ntfy" : "web";
+                if (next === "web" && document.getElementById("channel-web")?.disabled) return;
+                selectChannel(next);
+            });
+        }
+
+        const openNtfyBtn = document.getElementById("btn-open-ntfy");
+        if (openNtfyBtn) {
+            openNtfyBtn.addEventListener("click", markNtfyOpened);
+        }
+
+        const dateInput = document.getElementById("date");
+        if (dateInput) {
+            dateInput.addEventListener("change", updateReadinessChecklist);
+            dateInput.addEventListener("input", updateReadinessChecklist);
+        }
+
+        // Manual setup: editable channel name
+        const topicInput = document.getElementById("ntfy-topic-custom");
+        if (topicInput) {
+            topicInput.addEventListener("blur", applyNtfyTopicFromInput);
+            topicInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    topicInput.blur();
+                }
+            });
+        }
+        const regenBtn = document.getElementById("btn-regenerate-topic");
+        if (regenBtn) regenBtn.addEventListener("click", regenerateNtfyTopic);
+
+        // Copy channel name (manual setup)
+        const copyTopicBtn = document.getElementById("btn-copy-topic");
+        if (copyTopicBtn) {
+            copyTopicBtn.addEventListener("click", () => {
+                const text = document.getElementById("ntfy-topic-custom")?.value
+                    || document.getElementById("topic")?.value || "";
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(() => {
+                    copyTopicBtn.textContent = "Copied!";
+                    setTimeout(() => { copyTopicBtn.textContent = "Copy"; }, 2000);
+                }).catch(() => {
+                    topicInput?.select();
+                });
+            });
+        }
+
+        // Unsubscribe toggle link
+        const unsubToggle = document.getElementById("btn-toggle-unsub");
+        if (unsubToggle) {
+            unsubToggle.addEventListener("click", () => setFormMode("unsubscribe"));
+        }
+        const backSubscribeBtn = document.getElementById("btn-back-subscribe");
+        if (backSubscribeBtn) {
+            backSubscribeBtn.addEventListener("click", () => setFormMode("subscribe"));
+        }
+
         const enablePushBtn = document.getElementById("btn-enable-push");
         if (enablePushBtn) {
             enablePushBtn.addEventListener("click", (ev) => {
@@ -879,10 +1601,15 @@
             locList.addEventListener("click", (e) => {
                 const row = e.target.closest(".location-row");
                 if (!row) return;
-                document.getElementById("location").value = String(row.dataset.locationId);
+                const selectedId = String(row.dataset.locationId);
+                document.getElementById("location").value = selectedId;
                 document.getElementById("location-search").value = "";
+                locList.querySelectorAll('[role="option"]').forEach((opt) => {
+                    opt.setAttribute("aria-selected", opt.dataset.locationId === selectedId ? "true" : "false");
+                });
                 updateLocationSummary();
-                renderLocationList();
+                setLocationListExpanded(false);
+                locList.innerHTML = "";
             });
         }
         const locSum = document.getElementById("location-summary");
@@ -898,6 +1625,10 @@
         }
         const locSearch = document.getElementById("location-search");
         if (locSearch) {
+            locSearch.addEventListener("focus", () => {
+                // Only open the dropdown when the user focuses the field (not on page load)
+                if (globalLocations.length > 0) renderLocationList();
+            });
             locSearch.addEventListener("input", () => {
                 const hid = document.getElementById("location");
                 if (hid.value) {
@@ -912,9 +1643,11 @@
             });
         }
         setDefaultDate();
+        updateReadinessChecklist();
         loadApiMeta();
         fetchGitHubStars();
         fetchBMCSupporters();
+        initPwaBanner();
     });
 </script>
 </body>
