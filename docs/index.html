@@ -11,18 +11,18 @@
     <meta property="og:title" content="Global Entry Appointment Alerts" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Get Global Entry Alerts" />
-    <meta property="og:description" content="Free Global Entry slot alerts on your phone or browser — instant, no account needed." />
+    <meta property="og:description" content="Free Global Entry appointment alerts on your phone or browser — instant, no account needed." />
     <meta property="og:url" content="https://getglobalentryalerts.com/" />
     <meta property="og:image" content="https://getglobalentryalerts.com/preview.png" />
 
     <meta name="twitter:title" content="Global Entry Appointment Alerts">
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:description" content="Free Global Entry slot alerts on your phone or browser — instant, no account needed." />
+    <meta name="twitter:description" content="Free Global Entry appointment alerts on your phone or browser — instant, no account needed." />
     <meta name="twitter:url" content="https://getglobalentryalerts.com/" />
     <meta name="twitter:image" content="https://getglobalentryalerts.com/preview.png" />
     <meta name="twitter:image:alt" content="Get free Global Entry appointment alerts on your phone." />
 
-    <meta name="theme-color" content="#4F7FFF" />
+    <meta name="theme-color" content="#4259E8" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -67,22 +67,22 @@
         }
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen font-inter antialiased">
-<a href="#main-content" class="skip-link">Skip to setup form</a>
+<body class="min-h-screen font-inter">
+<a href="#setup" class="skip-link">Skip to setup form</a>
 <noscript>
     <div class="bg-amber-50 border-b border-amber-200 text-amber-800 text-sm text-center py-3 px-4">
         This site needs JavaScript to load enrollment centers and submit alerts. Please enable it in your browser.
     </div>
 </noscript>
 
-<!-- PWA install sheet (contextual — shown when user picks "Install as app") -->
+<!-- PWA install sheet (contextual — shown when user chooses to install) -->
 <div id="pwa-backdrop" class="pwa-backdrop hidden" aria-hidden="true"></div>
 <div id="pwa-install-banner" class="pwa-sheet hidden animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="pwa-sheet-title" tabindex="-1">
     <div class="flex items-start gap-3">
         <img src="icon-192.png" alt="Global Entry Alerts app icon" class="w-12 h-12 rounded-2xl shadow-md shrink-0" width="48" height="48" />
         <div class="flex-1 min-w-0 space-y-1">
-            <p id="pwa-sheet-title" class="font-semibold text-slate-900">Install Global Entry Alerts</p>
-            <p id="pwa-instructions-text" class="text-xs text-slate-500 leading-relaxed">Get instant slot alerts like a native app — lives on your Home Screen.</p>
+            <p id="pwa-sheet-title" class="font-semibold text-ink">Install Global Entry Alerts</p>
+            <p class="text-xs text-muted leading-relaxed">Get instant appointment alerts like a native app — it lives on your Home Screen.</p>
         </div>
         <button type="button" id="btn-pwa-dismiss-x" class="btn-icon-dismiss shrink-0 -mr-1 -mt-1" aria-label="Dismiss install instructions">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -100,149 +100,89 @@
     </div>
     <div class="flex gap-2 mt-4">
         <button type="button" id="pwa-action-btn" class="flex-1 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">Install app</button>
-        <button type="button" id="btn-pwa-dismiss" class="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors">Not now</button>
+        <button type="button" id="btn-pwa-dismiss" class="px-4 py-2.5 bg-paper text-muted rounded-xl text-sm font-medium hover:bg-line transition-colors">Not now</button>
     </div>
 </div>
 
-<div class="min-h-screen py-4 sm:py-10 px-4">
-<div class="max-w-4xl mx-auto space-y-5 sm:space-y-8">
-
-    <!-- Hero — illustrated slot → phone -->
-    <header class="space-y-3 sm:space-y-4 hero-header animate-fade-in-up">
-        <div class="hero-visual">
-            <div class="hero-copy">
-                <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight">
-                    Global Entry Alerts
-                </h1>
-                <p class="hero-tagline text-sm sm:text-lg leading-snug sm:leading-relaxed mt-1 sm:mt-2">
-                    Slot opens → your phone buzzes. Set up in ~30 seconds.
-                </p>
-                <p class="hero-subline sm:hidden text-xs font-medium mt-1">Free · No signup · No account</p>
-            </div>
-
-            <!-- Mobile: compact calendar → notification scene -->
-            <div class="hero-illustration hero-illustration--mobile lg:hidden" role="img" aria-label="Example: calendar shows June 12 slot open, then a push notification for SFO on June 12 at 2:30 PM">
-                <div class="hero-scene-mobile">
-                    <div class="hero-scene-row">
-                        <div class="hero-cal" aria-hidden="true">
-                            <div class="hero-cal-head">JUN</div>
-                            <div class="hero-cal-day">12</div>
-                            <div class="hero-cal-badge">OPEN</div>
-                        </div>
-                        <svg class="hero-flow-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
-                            <path d="M14 8l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div class="hero-notif" aria-hidden="true">
-                            <img src="favicon.png" alt="" class="hero-notif-icon" width="28" height="28" />
-                            <div class="hero-notif-body">
-                                <p class="hero-notif-title">Global Entry Alerts</p>
-                                <p class="hero-notif-msg">SFO — slot open Jun 12 at 2:30 PM</p>
-                                <p class="hero-notif-meta">Tap to view · now</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Desktop: full calendar → phone illustration -->
-            <div class="hero-illustration hero-illustration--desktop hidden lg:block" aria-hidden="true">
-                <svg class="hero-svg" viewBox="0 0 320 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="hero-bg" x1="0" y1="0" x2="320" y2="140" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#E0EAFF"/>
-                            <stop offset="1" stop-color="#F0F4FF"/>
-                        </linearGradient>
-                        <filter id="notif-shadow" x="180" y="36" width="128" height="60" filterUnits="userSpaceOnUse">
-                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
-                        </filter>
-                    </defs>
-                    <rect width="320" height="140" rx="16" fill="url(#hero-bg)"/>
-                    <!-- Calendar / slot -->
-                    <rect x="24" y="28" width="88" height="84" rx="12" fill="white" stroke="#CBD5E1" stroke-width="1.5"/>
-                    <rect x="24" y="28" width="88" height="22" rx="12" fill="#3B6AE6"/>
-                    <rect x="24" y="38" width="88" height="12" fill="#3B6AE6"/>
-                    <text x="68" y="42" text-anchor="middle" fill="white" font-size="9" font-weight="600" font-family="Inter,sans-serif">JUN</text>
-                    <text x="68" y="72" text-anchor="middle" fill="#1E293B" font-size="22" font-weight="700" font-family="Inter,sans-serif">12</text>
-                    <rect x="44" y="82" width="48" height="18" rx="9" fill="#DCFCE7"/>
-                    <text x="68" y="94" text-anchor="middle" fill="#15803D" font-size="8" font-weight="700" font-family="Inter,sans-serif">OPEN</text>
-                    <!-- Pulse arrow -->
-                    <path d="M128 70h36" stroke="#4F7FFF" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4"/>
-                    <path d="M158 64l8 6-8 6" stroke="#4F7FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <!-- Phone -->
-                    <rect x="178" y="22" width="72" height="116" rx="14" fill="#1E293B"/>
-                    <rect x="184" y="32" width="60" height="96" rx="8" fill="#F8FAFC"/>
-                    <rect x="200" y="26" width="28" height="4" rx="2" fill="#334155"/>
-                    <!-- Notification -->
-                    <rect x="192" y="44" width="104" height="44" rx="10" fill="white" stroke="#E2E8F0" stroke-width="1.5" filter="url(#notif-shadow)"/>
-                    <rect x="200" y="52" width="20" height="20" rx="5" fill="#E0EAFF"/>
-                    <text x="210" y="65" text-anchor="middle" fill="#3B6AE6" font-size="10" font-weight="700" font-family="Inter,sans-serif">GE</text>
-                    <text x="226" y="58" fill="#0F172A" font-size="7" font-weight="600" font-family="Inter,sans-serif">Global Entry Alerts</text>
-                    <text x="226" y="70" fill="#64748B" font-size="6.5" font-family="Inter,sans-serif">SFO slot · Jun 12, 2:30 PM</text>
-                    <circle cx="268" cy="88" r="12" fill="#4F7FFF" opacity="0.2" class="hero-pulse"/>
-                </svg>
-            </div>
-        </div>
-
-        <div class="flex flex-wrap justify-center gap-2 hero-trust-badges">
-            <span class="hero-badge">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                100% free
-            </span>
-            <span class="hero-badge">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                No signup
-            </span>
-            <span class="hero-badge sm:hidden">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                ~30 sec
-            </span>
-            <span class="hero-badge hidden sm:inline-flex">
-                <svg class="w-3.5 h-3.5 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                ~30 sec setup
-            </span>
-            <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
-               class="hero-badge hero-badge--link">
-                Open source
+<!-- Top header -->
+<header class="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur supports-[backdrop-filter]:bg-paper/70">
+    <div class="mx-auto max-w-5xl px-5 h-14 flex items-center justify-between gap-4">
+        <a href="/" class="flex items-center gap-2">
+            <img src="favicon.png" alt="" class="h-7 w-7 rounded-lg shadow-sm" width="28" height="28" />
+            <span class="text-sm font-bold tracking-tight text-ink">Global Entry Alerts</span>
+        </a>
+        <div class="flex items-center gap-2.5">
+            <button type="button" id="btn-install-app" class="social-link h-9 hidden" aria-label="Install app on this device" title="Install app">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v10m0 0l-3.5-3.5M12 14l3.5-3.5M5 19h14"/></svg>
+                <span class="text-xs font-semibold">Install app</span>
+            </button>
+            <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" class="social-link h-9" aria-label="Star on GitHub" title="Star on GitHub">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                <span id="gh-star-count" class="text-xs font-semibold tabular-nums"></span>
             </a>
         </div>
-        <p id="social-proof" class="hidden text-center text-xs text-primary-600 font-medium" aria-live="polite"></p>
-    </header>
+    </div>
+</header>
 
-    <main id="main-content" class="grid lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+<main class="mx-auto max-w-5xl px-5 pb-16">
 
-    <!-- Form -->
-    <div class="lg:col-span-2">
-    <div id="setup-instructions" class="bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden">
-        <div class="px-6 sm:px-8 pt-5 sm:pt-6 pb-2 border-b border-slate-100">
-            <h2 class="text-lg font-bold text-slate-900">Set up your alerts</h2>
-            <p class="text-sm text-slate-500 mt-0.5">Three quick steps — most people finish in under 30 seconds.</p>
+    <!-- Hero -->
+    <div class="text-center animate-fade-rise pt-12 sm:pt-16 max-w-2xl mx-auto">
+        <p class="eyebrow"><span class="live-dot"></span> Global Entry appointment alerts</p>
+        <h1 class="display mt-5 text-3xl sm:text-5xl" style="line-height:1.05">
+            The appointment opens.<br class="hidden sm:block" /> Your phone buzzes.
+        </h1>
+        <p class="mt-5 text-base sm:text-lg text-muted leading-relaxed max-w-lg mx-auto">
+            We watch your enrollment center every minute and notify you the moment an appointment frees up — free, no account, cancel anytime.
+        </p>
+
+        <!-- One signature cue: the alert you'll get -->
+        <div class="notif-chip mt-8 animate-fade-rise delay-2">
+            <img src="favicon.png" alt="" class="h-10 w-10 rounded-xl shrink-0" width="40" height="40" />
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-semibold text-ink">Global Entry Alerts</span>
+                    <span class="live-dot" aria-hidden="true"></span>
+                </div>
+                <p class="text-sm text-muted leading-snug">SFO — appointment open Jun 12 at 2:30 PM</p>
+            </div>
         </div>
-        <form id="alert-form" class="p-6 sm:p-8 space-y-6">
+        <p id="social-proof" class="hidden mt-4 text-xs font-medium text-primary-600" aria-live="polite"></p>
+    </div>
+
+    <!-- Form + supporting rail -->
+    <div class="mt-10 lg:mt-14 lg:grid lg:grid-cols-5 lg:gap-10 lg:items-start">
+
+    <!-- Setup form -->
+    <section id="setup" class="panel p-6 sm:p-8 animate-fade-rise delay-1 lg:col-span-3">
+        <h2 class="text-lg font-bold text-ink">Set up your alert</h2>
+        <p class="hint mt-1">Three quick steps — most people finish in under a minute.</p>
+
+        <form id="alert-form" class="mt-6 space-y-7">
 
             <!-- 1. Location -->
             <div class="space-y-2">
-                <label for="location-search" class="block text-sm font-semibold text-slate-800">1. Enrollment center</label>
+                <label for="location-search" class="field-label"><span class="field-num">1</span> Enrollment center</label>
                 <input type="hidden" id="location" name="location" value="" />
                 <div class="relative">
-                    <svg class="w-5 h-5 text-slate-500 absolute left-3 top-3.5 pointer-events-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-faint absolute left-3 top-3.5 pointer-events-none" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
-                    <input type="search" id="location-search" autocomplete="off" disabled placeholder="Loading locations…"
+                    <input type="search" id="location-search" autocomplete="off" disabled placeholder="Loading centers…"
                            class="field-input pl-10" role="combobox" aria-expanded="false" aria-controls="location-list"
                            aria-autocomplete="list" aria-haspopup="listbox" aria-describedby="location-hint" />
                 </div>
-                <p id="location-hint" class="text-xs text-slate-600">Search by city, airport code, or ZIP — e.g. SFO, Miami, 10001.</p>
+                <p id="location-hint" class="hint">Search by city, airport code, or ZIP — e.g. SFO, Miami, 10001.</p>
                 <p id="location-summary" class="hidden rounded-xl border border-primary-200 bg-primary-50 px-3 py-2.5 text-sm" role="status"></p>
-                <div id="location-list" class="hidden max-h-48 overflow-y-auto overscroll-y-contain rounded-xl border border-slate-200 bg-white divide-y divide-slate-100" role="listbox" aria-label="Enrollment centers"></div>
+                <div id="location-list" class="hidden max-h-56 overflow-y-auto overscroll-y-contain rounded-xl border border-line bg-surface divide-y divide-line" role="listbox" aria-label="Enrollment centers"></div>
             </div>
 
             <!-- 2. Date -->
             <div id="date-field" class="space-y-2">
-                <label for="date" class="block text-sm font-semibold text-slate-800">2. Latest acceptable date</label>
+                <label for="date" class="field-label"><span class="field-num">2</span> Latest acceptable date</label>
                 <input type="date" id="date" name="date" required class="field-input" aria-describedby="date-hint" />
-                <p id="date-hint" class="text-xs text-slate-600">We'll alert you about slots on or before this date. Pre-filled one year out — change if you need sooner.</p>
+                <p id="date-hint" class="hint">We'll alert you about appointments on or before this date. Pre-filled a year out — change if you need sooner.</p>
             </div>
 
             <!-- Unsubscribe banner -->
@@ -253,1091 +193,346 @@
 
             <!-- 3. Notification method -->
             <fieldset id="notify-fieldset" class="space-y-3 border-0 p-0 m-0 min-w-0">
-                <legend class="fieldset-legend">3. How should we notify you?</legend>
-                <p id="notify-fieldset-hint" class="text-xs text-slate-600 -mt-1 mb-2">We picked the best option for your device — switch below if you prefer another.</p>
+                <legend class="field-label mb-1"><span class="field-num">3</span> Get notified</legend>
 
                 <input type="radio" name="notify-channel" id="channel-web" value="web" class="sr-only" checked />
                 <input type="radio" name="notify-channel" id="channel-ntfy" value="ntfy" class="sr-only" />
 
-                <div id="channel-web-wrap">
-                    <label id="web-push-label-row" for="channel-web" class="channel-card channel-card--solo cursor-pointer">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                            </svg>
+                <!-- Desktop → QR bridge to the phone (the device you actually want buzzing) -->
+                <div id="notify-qr" class="notify-block hidden">
+                    <div class="notify-head">
+                        <span class="notify-glyph">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path stroke-linecap="round" d="M11 18h2"/></svg>
                         </span>
-                        <span id="web-label-text" class="font-semibold text-sm text-slate-900">Install as app</span>
-                        <span id="web-label-subtext" class="text-xs text-slate-500 leading-relaxed">Add to Home Screen for push alerts on this device.</span>
-                        <span id="web-label-badge" class="text-xs font-medium text-primary-600">Recommended on this device</span>
-                    </label>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-ink">Get alerts on your phone</p>
+                            <p class="hint mt-0.5">That's where you want the buzz. Scan to finish setup on your phone in seconds.</p>
+                        </div>
+                    </div>
+                    <div class="qr-frame mt-4"><svg viewBox="0 0 29 29" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="QR code linking to getglobalentryalerts.com"><path fill="#2A2723" d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM15 0h1v1h-1zM16 0h1v1h-1zM18 0h1v1h-1zM19 0h1v1h-1zM20 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM25 0h1v1h-1zM26 0h1v1h-1zM27 0h1v1h-1zM28 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM12 1h1v1h-1zM14 1h1v1h-1zM15 1h1v1h-1zM17 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM10 2h1v1h-1zM11 2h1v1h-1zM12 2h1v1h-1zM13 2h1v1h-1zM14 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM19 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM8 3h1v1h-1zM9 3h1v1h-1zM12 3h1v1h-1zM16 3h1v1h-1zM17 3h1v1h-1zM19 3h1v1h-1zM20 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM25 3h1v1h-1zM26 3h1v1h-1zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM18 5h1v1h-1zM19 5h1v1h-1zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM25 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM8 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM17 7h1v1h-1zM19 7h1v1h-1zM20 7h1v1h-1zM0 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM10 8h1v1h-1zM13 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM25 8h1v1h-1zM27 8h1v1h-1zM28 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM9 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM15 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM24 9h1v1h-1zM28 9h1v1h-1zM0 10h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM9 10h1v1h-1zM11 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM1 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM18 11h1v1h-1zM19 11h1v1h-1zM20 11h1v1h-1zM22 11h1v1h-1zM23 11h1v1h-1zM28 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM3 12h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM12 12h1v1h-1zM17 12h1v1h-1zM20 12h1v1h-1zM25 12h1v1h-1zM26 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM4 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM13 13h1v1h-1zM17 13h1v1h-1zM18 13h1v1h-1zM19 13h1v1h-1zM22 13h1v1h-1zM26 13h1v1h-1zM27 13h1v1h-1zM28 13h1v1h-1zM2 14h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM8 14h1v1h-1zM9 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM17 14h1v1h-1zM19 14h1v1h-1zM21 14h1v1h-1zM26 14h1v1h-1zM27 14h1v1h-1zM28 14h1v1h-1zM2 15h1v1h-1zM5 15h1v1h-1zM8 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM20 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM24 15h1v1h-1zM27 15h1v1h-1zM0 16h1v1h-1zM1 16h1v1h-1zM2 16h1v1h-1zM6 16h1v1h-1zM7 16h1v1h-1zM9 16h1v1h-1zM11 16h1v1h-1zM15 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM24 16h1v1h-1zM25 16h1v1h-1zM27 16h1v1h-1zM1 17h1v1h-1zM4 17h1v1h-1zM7 17h1v1h-1zM9 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM26 17h1v1h-1zM27 17h1v1h-1zM0 18h1v1h-1zM3 18h1v1h-1zM4 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM26 18h1v1h-1zM2 19h1v1h-1zM3 19h1v1h-1zM4 19h1v1h-1zM5 19h1v1h-1zM11 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM22 19h1v1h-1zM26 19h1v1h-1zM1 20h1v1h-1zM2 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM11 20h1v1h-1zM13 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM18 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM8 21h1v1h-1zM13 21h1v1h-1zM14 21h1v1h-1zM16 21h1v1h-1zM20 21h1v1h-1zM24 21h1v1h-1zM25 21h1v1h-1zM26 21h1v1h-1zM27 21h1v1h-1zM28 21h1v1h-1zM0 22h1v1h-1zM1 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM13 22h1v1h-1zM16 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM27 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM9 23h1v1h-1zM10 23h1v1h-1zM11 23h1v1h-1zM15 23h1v1h-1zM18 23h1v1h-1zM20 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM27 23h1v1h-1zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM9 24h1v1h-1zM10 24h1v1h-1zM14 24h1v1h-1zM17 24h1v1h-1zM18 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM27 24h1v1h-1zM0 25h1v1h-1zM2 25h1v1h-1zM3 25h1v1h-1zM4 25h1v1h-1zM6 25h1v1h-1zM8 25h1v1h-1zM9 25h1v1h-1zM12 25h1v1h-1zM13 25h1v1h-1zM14 25h1v1h-1zM15 25h1v1h-1zM16 25h1v1h-1zM20 25h1v1h-1zM21 25h1v1h-1zM23 25h1v1h-1zM24 25h1v1h-1zM25 25h1v1h-1zM28 25h1v1h-1zM0 26h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM13 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM20 26h1v1h-1zM23 26h1v1h-1zM26 26h1v1h-1zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h1v1h-1zM13 27h1v1h-1zM14 27h1v1h-1zM18 27h1v1h-1zM20 27h1v1h-1zM21 27h1v1h-1zM23 27h1v1h-1zM25 27h1v1h-1zM27 27h1v1h-1zM0 28h1v1h-1zM1 28h1v1h-1zM2 28h1v1h-1zM3 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM10 28h1v1h-1zM13 28h1v1h-1zM18 28h1v1h-1zM19 28h1v1h-1zM20 28h1v1h-1zM21 28h1v1h-1zM27 28h1v1h-1z"/></svg></div>
+                    <p class="hint text-center mt-2">Point your phone camera at the code</p>
+                    <div class="mt-3 text-center">
+                        <button type="button" id="btn-desktop-push" class="btn-quiet underline">Or get alerts on this computer</button>
+                    </div>
                 </div>
 
-                <div id="channel-ntfy-wrap" class="hidden">
-                    <label id="ntfy-label-row" for="channel-ntfy" class="channel-card channel-card--solo cursor-pointer">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                            </svg>
+                <!-- Phone / installed app → turn on push right here -->
+                <div id="notify-push" class="notify-block hidden">
+                    <div class="notify-head">
+                        <span class="notify-glyph">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                         </span>
-                        <span id="ntfy-label-text" class="font-semibold text-sm text-slate-900">ntfy app</span>
-                        <span id="ntfy-label-subtext" class="text-xs text-slate-500 leading-relaxed">Free app — reliable alerts when your browser is closed.</span>
-                        <span id="ntfy-label-badge" class="text-xs font-medium text-primary-600">Recommended on this device</span>
-                    </label>
+                        <div class="min-w-0">
+                            <p id="push-title" class="text-sm font-semibold text-ink">Turn on instant alerts</p>
+                            <p id="push-sub" class="hint mt-0.5">We'll notify this device the moment an appointment opens — only when there's news, never spam.</p>
+                        </div>
+                    </div>
+
+                    <div id="ios-install-steps" class="hidden mt-4 space-y-2">
+                        <div class="step-row"><span class="step-dot">1</span><span>In Safari, tap <strong class="text-ink">Share</strong> → <strong class="text-ink">Add to Home Screen</strong>.</span></div>
+                        <div class="step-row"><span class="step-dot">2</span><span>Open <strong class="text-ink">Global Entry Alerts</strong> from your Home Screen.</span></div>
+                        <div class="step-row"><span class="step-dot">3</span><span>In the app, tap <strong class="text-ink">Turn on notifications</strong>.</span></div>
+                    </div>
+
+                    <button type="button" id="btn-enable-push" class="btn-primary mt-4">Turn on notifications</button>
+                    <p id="enable-push-status" class="text-xs min-h-[1.25rem] mt-2" aria-live="polite"></p>
+                    <p id="push-unavailable" class="hidden warn-note mt-2"></p>
                 </div>
 
-                <p class="text-center pt-1">
-                    <button type="button" id="btn-switch-channel"
-                            class="text-xs font-medium text-primary-600 hover:text-primary-800 underline underline-offset-2 transition-colors min-h-11 px-3">
-                        Use ntfy app instead
-                    </button>
-                </p>
-
-                <!-- Web push: install → allow notifications -->
-                <div id="web-push-setup" class="hidden setup-panel" role="group" aria-labelledby="web-push-setup-heading">
-                    <p id="web-push-setup-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Set up alerts</p>
-                    <p id="pwa-installed-hint" class="hidden text-xs text-green-800 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-                        ✓ You're in the installed app — just turn on notifications below.
-                    </p>
-                    <p id="web-push-unavailable" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"></p>
-
-                    <div id="web-step-install" class="setup-step">
-                    <div id="step-install-wrap">
-                        <div class="flex gap-3">
-                            <div id="step-install-marker" class="step-dot">1</div>
-                            <div class="flex-1 min-w-0 pb-1">
-                                <p class="text-sm font-semibold text-slate-900">Add to Home Screen</p>
-                                <div class="setup-step-collapsible">
-                                <p class="text-xs text-slate-500 mt-0.5">Required on iPhone for background alerts.</p>
-                                <div id="ios-pwa-hint" class="hidden mt-3 space-y-2">
-                                    <div class="ios-share-hint"><span>1. Open this page in <strong>Safari</strong></span></div>
-                                    <div class="ios-share-hint">
-                                        <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                        <span>2. Tap <strong>Share</strong> → <strong>Add to Home Screen</strong></span>
-                                    </div>
-                                    <div class="ios-share-hint"><span>3. Open the app from your Home Screen</span></div>
-                                </div>
-                                <p id="android-pwa-hint" class="hidden text-xs text-slate-500 mt-2">
-                                    Chrome <strong>⋮</strong> menu → <strong>Install app</strong>, or use the install prompt below.
-                                </p>
-                                </div>
+                <!-- ntfy fallback — quiet, collapsed -->
+                <details id="ntfy-details" class="rounded-2xl border border-line bg-paper/40 px-4">
+                    <summary class="ntfy-toggle">
+                        <span>Prefer a separate app? Use <strong class="text-ink">ntfy</strong> instead</span>
+                        <svg class="ntfy-toggle-caret" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </summary>
+                    <div class="pb-4 space-y-4">
+                        <div class="space-y-2">
+                            <p class="text-xs font-medium text-muted">Your private channel</p>
+                            <div class="ntfy-topic-row">
+                                <input type="text" id="ntfy-topic-input" autocomplete="off" spellcheck="false" inputmode="verbatim"
+                                       class="ntfy-topic-input" aria-label="Your ntfy channel name"
+                                       aria-describedby="ntfy-topic-hint ntfy-topic-error" />
+                                <button type="button" id="btn-copy-topic" class="ntfy-copy-btn" aria-label="Copy channel name">Copy</button>
                             </div>
+                            <p id="ntfy-topic-hint" class="hint">Tap to edit · letters, numbers, <strong>-</strong> and <strong>_</strong> only</p>
+                            <p id="ntfy-topic-error" class="hidden text-xs text-red-600" role="alert">Use letters, numbers, underscores, and hyphens only.</p>
+                            <button type="button" id="btn-regenerate-topic" class="btn-quiet underline">Generate a new name</button>
                         </div>
-                        <div id="step-connector" class="step-connector"></div>
-                    </div>
-                    </div>
-
-                    <div id="web-step-enable" class="setup-step flex gap-3">
-                        <div id="step-enable-marker" class="step-dot">2</div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900">Allow notifications</p>
-                            <div class="setup-step-collapsible">
-                            <p class="text-xs text-slate-500 mt-0.5">We only alert you when a slot opens — no spam.</p>
-                            <div id="web-push-enable-row" class="hidden mt-3 space-y-2">
-                                <button type="button" id="btn-enable-push"
-                                        aria-label="Turn on push notifications for this device"
-                                        class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
-                                    Turn on notifications
-                                </button>
-                            </div>
-                            <p id="enable-push-status" class="text-xs text-red-600 min-h-[1.25rem] mt-1" aria-live="polite"></p>
-                            <p id="pwa-ntfy-escape" class="hidden text-xs text-slate-600 mt-3 leading-relaxed">
-                                Having trouble with notifications?
-                                <a id="pwa-ntfy-escape-link" href="/" class="text-primary-600 hover:text-primary-800 underline underline-offset-2 font-medium">Open this page in Safari</a>
-                                to use the ntfy app instead.
-                            </p>
-                            </div>
-                            <p id="step-enable-blocked" class="hidden text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                                Notifications are blocked. Enable them in your browser settings for this site, then try again.
-                            </p>
+                        <ol id="ntfy-steps" class="space-y-1.5">
+                            <li class="step-row"><span class="step-dot">1</span><span>Install ntfy —
+                                <a id="ntfy-link-appstore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline">App Store</a>
+                                <span class="text-faint">/</span>
+                                <a id="ntfy-link-playstore" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer" class="text-primary-600 underline">Google Play</a>.
+                            </span></li>
+                            <li class="step-row"><span class="step-dot">2</span><span>In ntfy, tap <strong class="text-ink">+</strong> → <strong class="text-ink">Subscribe to topic</strong> and paste the channel above.</span></li>
+                            <li class="step-row"><span class="step-dot">3</span><span>Confirm below — then you're ready to subscribe.</span></li>
+                        </ol>
+                        <div>
+                            <button type="button" id="btn-ntfy-confirm" class="btn-primary">I've subscribed in ntfy</button>
+                            <p id="ntfy-confirm-hint" class="hint text-center mt-2">Copy your channel and subscribe in the ntfy app first.</p>
                         </div>
                     </div>
-                </div>
+                </details>
 
-                <!-- ntfy setup: manual subscribe (same flow on iOS & Android) -->
-                <div id="ntfy-setup" class="hidden setup-panel" role="group" aria-labelledby="ntfy-setup-heading">
-                    <p id="ntfy-setup-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Set up ntfy</p>
-
-                    <div id="ntfy-step-1" class="setup-step flex gap-3">
-                        <div class="step-dot" id="ntfy-step-dot-1" aria-hidden="true">1</div>
-                        <div class="flex-1">
-                            <p class="text-sm font-semibold text-slate-900">Get the ntfy app</p>
-                            <div class="setup-step-collapsible">
-                                <p class="text-xs text-slate-500 mt-0.5">Free — alerts arrive even when this browser is closed.</p>
-                                <div class="flex flex-wrap items-center gap-2 mt-2">
-                                    <a id="ntfy-link-appstore" href="https://apps.apple.com/us/app/ntfy/id1625396347" target="_blank" rel="noopener noreferrer"
-                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
-                                        App Store
-                                    </a>
-                                    <a id="ntfy-link-playstore" href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener noreferrer"
-                                       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-primary-400 hover:text-primary-700 transition-colors min-h-11">
-                                        Google Play
-                                    </a>
-                                    <button type="button" id="btn-ntfy-have-app"
-                                            aria-label="Skip — I already have the ntfy app installed"
-                                            class="text-xs font-medium text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11 px-1">
-                                        Already installed
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="step-connector" aria-hidden="true"></div>
-                    <div id="ntfy-step-2" class="setup-step flex gap-3">
-                        <div class="step-dot" id="ntfy-step-dot-2" aria-hidden="true">2</div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900">Copy your private channel</p>
-                            <div class="ntfy-topic-card mt-3">
-                                <p class="text-xs font-medium text-slate-600" id="ntfy-topic-label">Your channel name</p>
-                                <div class="ntfy-topic-display mt-1.5">
-                                    <input type="text" id="ntfy-topic-input" autocomplete="off" spellcheck="false" inputmode="verbatim"
-                                           class="ntfy-topic-input field-input"
-                                           aria-labelledby="ntfy-topic-label"
-                                           aria-describedby="ntfy-topic-hint ntfy-topic-steps ntfy-topic-error" />
-                                    <button type="button" id="btn-copy-topic"
-                                            aria-label="Copy channel name to clipboard"
-                                            class="ntfy-copy-btn px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors shrink-0">
-                                        Copy
-                                    </button>
-                                </div>
-                                <p id="ntfy-topic-hint" class="text-[11px] text-slate-500 mt-1">Tap to edit · letters, numbers, <strong>-</strong> and <strong>_</strong> only</p>
-                                <p id="ntfy-topic-error" class="hidden text-xs text-red-600 mt-1" role="alert">Use letters, numbers, underscores, and hyphens only.</p>
-                                <button type="button" id="btn-regenerate-topic"
-                                        class="mt-2 text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 min-h-11">
-                                    Generate a new name
-                                </button>
-                                <div class="setup-step-collapsible">
-                                <ol id="ntfy-topic-steps" class="ntfy-steps mt-3" aria-label="How to subscribe in ntfy">
-                                    <li>Open <strong>ntfy</strong></li>
-                                    <li>Tap <strong>+</strong> → <strong>Subscribe to topic</strong></li>
-                                    <li>Paste your channel name → <strong>Subscribe</strong></li>
-                                </ol>
-                                </div>
-                            </div>
-                            <input type="hidden" id="topic" name="topic" />
-                        </div>
-                    </div>
-                    <div class="step-connector" aria-hidden="true"></div>
-                    <div id="ntfy-step-3" class="setup-step flex gap-3">
-                        <div class="step-dot" id="ntfy-step-dot-3" aria-hidden="true">3</div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900">Confirm you're subscribed</p>
-                            <div class="setup-step-collapsible">
-                            <p class="text-xs text-slate-500 mt-0.5">Return here after subscribing in ntfy.</p>
-                            <button type="button" id="btn-ntfy-confirm" disabled
-                                    aria-label="Confirm you subscribed to this channel in the ntfy app"
-                                    aria-describedby="ntfy-confirm-hint"
-                                    class="mt-3 flex w-full items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary-600">
-                                I've subscribed in ntfy
-                            </button>
-                            <p id="ntfy-confirm-hint" class="text-xs text-slate-500 mt-2 text-center">Copy your channel name first.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <input type="hidden" id="topic" name="topic" />
             </fieldset>
 
             <input type="hidden" id="action-field" name="action" value="subscribe" />
             <input type="hidden" id="recaptcha_token" name="recaptcha_token" />
 
-            <div id="readiness-wrap" class="space-y-2">
-                <p id="readiness-heading" class="text-xs font-semibold text-slate-600 uppercase tracking-wide">Ready to subscribe?</p>
-                <ul id="readiness-checklist" class="readiness-list" aria-labelledby="readiness-heading">
-                    <li id="check-location" class="readiness-item readiness-item--pending">
-                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">1</span>
-                        <span id="check-location-text">Pick your enrollment center</span>
-                    </li>
-                    <li id="check-date" class="readiness-item readiness-item--pending">
-                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">2</span>
-                        <span id="check-date-text">Choose your latest acceptable date</span>
-                    </li>
-                    <li id="check-notify" class="readiness-item readiness-item--pending">
-                        <span class="readiness-icon readiness-icon--pending" aria-hidden="true">3</span>
-                        <span id="check-notify-text">Turn on notifications</span>
-                    </li>
-                </ul>
-                <p id="readiness-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></p>
-            </div>
-
-            <div class="pt-2 space-y-3 border-t border-slate-100">
+            <div class="pt-1 space-y-3">
                 <button type="submit" id="submit-btn" disabled
-                        aria-describedby="readiness-checklist notify-fieldset-hint"
-                        class="w-full py-4 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:saturate-75 g-recaptcha"
+                        class="btn-submit g-recaptcha"
                         data-sitekey="6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-"
                         data-callback="onSubmit"
                         data-action="submit">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                    </svg>
-                    Start Receiving Alerts
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    Start receiving alerts
                 </button>
                 <p id="status" class="text-center font-medium text-sm" role="status" aria-live="polite"></p>
-                <p class="text-center text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
-                    No account required. We use reCAPTCHA to block spam — not to collect personal info.
-                    <a href="https://github.com/arun0009/global-entry-appointment" class="text-primary-600 hover:text-primary-800 underline underline-offset-2">Open source &amp; privacy</a>
+                <p class="text-center text-xs text-muted leading-relaxed">
+                    No account required &middot; <a href="https://github.com/arun0009/global-entry-appointment" class="text-primary-600 hover:text-primary-700 underline underline-offset-2">open source</a>.
+                    Protected by reCAPTCHA — Google's
+                    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-ink">Privacy Policy</a> and
+                    <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" class="underline underline-offset-2 hover:text-ink">Terms</a> apply.
                 </p>
                 <p class="text-center">
-                    <button type="button" id="btn-toggle-unsub"
-                            class="text-xs text-slate-600 hover:text-slate-800 underline underline-offset-2 transition-colors min-h-11 px-3">
-                        Already subscribed? Stop alerts
-                    </button>
+                    <button type="button" id="btn-toggle-unsub" class="btn-quiet underline">Already subscribed? Stop alerts</button>
                 </p>
             </div>
         </form>
-    </div>
-    </div><!-- /form column -->
+    </section>
 
-    <!-- Sidebar -->
-    <aside class="space-y-5 lg:sticky lg:top-6" aria-label="Help, preview, and support">
-
-        <!-- Alert preview (desktop) -->
-        <div class="sidebar-panel hidden lg:block">
-            <h3 class="text-sm font-bold text-slate-900 mb-3">What you'll receive</h3>
-            <div class="notif-preview-phone !max-w-none" role="img" aria-label="Example: push notification when an SFO slot opens on June 12 at 2:30 PM">
-                <div class="notif-preview-screen !rounded-xl">
-                    <div class="notif-preview-card">
-                        <div class="flex items-start gap-2.5">
-                            <img src="favicon.png" alt="" class="w-9 h-9 rounded-lg shrink-0" width="36" height="36" />
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <p class="text-xs font-semibold text-slate-900">Global Entry Alerts</p>
-                                    <p class="text-[10px] text-slate-500 shrink-0">now</p>
-                                </div>
-                                <p class="text-xs text-slate-600 mt-0.5 leading-snug">SFO — slot open Jun 12 at 2:30 PM</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-3 leading-relaxed">Instant push when an opening appears at your center — no need to refresh the CBP site.</p>
-        </div>
-
-        <!-- How it works -->
-        <div class="sidebar-panel">
-            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2 mb-4">
-                <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                How it works
-            </h3>
-            <ol class="space-y-3">
-                <li class="flex gap-3 text-sm text-slate-600">
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">1</span>
-                    <span>Pick your enrollment center and latest acceptable date.</span>
-                </li>
-                <li class="flex gap-3 text-sm text-slate-600">
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">2</span>
-                    <span>Turn on notifications — we pick the fastest method for your phone.</span>
-                </li>
-                <li class="flex gap-3 text-sm text-slate-600">
-                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">3</span>
-                    <span>We check every minute and alert you instantly.</span>
-                </li>
+    <!-- Supporting rail -->
+    <aside class="mt-10 lg:mt-0 lg:col-span-2 lg:sticky lg:top-20 space-y-8">
+        <div>
+            <p class="eyebrow">How it works</p>
+            <ol class="mt-5 space-y-4">
+                <li class="flex gap-3 text-sm text-muted"><span class="how-num">1</span><span class="pt-1">Pick your enrollment center and latest acceptable date.</span></li>
+                <li class="flex gap-3 text-sm text-muted"><span class="how-num">2</span><span class="pt-1">Turn on alerts — push on your phone, or the ntfy app.</span></li>
+                <li class="flex gap-3 text-sm text-muted"><span class="how-num">3</span><span class="pt-1">We check every minute and notify you the instant an appointment opens.</span></li>
             </ol>
-            <p class="text-xs text-slate-600 mt-4 pt-4 border-t border-slate-100 leading-relaxed">
-                Each subscription sends up to <strong class="text-slate-500">30 alerts</strong> or runs for <strong class="text-slate-500">30 days</strong> — whichever comes first.
-            </p>
+            <p class="hint mt-5">Each subscription sends up to <strong class="text-ink">30 alerts</strong> or runs for <strong class="text-ink">30 days</strong> — whichever comes first.</p>
         </div>
 
-        <!-- Support -->
-        <div class="sidebar-panel text-center">
-            <h3 class="text-sm font-bold text-slate-900 mb-3">Support this project</h3>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Free and open source — if it saved you time, consider buying me a coffee.</p>
-            <a href="https://www.buymeacoffee.com/arun0009" target="_blank" rel="noopener noreferrer" class="inline-block">
-                <img id="bmc-button" alt="Buy me a coffee" width="217" height="60" loading="lazy" decoding="async"
-                     style="display:block;height:48px;width:auto;max-width:100%;margin:0 auto;" />
+        <div class="pt-8 border-t border-line">
+            <p class="eyebrow">Support</p>
+            <p class="mt-4 text-sm text-muted leading-relaxed">Free, open source, no ads. If it caught you an appointment, a coffee keeps it running.</p>
+            <div class="mt-4 flex justify-center">
+            <a href="https://www.buymeacoffee.com/arun0009" target="_blank" rel="noopener noreferrer" class="coffee-link">
+                <svg class="coffee-glyph shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M20.216 6.415l-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196-.366-.231-.572-.065-.378-.125-.756-.192-1.133-.057-.325-.102-.69-.25-.987-.195-.4-.597-.634-.996-.788a5.723 5.723 0 00-.626-.194c-1-.263-2.05-.36-3.077-.416a25.834 25.834 0 00-3.7.062c-.915.083-1.88.184-2.75.5-.318.116-.646.256-.888.501-.297.302-.393.77-.177 1.146.154.267.415.456.692.58.36.162.737.284 1.123.366 1.075.238 2.189.331 3.287.37 1.218.05 2.437.01 3.65-.118.299-.033.598-.073.896-.119.352-.054.578-.513.474-.834-.124-.383-.457-.531-.834-.473-.466.074-.96.108-1.382.146-1.177.08-2.358.082-3.536.006a22.228 22.228 0 01-1.157-.107c-.086-.01-.18-.025-.258-.036-.243-.036-.484-.08-.724-.13-.111-.027-.111-.185 0-.212h.005c.277-.06.557-.108.838-.147h.002c.131-.009.263-.032.394-.048a25.076 25.076 0 013.426-.12c.674.019 1.347.067 2.017.144l.228.031c.267.04.533.088.798.145.392.085.895.113 1.07.542.055.137.08.288.111.431l.319 1.484a.237.237 0 01-.199.284h-.003c-.037.006-.075.01-.112.015a36.704 36.704 0 01-4.743.295 37.059 37.059 0 01-4.699-.304c-.14-.017-.293-.042-.417-.06-.326-.048-.649-.108-.973-.161-.393-.065-.768-.032-1.123.161-.29.16-.527.404-.675.701-.154.316-.199.66-.267 1-.069.34-.176.707-.135 1.056.087.753.613 1.365 1.37 1.502a39.69 39.69 0 0011.343.376.483.483 0 01.535.53l-.071.697-1.018 9.907c-.041.41-.047.832-.125 1.237-.122.637-.553 1.028-1.182 1.171-.577.131-1.165.2-1.756.205-.656.004-1.31-.025-1.966-.022-.699.004-1.556-.06-2.095-.58-.475-.458-.54-1.174-.605-1.793l-.731-7.013-.322-3.094c-.037-.351-.286-.695-.678-.678-.336.015-.718.3-.678.679l.228 2.185.949 9.112c.147 1.344 1.174 2.068 2.446 2.272.742.12 1.503.144 2.257.156.966.016 1.942.053 2.892-.122 1.408-.258 2.465-1.198 2.616-2.657.34-3.332.683-6.663 1.024-9.995l.215-2.087a.484.484 0 01.39-.426c.402-.078.787-.212 1.074-.518.455-.488.546-1.124.385-1.766zm-1.478.772c-.145.137-.363.201-.578.233-2.416.359-4.866.54-7.308.46-1.748-.06-3.477-.254-5.207-.498-.17-.024-.353-.055-.47-.18-.22-.236-.111-.71-.054-.995.052-.26.152-.609.463-.646.484-.057 1.046.148 1.526.22.577.088 1.156.159 1.737.212 2.48.226 5.002.19 7.472-.14.45-.06.899-.13 1.345-.21.399-.072.84-.206 1.08.206.166.281.188.657.162.974a.544.544 0 01-.169.364zm-6.159 3.9c-.862.37-1.84.788-3.109.788a5.884 5.884 0 01-1.569-.217l.877 9.004c.065.78.717 1.38 1.5 1.38 0 0 1.243.065 1.658.065.447 0 1.786-.065 1.786-.065.783 0 1.434-.6 1.499-1.38l.94-9.95a3.996 3.996 0 00-1.322-.238c-.826 0-1.491.284-2.26.613z"/>
+                </svg>
+                <span class="coffee-label">Buy me a coffee</span>
+                <span id="bmc-supporter-count" class="coffee-count hidden">
+                    <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <span id="bmc-supporter-num"></span>
+                </span>
             </a>
-            <p id="bmc-supporter-count" class="hidden text-xs text-slate-600 mt-2" aria-live="polite"></p>
-            <script>
-                document.getElementById("bmc-button").src =
-                    "https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=&slug=arun0009&button_colour=5F7FFF&font_colour=ffffff&font_family=Inter&outline_colour=000000&coffee_colour=FFDD00&_=" + Date.now();
-            </script>
-            <div class="flex flex-wrap justify-center items-center gap-2 pt-4 mt-4 border-t border-slate-100">
-                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer"
-                   aria-label="View project on GitHub" title="Star on GitHub"
-                   class="social-link">
-                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                    <span id="gh-star-count" class="text-xs font-semibold tabular-nums"></span>
+            </div>
+            <div class="mt-6 flex items-center justify-center gap-5">
+                <a href="https://github.com/arun0009/global-entry-appointment" target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub" class="meta-icon">
+                    <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                 </a>
-                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" aria-label="Follow on X"
-                   class="social-link">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <a href="https://x.com/agopalpuri" target="_blank" rel="noopener noreferrer" aria-label="Follow on X" class="meta-icon">
+                    <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
-                <a href="https://www.reddit.com/user/Excellent-Rule-7887/" target="_blank" rel="noopener noreferrer" aria-label="Reddit profile"
-                   class="social-link">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                <a href="https://www.reddit.com/user/Excellent-Rule-7887/" target="_blank" rel="noopener noreferrer" aria-label="Reddit profile" class="meta-icon">
+                    <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
                 </a>
             </div>
         </div>
-
     </aside>
 
-    </main><!-- /main -->
-</div><!-- /max-w-4xl -->
-</div><!-- /min-h-screen -->
+    </div><!-- /grid -->
+</main>
+
+<footer class="mt-4">
+    <div class="mx-auto max-w-5xl px-5 py-8 text-center text-xs text-faint">
+        Not affiliated with U.S. Customs and Border Protection.
+    </div>
+</footer>
 
 <script>
     const API_BASE = "https://52vuz4sy6kozejx3ams5kagm7u0htxal.lambda-url.us-east-1.on.aws";
+    const SITE_URL = "https://getglobalentryalerts.com/";
     const LS_WEB_PUSH = "gea_web_push_endpoint";
     const LS_NTFY_TOPIC = "gea_ntfy_topic";
-    const LS_NTFY_INSTALL = "gea_ntfy_install";
-    const LS_NTFY_COPIED = "gea_ntfy_copied";
-    const LS_NTFY_CONFIRMED = "gea_ntfy_opened";
+    const LS_NTFY_CONFIRMED = "gea_ntfy_confirmed";
 
     let globalLocations = [];
     let geaVapidPublicKey = null;
-    let geaFormWasReady = false;
-    let locationActiveIndex = -1;
-    /** True when GET /subscriptions reports Web Push is configured (VAPID); not the same as "user may check This device". */
     let geaWebPushServerEnabled = false;
+    let webPushReady = false;
+    let locationActiveIndex = -1;
+    let geaPushUsable = false;
 
+    /* ---------- small helpers ---------- */
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+    function isAndroid() {
+        return /Android/i.test(navigator.userAgent || "") && !isIOS();
+    }
+    function isStandalonePWA() {
+        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+    function isMobile() {
+        return isIOS() || isAndroid();
+    }
+    function pushCapable() {
+        return "serviceWorker" in navigator && "PushManager" in window;
+    }
     function getActiveChannel() {
-        const web = document.getElementById("channel-web");
-        return web?.checked ? "web" : "ntfy";
+        return document.getElementById("channel-web")?.checked ? "web" : "ntfy";
     }
-
-    function pickDefaultChannel(meta) {
-        const ui = resolveWebPushUi(meta);
-        if (ui.disableThisDevice) return "ntfy";
-        // Installed GE Alerts PWA → web push only (ntfy deep links break in standalone)
-        if (isStandalonePWA()) return "web";
-        if (isIOS()) return "ntfy";
-        if (meta.serverReady) return "web";
-        return "ntfy";
+    function escapeHtml(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-
-    /** ntfy is a Safari/Android-browser path — not for the installed GE Alerts app. */
-    function shouldOfferNtfyChannel() {
-        return !isStandalonePWA();
-    }
-
-    function updateNotifyFieldsetHint() {
-        const hint = document.getElementById("notify-fieldset-hint");
-        if (!hint) return;
-        if (!shouldOfferNtfyChannel()) {
-            hint.textContent = "Turn on notifications below to receive alerts in this app.";
-        } else if (getActiveChannel() === "ntfy") {
-            hint.textContent = "Follow the steps below to connect the ntfy app — switch if you'd rather install GE Alerts instead.";
-        } else if (isIOS() && !isStandalonePWA()) {
-            hint.textContent = "Add to Home Screen for the fastest alerts — or switch to the ntfy app.";
-        } else {
-            hint.textContent = "We picked the best option for your device — switch below if you prefer another.";
-        }
-    }
-
-    function updatePwaNtfyEscape() {
-        const el = document.getElementById("pwa-ntfy-escape");
-        const link = document.getElementById("pwa-ntfy-escape-link");
-        if (!el || !isStandalonePWA() || getActiveChannel() !== "web") {
-            el?.classList.add("hidden");
-            return;
-        }
-        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
-        const pushFailed = document.getElementById("enable-push-status")?.textContent?.trim();
-        const show = perm === "denied" || !!pushFailed;
-        el.classList.toggle("hidden", !show);
-        if (link) {
-            link.href = `${window.location.origin}${window.location.pathname}`;
-            link.textContent = isIOS() ? "Open this page in Safari" : "Open this page in your browser";
-        }
-    }
-
-    function enforceChannelForContext() {
-        const switchBtn = document.getElementById("btn-switch-channel");
-        if (!shouldOfferNtfyChannel()) {
-            switchBtn?.classList.add("hidden");
-            if (getActiveChannel() === "ntfy") {
-                selectChannel("web");
-            }
-        }
-    }
-
-    function selectChannel(channel) {
-        const web = document.getElementById("channel-web");
-        const ntfy = document.getElementById("channel-ntfy");
-        if (channel === "web" && web && !web.disabled) {
-            web.checked = true;
-            ntfy.checked = false;
-        } else if (ntfy) {
-            ntfy.checked = true;
-            if (web) web.checked = false;
-        }
-        syncChannelVisibility();
-        syncChannelUX();
-        updateReadinessChecklist();
-        updateNotifyFieldsetHint();
-    }
-
-    function syncChannelVisibility() {
-        const ch = getActiveChannel();
-        document.getElementById("channel-web-wrap")?.classList.toggle("hidden", ch !== "web");
-        document.getElementById("channel-ntfy-wrap")?.classList.toggle("hidden", ch !== "ntfy");
-        updateSwitchChannelLabel();
-    }
-
-    function updateSwitchChannelLabel() {
-        const btn = document.getElementById("btn-switch-channel");
-        const web = document.getElementById("channel-web");
-        if (!btn) return;
-        if (!shouldOfferNtfyChannel() || web?.disabled) {
-            btn.classList.add("hidden");
-            return;
-        }
-        btn.classList.remove("hidden");
-        btn.textContent = getActiveChannel() === "web"
-            ? "Use ntfy app instead"
-            : "Use install-as-app instead";
-    }
-
-    function announceProgress(message) {
-        const announcer = document.getElementById("readiness-announcer");
-        if (announcer && message) announcer.textContent = message;
-    }
-
-    function isCompactSetupLayout() {
-        return window.matchMedia("(max-width: 1023px)").matches;
-    }
-
-    function updateSetupStepCompact() {
-        const compact = isCompactSetupLayout();
-        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
-        const steps = [
-            { el: document.getElementById("web-step-install"), done: isStandalonePWA() },
-            { el: document.getElementById("web-step-enable"), done: perm === "granted" },
-            { el: document.getElementById("ntfy-step-1"), done: isNtfyInstallDone() },
-            { el: document.getElementById("ntfy-step-2"), done: isNtfyCopied() && !isNtfySubscribed() },
-            { el: document.getElementById("ntfy-step-3"), done: isNtfySubscribed() },
-        ];
-        for (const { el, done } of steps) {
-            if (!el) continue;
-            el.classList.toggle("setup-step--compact-mode", compact);
-            el.classList.toggle("is-complete", compact && done);
-        }
-    }
-
     function scrollToEl(el) {
         if (!el) return;
-        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
     }
-
-    function setReadinessItem(id, state, text) {
-        const el = document.getElementById(id);
-        const textEl = document.getElementById(`${id}-text`);
-        if (textEl) textEl.textContent = text;
-        if (!el) return;
-        const icons = { location: "1", date: "2", notify: "3" };
-        const icon = el.querySelector(".readiness-icon");
-        const stateClass = state === "done" ? "done" : state === "action" ? "action" : "pending";
-        const stateLabel = state === "done" ? "Complete" : state === "action" ? "Action needed" : "Pending";
-        el.className = `readiness-item readiness-item--${stateClass}`;
-        el.setAttribute("aria-label", `${stateLabel}: ${text}`);
-        if (icon) {
-            icon.className = `readiness-icon readiness-icon--${stateClass}`;
-            icon.textContent = state === "done" ? "✓" : icons[id.replace("check-", "")] || "•";
-        }
-    }
-
-    function isNotificationsReady() {
-        const ch = getActiveChannel();
-        if (ch === "ntfy") {
-            return isNtfySubscribed();
-        }
-        if (!geaWebPushServerEnabled) return false;
-        if (isIOS() && !isStandalonePWA()) return false;
-        return typeof Notification !== "undefined" && Notification.permission === "granted";
-    }
-
-    function updateReadinessChecklist() {
-        const action = document.getElementById("action-field")?.value || "subscribe";
-        const locOk = !!document.getElementById("location")?.value;
-        const dateOk = action !== "subscribe" || !!document.getElementById("date")?.value;
-        const notifyReady = isNotificationsReady();
-        const ch = getActiveChannel();
-
-        if (locOk) {
-            const loc = globalLocations.find((l) => String(l.id) === String(document.getElementById("location").value));
-            setReadinessItem("check-location", "done", loc ? `${loc.name} selected` : "Enrollment center selected");
-        } else {
-            setReadinessItem("check-location", "pending", "Pick your enrollment center");
-        }
-
-        if (action === "subscribe") {
-            document.getElementById("check-date")?.classList.remove("hidden");
-            document.getElementById("check-notify")?.classList.remove("hidden");
-            setReadinessItem("check-date", dateOk ? "done" : "pending",
-                dateOk ? "Date selected" : "Choose your latest acceptable date");
-        } else {
-            document.getElementById("check-date")?.classList.add("hidden");
-            document.getElementById("check-notify")?.classList.add("hidden");
-        }
-
-        if (action === "subscribe") {
-            if (notifyReady) {
-                setReadinessItem("check-notify", "done",
-                    ch === "ntfy" ? "ntfy connected" : "Notifications enabled");
-            } else if (ch === "ntfy") {
-                if (!isNtfyCopied()) {
-                    setReadinessItem("check-notify", "action", "Copy your ntfy channel name");
-                } else {
-                    setReadinessItem("check-notify", "action", "Confirm you subscribed in ntfy");
-                }
-            } else if (isIOS() && !isStandalonePWA()) {
-                setReadinessItem("check-notify", "action", "Add to Home Screen, then allow notifications");
-            } else if (typeof Notification !== "undefined" && Notification.permission === "denied") {
-                setReadinessItem("check-notify", "action", "Unblock notifications in browser settings");
-            } else {
-                setReadinessItem("check-notify", "action", "Tap Turn on notifications");
-            }
-
-            if (locOk && dateOk && !notifyReady && ch === "web" && (!isIOS() || isStandalonePWA())) {
-                const enableBtn = document.getElementById("btn-enable-push");
-                if (enableBtn && !enableBtn.dataset.hinted) {
-                    enableBtn.dataset.hinted = "1";
-                    scrollToEl(enableBtn);
-                }
-            }
-        }
-
-        const submitBtn = document.getElementById("submit-btn");
-        if (submitBtn) {
-            const ready = action === "unsubscribe"
-                ? locOk
-                : locOk && dateOk && notifyReady;
-            submitBtn.disabled = !ready;
-            submitBtn.setAttribute("aria-disabled", ready ? "false" : "true");
-            const announcer = document.getElementById("readiness-announcer");
-            if (announcer && action === "subscribe") {
-                if (ready && !geaFormWasReady) {
-                    announcer.textContent = "All steps complete. You can start receiving alerts.";
-                } else if (!ready) {
-                    announcer.textContent = "";
-                }
-                geaFormWasReady = ready;
-            }
-        }
-    }
-
-    function setLocationListExpanded(expanded) {
-        const search = document.getElementById("location-search");
-        const list = document.getElementById("location-list");
-        if (search) search.setAttribute("aria-expanded", expanded ? "true" : "false");
-        if (list) list.classList.toggle("hidden", !expanded);
-        if (!expanded) {
-            locationActiveIndex = -1;
-            search?.removeAttribute("aria-activedescendant");
-        }
-    }
-
-    function selectLocationRow(row) {
-        if (!row) return;
-        const locList = document.getElementById("location-list");
-        document.getElementById("location").value = String(row.dataset.locationId);
-        document.getElementById("location-search").value = "";
-        locationActiveIndex = -1;
-        document.getElementById("location-search")?.removeAttribute("aria-activedescendant");
-        updateLocationSummary();
-        setLocationListExpanded(false);
-        if (locList) locList.innerHTML = "";
-    }
-
-    function highlightLocationOption(index) {
-        const list = document.getElementById("location-list");
-        const search = document.getElementById("location-search");
-        const options = list ? [...list.querySelectorAll(".location-row")] : [];
-        if (!options.length) {
-            locationActiveIndex = -1;
-            search?.removeAttribute("aria-activedescendant");
-            return;
-        }
-        locationActiveIndex = Math.max(0, Math.min(index, options.length - 1));
-        options.forEach((opt, i) => {
-            const on = i === locationActiveIndex;
-            opt.setAttribute("aria-selected", on ? "true" : "false");
-            opt.classList.toggle("bg-primary-50", on);
-        });
-        const active = options[locationActiveIndex];
-        if (active && search) {
-            search.setAttribute("aria-activedescendant", active.id);
-            active.scrollIntoView({ block: "nearest" });
-        }
-    }
-
-    function initNotificationNavigateListener() {
-        if (!("serviceWorker" in navigator)) return;
-        navigator.serviceWorker.addEventListener("message", (event) => {
-            if (event.data?.type !== "gea-notification-navigate") return;
-            const path = event.data.url;
-            if (typeof path !== "string" || !path.startsWith("/")) return;
-            window.location.assign(path);
-        });
-    }
-
-    function onSubmit(token) {
-        document.getElementById("recaptcha_token").value = token;
-        submitForm();
-    }
-
     function urlBase64ToUint8Array(base64String) {
         if (!base64String) return new Uint8Array();
         const s = String(base64String).trim().replace(/\s+/g, "");
         const padding = "=".repeat((4 - (s.length % 4)) % 4);
         const base64 = (s + padding).replace(/-/g, "+").replace(/_/g, "/");
         const rawData = atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-        return outputArray;
+        const out = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) out[i] = rawData.charCodeAt(i);
+        return out;
     }
 
-    function isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    /* ---------- channel + readiness ---------- */
+    function setChannel(ch) {
+        const web = document.getElementById("channel-web");
+        const ntfy = document.getElementById("channel-ntfy");
+        if (ch === "ntfy") { if (ntfy) ntfy.checked = true; if (web) web.checked = false; }
+        else { if (web) web.checked = true; if (ntfy) ntfy.checked = false; }
+        updateReady();
     }
 
-    function isStandalonePWA() {
-        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    function isNotifyReady() {
+        if (getActiveChannel() === "ntfy") return isNtfyConfirmed();
+        return webPushReady;
     }
 
-    /** All user-visible Web Push / “This device” copy in one place. */
-    const WEB_PUSH_COPY = {
-        bannerInstallUnavailable: "Install-as-app alerts aren't available right now. Use the ntfy app instead.",
-        bannerBrowserUnsupported: "This browser doesn't support push notifications. Use the ntfy app instead.",
-        notificationsBlocked: "Notifications are blocked. Allow them in browser settings, then try again.",
-        enableFailed: "Could not enable this device. Please try again.",
-        deviceReady: "Notifications enabled — submit the form below.",
-        submitTapAllowFirst: "Tap 'Turn on notifications' above, then submit again.",
-        submitVerifyDevice: "Could not verify this device. Tap 'Turn on notifications' above, then try again.",
-    };
+    function updateReady() {
+        const action = document.getElementById("action-field")?.value || "subscribe";
+        const locOk = !!document.getElementById("location")?.value;
+        const dateOk = action !== "subscribe" || !!document.getElementById("date")?.value;
+        const ready = action === "unsubscribe" ? locOk : (locOk && dateOk && isNotifyReady());
 
-    /** GET /subscriptions → server capabilities and subscriber count for social proof. */
-    async function fetchWebPushServerMeta() {
-        try {
-            const res = await fetch(`${API_BASE}/subscriptions`);
-            if (!res.ok) throw new Error(String(res.status));
-            const j = await res.json();
-            const vapid = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
-            const serverReady = j.webPushEnabled === true && !!vapid;
-            const subscriberCount = typeof j.subscriberCount === "number" ? j.subscriberCount : null;
-            return { apiOk: true, serverReady, vapidPublicKey: vapid, subscriberCount };
-        } catch {
-            return { apiOk: false, serverReady: false, vapidPublicKey: null, subscriberCount: null };
-        }
-    }
-
-    /**
-     * Resolve UI state for "Install app notifications" (web push).
-     * iOS non-standalone is NOT disabled here — the install steps inside the setup section
-     * guide the user through adding to Home Screen, and clicking Enable gives a clear next-step message.
-     * Only hard-disable when the server or browser fundamentally can't support push.
-     * @returns {{ hint: string|null, disableThisDevice: boolean }}
-     */
-    function resolveWebPushUi(meta) {
-        const browserPushCapable = "serviceWorker" in navigator && "PushManager" in window;
-        if (!meta.apiOk || !meta.serverReady) return { hint: WEB_PUSH_COPY.bannerInstallUnavailable, disableThisDevice: true };
-        // On iOS, push only works after adding to Home Screen — but we guide the user
-        // through that in the setup section rather than disabling the option entirely.
-        if (!browserPushCapable && !isIOS()) return { hint: WEB_PUSH_COPY.bannerBrowserUnsupported, disableThisDevice: true };
-        return { hint: null, disableThisDevice: false };
-    }
-
-    function applyWebPushUiState(ui) {
-        const hint = document.getElementById("web-push-unavailable");
-        const webCh = document.getElementById("channel-web");
-        const webLabel = document.getElementById("web-push-label-row");
-        const webBadge = document.getElementById("web-label-badge");
-
-        if (ui.hint) {
-            hint.textContent = ui.hint;
-            hint.classList.remove("hidden");
-        } else {
-            hint.classList.add("hidden");
-        }
-
-        webCh.disabled = ui.disableThisDevice;
-        if (ui.disableThisDevice) {
-            webCh.checked = false;
-            if (webLabel) webLabel.classList.add("opacity-60");
-            if (webBadge) webBadge.textContent = "Unavailable";
-            if (shouldOfferNtfyChannel()) {
-                selectChannel("ntfy");
-            } else {
-                selectChannel("web");
-            }
-        } else {
-            if (webLabel) webLabel.classList.remove("opacity-60");
-            if (webBadge) webBadge.textContent = "Recommended on this device";
-        }
-    }
-
-    /** Reflect install + permission progress in the setup steps. */
-    async function updateWebPushStepState() {
-        const installed = isStandalonePWA();
-        const needsInstall = isIOS() && !installed;
-        const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
-
-        const installWrap = document.getElementById("step-install-wrap");
-        const installMarker = document.getElementById("step-install-marker");
-        const enableMarker = document.getElementById("step-enable-marker");
-        const enableRow = document.getElementById("web-push-enable-row");
-        const enableBlocked = document.getElementById("step-enable-blocked");
-        const webCh = document.getElementById("channel-web");
-
-        if (installWrap) installWrap.classList.toggle("hidden", !needsInstall);
-        if (enableMarker) enableMarker.textContent = needsInstall ? "2" : "1";
-
-        if (installed && installMarker) {
-            installMarker.classList.add("step-dot--done");
-        }
-
-        const webOn = webCh?.checked && !webCh.disabled;
-        const serverOk = geaWebPushServerEnabled;
-
-        if (perm === "granted" && serverOk) {
-            enableRow?.classList.add("hidden");
-            enableBlocked?.classList.add("hidden");
-            if (enableMarker) enableMarker.classList.add("step-dot--done");
-        } else if (perm === "denied") {
-            enableRow?.classList.add("hidden");
-            enableBlocked?.classList.remove("hidden");
-        } else if (webOn && serverOk && (!isIOS() || installed)) {
-            enableRow?.classList.remove("hidden");
-            enableBlocked?.classList.add("hidden");
-        }
-
-        updateReadinessChecklist();
-        updatePwaNtfyEscape();
-        updateSetupStepCompact();
-    }
-
-    async function loadApiMeta() {
-        const meta = await fetchWebPushServerMeta();
-        geaVapidPublicKey = meta.vapidPublicKey;
-        geaWebPushServerEnabled = meta.serverReady;
-        applyWebPushUiState(resolveWebPushUi(meta));
-        if (!document.getElementById("channel-web")?.disabled) {
-            selectChannel(pickDefaultChannel(meta));
-        }
-        if (typeof meta.subscriberCount === "number" && meta.subscriberCount > 0) {
-            const el = document.getElementById("social-proof");
-            if (el) {
-                el.textContent = `${meta.subscriberCount.toLocaleString()} ${meta.subscriberCount === 1 ? "traveler" : "travelers"} currently monitoring Global Entry slots`;
-                el.classList.remove("hidden");
-            }
-        }
-        // syncChannelUX handles iOS/Android hint visibility based on selected channel
-        syncChannelUX();
-        updateWebPushStepState();
-        updateReadinessChecklist();
-    }
-
-    function syncChannelUX() {
-        enforceChannelForContext();
-        const ch = getActiveChannel();
-        const ntfyOn = ch === "ntfy";
-        const webOn = ch === "web";
-
-        const ntfySetup = document.getElementById("ntfy-setup");
-        if (ntfySetup) ntfySetup.classList.toggle("hidden", !ntfyOn);
-        if (ntfyOn) syncNtfyTopicUI();
-
-        const webSetup = document.getElementById("web-push-setup");
-        if (webSetup) webSetup.classList.toggle("hidden", !webOn);
-
-        const pwaInstalledHint = document.getElementById("pwa-installed-hint");
-        if (pwaInstalledHint) {
-            pwaInstalledHint.classList.toggle("hidden", !(webOn && isStandalonePWA()));
-        }
-
-        const iosHint = document.getElementById("ios-pwa-hint");
-        if (iosHint) iosHint.classList.toggle("hidden", !(webOn && isIOS() && !isStandalonePWA()));
-
-        const androidHint = document.getElementById("android-pwa-hint");
-        if (androidHint) {
-            const isAndroid = /Android/i.test(navigator.userAgent || "") && !isIOS();
-            androidHint.classList.toggle("hidden", !(webOn && isAndroid && !isStandalonePWA()));
-        }
-
-        maybeShowPwaBanner();
-        updateWebPushStepState();
-        updateNotifyFieldsetHint();
-        updatePwaNtfyEscape();
-        updateReadinessChecklist();
-    }
-
-    /** Switch the form into subscribe or unsubscribe mode. */
-    function setFormMode(mode) {
-        const actionField = document.getElementById("action-field");
-        const unsubBanner = document.getElementById("unsub-banner");
-        const dateField = document.getElementById("date-field");
         const submitBtn = document.getElementById("submit-btn");
-        const toggleBtn = document.getElementById("btn-toggle-unsub");
-        const icon = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-        </svg>`;
-        if (mode === "unsubscribe") {
-            actionField.value = "unsubscribe";
-            unsubBanner.classList.remove("hidden");
-            unsubBanner.classList.add("flex");
-            dateField.classList.add("hidden");
-            document.getElementById("date").required = false;
-            submitBtn.innerHTML = `${icon} Stop Alerts`;
-            submitBtn.className = "w-full py-4 rounded-xl text-base font-semibold text-white bg-red-600 hover:bg-red-700 shadow-lg transition-all duration-300 flex items-center justify-center gap-2 g-recaptcha";
-            submitBtn.disabled = false;
-            if (toggleBtn) toggleBtn.classList.add("hidden");
+        if (submitBtn && action !== "unsubscribe") {
+            submitBtn.disabled = !ready;
+            submitBtn.setAttribute("aria-disabled", ready ? "false" : "true");
+        }
+    }
+
+    /* ---------- device-aware notify rendering ---------- */
+    function showNotifyBlock(which) {
+        document.getElementById("notify-qr")?.classList.toggle("hidden", which !== "qr");
+        document.getElementById("notify-push")?.classList.toggle("hidden", which !== "push");
+    }
+
+    function configurePushBlockForDevice() {
+        const title = document.getElementById("push-title");
+        const sub = document.getElementById("push-sub");
+        const iosSteps = document.getElementById("ios-install-steps");
+        const installed = isStandalonePWA();
+        const iosBrowser = isIOS() && !installed;
+        if (iosSteps) iosSteps.classList.toggle("hidden", !iosBrowser);
+        if (iosBrowser) {
+            if (title) title.textContent = "Add to your Home Screen for alerts";
+            if (sub) sub.textContent = "On iPhone, push works once Global Entry Alerts is on your Home Screen.";
         } else {
-            actionField.value = "subscribe";
-            unsubBanner.classList.add("hidden");
-            unsubBanner.classList.remove("flex");
-            dateField.classList.remove("hidden");
-            document.getElementById("date").required = true;
-            submitBtn.innerHTML = `${icon} Start Receiving Alerts`;
-            submitBtn.className = "w-full py-4 rounded-xl text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-500 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 g-recaptcha";
-            if (toggleBtn) toggleBtn.classList.remove("hidden");
+            if (title) title.textContent = "Turn on instant alerts";
+            if (sub) sub.textContent = "We'll notify this device the moment an appointment opens — only when there's news, never spam.";
         }
-        updateReadinessChecklist();
     }
 
-    /**
-     * Generate a private ntfy channel name (used once per device, then persisted).
-     * 12 hex chars (~48 bits) makes accidental collision with another subscriber negligible.
-     */
-    function generateNtfyTopic() {
-        const bytes = new Uint8Array(6);
-        crypto.getRandomValues(bytes);
-        const suffix = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-        return `ge-alerts-${suffix}`;
+    // Web push is offered only when the server has it enabled AND the device can use it
+    // (any push-capable browser, or iOS where it works once installed to the Home Screen).
+    function computePushUsable() {
+        return geaWebPushServerEnabled && (pushCapable() || isIOS());
     }
 
-    const NTFY_TOPIC_PATTERN = /^[a-zA-Z0-9_-]+$/;
-
-    /** Return the stable ntfy channel for this device — generate and persist only on first use. */
-    function getOrCreateNtfyTopic() {
-        try {
-            const stored = localStorage.getItem(LS_NTFY_TOPIC);
-            if (stored && NTFY_TOPIC_PATTERN.test(stored)) return stored;
-        } catch { /* ignore */ }
-        const topic = generateNtfyTopic();
-        try { localStorage.setItem(LS_NTFY_TOPIC, topic); } catch { /* ignore */ }
-        return topic;
+    // Show the device-appropriate primary method: desktop → QR bridge, phone/installed app → push.
+    function showPrimaryNotify() {
+        if (!geaPushUsable) { showNotifyBlock(null); return; }
+        if (!isMobile() && !isStandalonePWA()) { showNotifyBlock("qr"); }
+        else { showNotifyBlock("push"); }
     }
 
-    /** Persist a validated channel name and refresh all ntfy UI. */
-    function setNtfyTopic(topic, { clearProgress = true } = {}) {
-        const t = String(topic || "").trim();
-        const errEl = document.getElementById("ntfy-topic-error");
-        const input = document.getElementById("ntfy-topic-input");
-        if (!t || !NTFY_TOPIC_PATTERN.test(t)) {
-            if (errEl) errEl.classList.remove("hidden");
-            if (input) {
-                input.setAttribute("aria-invalid", "true");
-                input.setAttribute("aria-describedby", "ntfy-topic-hint ntfy-topic-steps ntfy-topic-error");
+    function renderNotify() {
+        geaPushUsable = computePushUsable();
+        const unavail = document.getElementById("push-unavailable");
+        const details = document.getElementById("ntfy-details");
+
+        if (!geaPushUsable) {
+            showNotifyBlock(null);
+            if (details) details.open = true;
+            setChannel("ntfy");
+            if (unavail && !geaWebPushServerEnabled) {
+                unavail.textContent = "Browser push is unavailable right now — use the ntfy app below.";
+                unavail.classList.remove("hidden");
             }
-            return false;
+            return;
         }
-        if (errEl) errEl.classList.add("hidden");
-        if (input) {
-            input.removeAttribute("aria-invalid");
-            input.setAttribute("aria-describedby", "ntfy-topic-hint ntfy-topic-steps");
-        }
-        let prev = "";
-        try { prev = localStorage.getItem(LS_NTFY_TOPIC) || ""; } catch { /* ignore */ }
-        try { localStorage.setItem(LS_NTFY_TOPIC, t); } catch { /* ignore */ }
-        if (clearProgress && prev && prev !== t) clearNtfyProgress({ keepInstall: true });
-        syncNtfyTopicUI();
-        return true;
+        if (unavail) unavail.classList.add("hidden");
+
+        configurePushBlockForDevice();
+        if (details && details.open) { showNotifyBlock(null); setChannel("ntfy"); }
+        else { showPrimaryNotify(); setChannel("web"); }
+        refreshWebPushReady();
     }
 
-    function isNtfyInstallDone() {
-        try { return localStorage.getItem(LS_NTFY_INSTALL) === "1"; } catch { return false; }
-    }
-
-    function isNtfyCopied() {
-        try { return localStorage.getItem(LS_NTFY_COPIED) === "1"; } catch { return false; }
-    }
-
-    function isNtfySubscribed() {
-        try { return localStorage.getItem(LS_NTFY_CONFIRMED) === "1"; } catch { return false; }
-    }
-
-    function markNtfyInstallDone() {
-        try { localStorage.setItem(LS_NTFY_INSTALL, "1"); } catch { /* ignore */ }
-        updateNtfyStepUI();
-        announceProgress("ntfy app ready. Copy your channel name next.");
-    }
-
-    function markNtfyCopied() {
-        try { localStorage.setItem(LS_NTFY_COPIED, "1"); } catch { /* ignore */ }
-        updateNtfyStepUI();
-        updateReadinessChecklist();
-    }
-
-    function clearNtfyProgress({ keepInstall = false } = {}) {
+    async function refreshWebPushReady() {
         try {
-            if (!keepInstall) localStorage.removeItem(LS_NTFY_INSTALL);
-            localStorage.removeItem(LS_NTFY_COPIED);
-            localStorage.removeItem(LS_NTFY_CONFIRMED);
+            if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+            if (!pushCapable()) return;
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            if (sub && sub.endpoint) {
+                webPushReady = true;
+                markPushEnabledUI();
+                updateReady();
+            }
         } catch { /* ignore */ }
-        updateNtfyStepUI();
-        updateReadinessChecklist();
     }
 
-    function clearNtfySubscribed() {
-        try { localStorage.removeItem(LS_NTFY_CONFIRMED); } catch { /* ignore */ }
-        updateNtfyStepUI();
-        updateReadinessChecklist();
-    }
-
-    function markNtfySubscribed() {
-        if (!isNtfyCopied()) return;
-        try { localStorage.setItem(LS_NTFY_CONFIRMED, "1"); } catch { /* ignore */ }
-        updateNtfyStepUI();
-        updateReadinessChecklist();
-        announceProgress("ntfy connected. Finish location and date to subscribe.");
-    }
-
-    function updateNtfyStepUI() {
-        const subscribed = isNtfySubscribed();
-        const copied = isNtfyCopied();
-        const installed = isNtfyInstallDone();
-
-        document.getElementById("ntfy-step-dot-1")?.classList.toggle("step-dot--done", installed);
-        document.getElementById("ntfy-step-dot-2")?.classList.toggle("step-dot--done", copied);
-
-        const btn = document.getElementById("btn-ntfy-confirm");
-        const hint = document.getElementById("ntfy-confirm-hint");
-        const dot3 = document.getElementById("ntfy-step-dot-3");
-
+    function markPushEnabledUI() {
+        const st = document.getElementById("enable-push-status");
+        const btn = document.getElementById("btn-enable-push");
+        if (st) {
+            st.textContent = "✓ Notifications on for this device.";
+            st.className = "text-xs text-signal-700 min-h-[1.25rem] mt-2 font-medium";
+        }
         if (btn) {
-            btn.textContent = subscribed ? "Subscribed in ntfy" : "I've subscribed in ntfy";
-            btn.disabled = subscribed || !copied;
-            btn.setAttribute("aria-disabled", subscribed || !copied ? "true" : "false");
-            btn.classList.toggle("bg-green-600", subscribed);
-            btn.classList.toggle("hover:bg-green-700", !subscribed && copied);
-            btn.classList.toggle("bg-primary-600", !subscribed);
-            btn.classList.toggle("hover:bg-primary-700", !subscribed && copied);
-            btn.classList.toggle("opacity-90", subscribed);
-            btn.classList.remove("ntfy-confirm-highlight");
-        }
-        if (hint) {
-            hint.textContent = subscribed
-                ? ""
-                : copied
-                    ? "Tap after you've subscribed in the ntfy app."
-                    : "Copy your channel name first.";
-            hint.classList.toggle("hidden", subscribed);
-        }
-        dot3?.classList.toggle("step-dot--done", subscribed);
-        updateSetupStepCompact();
-    }
-
-    function legacyCopyText(text) {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.setAttribute("readonly", "");
-        ta.style.cssText = "position:fixed;left:-9999px;top:0";
-        document.body.appendChild(ta);
-        ta.select();
-        let ok = false;
-        try { ok = document.execCommand("copy"); } catch { /* ignore */ }
-        ta.remove();
-        return ok;
-    }
-
-    function copyNtfyTopic() {
-        const input = document.getElementById("ntfy-topic-input");
-        const val = (input?.value || "").trim();
-        if (val && !setNtfyTopic(val)) return;
-        const text = getOrCreateNtfyTopic();
-        const copyBtn = document.getElementById("btn-copy-topic");
-        const finishCopy = () => {
-            if (copyBtn) {
-                copyBtn.textContent = "Copied!";
-                setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
-            }
-            markNtfyCopied();
-            announceProgress("Channel name copied. Subscribe in ntfy, then confirm below.");
-            const confirmBtn = document.getElementById("btn-ntfy-confirm");
-            if (confirmBtn && !isNtfySubscribed()) {
-                confirmBtn.classList.add("ntfy-confirm-highlight");
-                scrollToEl(confirmBtn);
-                setTimeout(() => confirmBtn.classList.remove("ntfy-confirm-highlight"), 2000);
-            }
-        };
-        const failCopy = () => {
-            const input = document.getElementById("ntfy-topic-input");
-            input?.focus();
-            input?.select();
-            announceProgress("Could not copy automatically. Select the channel name and copy it manually.");
-        };
-
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(finishCopy).catch(() => {
-                if (legacyCopyText(text)) finishCopy();
-                else failCopy();
-            });
-            return;
-        }
-        if (legacyCopyText(text)) finishCopy();
-        else failCopy();
-    }
-
-    /** Sync topic display, store links, and step progress. */
-    function syncNtfyTopicUI() {
-        const topic = getOrCreateNtfyTopic();
-        const topicHidden = document.getElementById("topic");
-        const input = document.getElementById("ntfy-topic-input");
-        const appStore = document.getElementById("ntfy-link-appstore");
-        const playStore = document.getElementById("ntfy-link-playstore");
-        if (topicHidden) topicHidden.value = topic;
-        if (input && document.activeElement !== input) input.value = topic;
-        if (appStore && playStore) {
-            const ios = isIOS();
-            const android = /Android/i.test(navigator.userAgent || "") && !ios;
-            appStore.classList.toggle("hidden", android);
-            playStore.classList.toggle("hidden", ios);
-        }
-        updateNtfyStepUI();
-    }
-
-    function applyNtfyTopicFromInput() {
-        const input = document.getElementById("ntfy-topic-input");
-        if (!input) return;
-        const val = input.value.trim();
-        if (!val) {
-            syncNtfyTopicUI();
-            return;
-        }
-        if (!setNtfyTopic(val)) return;
-    }
-
-    function regenerateNtfyTopic() {
-        if (setNtfyTopic(generateNtfyTopic())) {
-            announceProgress("New channel name generated. Copy it before subscribing in ntfy.");
+            btn.textContent = "Notifications on";
+            btn.disabled = true;
+            btn.classList.add("opacity-90");
         }
     }
 
     async function enableWebPushFromGesture() {
         const st = document.getElementById("enable-push-status");
-        const setErr = (msg) => {
-            st.textContent = msg;
-            st.className = "text-xs text-red-600 min-h-[1.25rem] mt-1";
-            updatePwaNtfyEscape();
-        };
-        const setOk = (msg) => {
-            st.textContent = msg;
-            st.className = "text-xs text-green-700 min-h-[1.25rem] mt-1";
-            updatePwaNtfyEscape();
-        };
-        // iOS requires the PWA to be installed first — give a clear next-step message
+        const setErr = (m) => { if (st) { st.textContent = m; st.className = "text-xs text-red-600 min-h-[1.25rem] mt-2"; } };
+
+        setChannel("web");
         if (isIOS() && !isStandalonePWA()) {
-            setErr("Complete steps 1–3 above first: add this page to your Home Screen in Safari, then open it from there.");
+            setErr("Add this page to your Home Screen in Safari first, then open it from there.");
             return;
         }
         if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-            setErr(WEB_PUSH_COPY.bannerInstallUnavailable);
+            setErr("Browser push is unavailable right now — use the ntfy app instead.");
             return;
         }
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-            setErr(WEB_PUSH_COPY.bannerBrowserUnsupported);
+        if (!pushCapable()) {
+            setErr("This browser doesn't support push — use the ntfy app instead.");
             return;
         }
         try {
@@ -1348,130 +543,262 @@
                 if (p && typeof p.then === "function") await p;
             }
             if (Notification.permission !== "granted") {
-                setErr(WEB_PUSH_COPY.notificationsBlocked);
+                setErr("Notifications are blocked. Allow them in your browser settings, then try again.");
                 return;
             }
-            let pushSub = await reg.pushManager.getSubscription();
-            if (!pushSub) {
-                pushSub = await reg.pushManager.subscribe({
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(geaVapidPublicKey),
                 });
             }
-            if (!pushSub || !pushSub.endpoint) {
-                setErr(WEB_PUSH_COPY.enableFailed);
-                return;
-            }
-            setOk(WEB_PUSH_COPY.deviceReady);
-            announceProgress("Notifications enabled. Finish location and date to subscribe.");
-            updateWebPushStepState();
-            updateReadinessChecklist();
+            if (!sub || !sub.endpoint) { setErr("Could not enable this device. Please try again."); return; }
+            webPushReady = true;
+            markPushEnabledUI();
+            updateReady();
         } catch (e) {
             console.error(e);
-            setErr(WEB_PUSH_COPY.enableFailed);
+            setErr("Could not enable this device. Please try again.");
         }
     }
 
-    function escapeHtml(s) {
-        return String(s ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
+    /* ---------- ntfy fallback ---------- */
+    const NTFY_TOPIC_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+    function generateNtfyTopic() {
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        return "ge-alerts-" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    function getOrCreateNtfyTopic() {
+        try {
+            const stored = localStorage.getItem(LS_NTFY_TOPIC);
+            if (stored && NTFY_TOPIC_PATTERN.test(stored)) return stored;
+        } catch { /* ignore */ }
+        const t = generateNtfyTopic();
+        try { localStorage.setItem(LS_NTFY_TOPIC, t); } catch { /* ignore */ }
+        return t;
+    }
+    function isNtfyConfirmed() {
+        try { return localStorage.getItem(LS_NTFY_CONFIRMED) === "1"; } catch { return false; }
+    }
+    function markNtfyConfirmed() {
+        try { localStorage.setItem(LS_NTFY_CONFIRMED, "1"); } catch { /* ignore */ }
+        setChannel("ntfy");
+        updateNtfyConfirmUI();
+        updateReady();
+    }
+    function clearNtfyConfirmed() {
+        try { localStorage.removeItem(LS_NTFY_CONFIRMED); } catch { /* ignore */ }
+        updateNtfyConfirmUI();
+        updateReady();
+    }
+    function setNtfyTopic(topic) {
+        const t = String(topic || "").trim();
+        const err = document.getElementById("ntfy-topic-error");
+        const input = document.getElementById("ntfy-topic-input");
+        if (!t || !NTFY_TOPIC_PATTERN.test(t)) {
+            if (err) err.classList.remove("hidden");
+            if (input) input.setAttribute("aria-invalid", "true");
+            return false;
+        }
+        if (err) err.classList.add("hidden");
+        if (input) input.removeAttribute("aria-invalid");
+        let prev = "";
+        try { prev = localStorage.getItem(LS_NTFY_TOPIC) || ""; } catch { /* ignore */ }
+        try { localStorage.setItem(LS_NTFY_TOPIC, t); } catch { /* ignore */ }
+        if (prev && prev !== t) clearNtfyConfirmed();
+        syncNtfyTopicUI();
+        return true;
+    }
+    function syncNtfyTopicUI() {
+        const topic = getOrCreateNtfyTopic();
+        const hidden = document.getElementById("topic");
+        const input = document.getElementById("ntfy-topic-input");
+        const appStore = document.getElementById("ntfy-link-appstore");
+        const playStore = document.getElementById("ntfy-link-playstore");
+        if (hidden) hidden.value = topic;
+        if (input && document.activeElement !== input) input.value = topic;
+        if (appStore && playStore) {
+            appStore.classList.toggle("hidden", isAndroid());
+            playStore.classList.toggle("hidden", isIOS());
+        }
+        updateNtfyConfirmUI();
+    }
+    function applyNtfyTopicFromInput() {
+        const input = document.getElementById("ntfy-topic-input");
+        if (!input) return;
+        const val = input.value.trim();
+        if (!val) { syncNtfyTopicUI(); return; }
+        setNtfyTopic(val);
+    }
+    function regenerateNtfyTopic() {
+        setNtfyTopic(generateNtfyTopic());
+    }
+    function updateNtfyConfirmUI() {
+        const confirmed = isNtfyConfirmed();
+        const btn = document.getElementById("btn-ntfy-confirm");
+        const hint = document.getElementById("ntfy-confirm-hint");
+        if (btn) {
+            btn.textContent = confirmed ? "✓ Subscribed in ntfy" : "I've subscribed in ntfy";
+            btn.classList.toggle("opacity-90", confirmed);
+        }
+        if (hint) hint.classList.toggle("hidden", confirmed);
+    }
+    function legacyCopyText(text) {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.appendChild(ta); ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch { /* ignore */ }
+        ta.remove();
+        return ok;
+    }
+    function copyNtfyTopic() {
+        const input = document.getElementById("ntfy-topic-input");
+        const val = (input?.value || "").trim();
+        if (val && !setNtfyTopic(val)) return;
+        const text = getOrCreateNtfyTopic();
+        const btn = document.getElementById("btn-copy-topic");
+        const done = () => { if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 2000); } };
+        const fail = () => { input?.focus(); input?.select(); };
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => { legacyCopyText(text) ? done() : fail(); });
+            return;
+        }
+        legacyCopyText(text) ? done() : fail();
     }
 
+    /* ---------- form mode ---------- */
+    function setFormMode(mode) {
+        const actionField = document.getElementById("action-field");
+        const unsubBanner = document.getElementById("unsub-banner");
+        const dateField = document.getElementById("date-field");
+        const submitBtn = document.getElementById("submit-btn");
+        const toggleBtn = document.getElementById("btn-toggle-unsub");
+        const icon = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+        if (mode === "unsubscribe") {
+            actionField.value = "unsubscribe";
+            unsubBanner.classList.remove("hidden");
+            unsubBanner.classList.add("flex");
+            dateField.classList.add("hidden");
+            document.getElementById("date").required = false;
+            submitBtn.innerHTML = icon + " Stop alerts";
+            submitBtn.className = "btn-submit g-recaptcha !bg-red-600 hover:!bg-red-700";
+            submitBtn.disabled = false;
+            if (toggleBtn) toggleBtn.classList.add("hidden");
+        } else {
+            actionField.value = "subscribe";
+            unsubBanner.classList.add("hidden");
+            unsubBanner.classList.remove("flex");
+            dateField.classList.remove("hidden");
+            document.getElementById("date").required = true;
+            submitBtn.innerHTML = icon + " Start receiving alerts";
+            submitBtn.className = "btn-submit g-recaptcha";
+            if (toggleBtn) toggleBtn.classList.remove("hidden");
+        }
+        updateReady();
+    }
+
+    /* ---------- location combobox ---------- */
+    function setLocationListExpanded(expanded) {
+        const search = document.getElementById("location-search");
+        const list = document.getElementById("location-list");
+        if (search) search.setAttribute("aria-expanded", expanded ? "true" : "false");
+        if (list) list.classList.toggle("hidden", !expanded);
+        if (!expanded) { locationActiveIndex = -1; search?.removeAttribute("aria-activedescendant"); }
+    }
+    function selectLocationRow(row) {
+        if (!row) return;
+        const list = document.getElementById("location-list");
+        document.getElementById("location").value = String(row.dataset.locationId);
+        document.getElementById("location-search").value = "";
+        locationActiveIndex = -1;
+        document.getElementById("location-search")?.removeAttribute("aria-activedescendant");
+        updateLocationSummary();
+        setLocationListExpanded(false);
+        if (list) list.innerHTML = "";
+    }
+    function highlightLocationOption(index) {
+        const list = document.getElementById("location-list");
+        const search = document.getElementById("location-search");
+        const options = list ? [...list.querySelectorAll(".location-row")] : [];
+        if (!options.length) { locationActiveIndex = -1; search?.removeAttribute("aria-activedescendant"); return; }
+        locationActiveIndex = Math.max(0, Math.min(index, options.length - 1));
+        options.forEach((opt, i) => {
+            const on = i === locationActiveIndex;
+            opt.setAttribute("aria-selected", on ? "true" : "false");
+            opt.classList.toggle("bg-primary-50", on);
+        });
+        const active = options[locationActiveIndex];
+        if (active && search) { search.setAttribute("aria-activedescendant", active.id); active.scrollIntoView({ block: "nearest" }); }
+    }
     function getLocationDisplayLines(loc) {
         const primary = loc.name || "";
-        const secondary = [loc.addressAdditional || loc.address, `${loc.city || ""} ${loc.state || ""} ${loc.postalCode || ""}`.trim()]
-            .filter(Boolean)
-            .join(" · ");
+        const secondary = [loc.addressAdditional || loc.address, `${loc.city || ""} ${loc.state || ""} ${loc.postalCode || ""}`.trim()].filter(Boolean).join(" · ");
         return { primary, secondary };
     }
-
     function locationHaystack(loc) {
         return `${loc.name} ${loc.city} ${loc.state} ${loc.postalCode} ${loc.address || ""} ${loc.addressAdditional || ""}`.toLowerCase();
     }
-
     function renderLocationList() {
         const list = document.getElementById("location-list");
         const search = document.getElementById("location-search");
         const hidden = document.getElementById("location");
         if (!list || !search || !hidden) return;
-
         locationActiveIndex = -1;
         search.removeAttribute("aria-activedescendant");
-
-        if (hidden.value) {
-            setLocationListExpanded(false);
-            list.innerHTML = "";
-            return;
-        }
-
+        if (hidden.value) { setLocationListExpanded(false); list.innerHTML = ""; return; }
         const q = (search.value || "").trim().toLowerCase();
         if (q.length < 2) {
             setLocationListExpanded(true);
-            list.innerHTML =
-                '<div class="px-3 py-4 text-sm text-slate-600 text-center" role="status">Type at least 2 letters (city, airport name, or ZIP).</div>';
+            list.innerHTML = '<div class="px-3 py-4 text-sm text-muted text-center" role="status">Type at least 2 letters (city, airport name, or ZIP).</div>';
             return;
         }
-
         const filtered = globalLocations.filter((loc) => locationHaystack(loc).includes(q));
         const MAX = 50;
         const slice = filtered.slice(0, MAX);
         setLocationListExpanded(true);
-
         if (slice.length === 0) {
-            list.innerHTML = '<div class="px-3 py-4 text-sm text-slate-600 text-center" role="status">No matches. Try another spelling or nearby city.</div>';
+            list.innerHTML = '<div class="px-3 py-4 text-sm text-muted text-center" role="status">No matches. Try another spelling or nearby city.</div>';
             return;
         }
-
-        let html = slice
-            .map((loc) => {
-                const { primary, secondary } = getLocationDisplayLines(loc);
-                return `<button type="button" id="location-opt-${loc.id}" role="option" aria-selected="false" class="location-row w-full text-left px-3 py-2.5 hover:bg-primary-50 active:bg-primary-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400" data-location-id="${loc.id}">
-                <div class="font-medium text-slate-800">${escapeHtml(primary)}</div>
-                ${secondary ? `<div class="text-xs text-slate-600 mt-0.5">${escapeHtml(secondary)}</div>` : ""}
+        let html = slice.map((loc) => {
+            const { primary, secondary } = getLocationDisplayLines(loc);
+            return `<button type="button" id="location-opt-${loc.id}" role="option" aria-selected="false" class="location-row" data-location-id="${loc.id}">
+                <div class="font-medium text-ink">${escapeHtml(primary)}</div>
+                ${secondary ? `<div class="text-xs text-muted mt-0.5">${escapeHtml(secondary)}</div>` : ""}
             </button>`;
-            })
-            .join("");
+        }).join("");
         if (filtered.length > MAX) {
-            html += `<div class="px-3 py-2 text-xs text-slate-600 text-center border-t border-slate-100 bg-slate-50" role="status">Showing ${MAX} of ${filtered.length} — type more to narrow.</div>`;
+            html += `<div class="px-3 py-2 text-xs text-muted text-center border-t border-line bg-paper" role="status">Showing ${MAX} of ${filtered.length} — type more to narrow.</div>`;
         }
         list.innerHTML = html;
     }
-
     function updateLocationSummary() {
         const hidden = document.getElementById("location");
         const sum = document.getElementById("location-summary");
         if (!hidden || !sum) return;
         const id = hidden.value;
-        if (!id) {
-            sum.classList.add("hidden");
-            sum.innerHTML = "";
-            updateReadinessChecklist();
-            return;
-        }
+        if (!id) { sum.classList.add("hidden"); sum.innerHTML = ""; updateReady(); return; }
         const loc = globalLocations.find((l) => String(l.id) === String(id));
-        if (!loc) {
-            sum.classList.add("hidden");
-            return;
-        }
+        if (!loc) { sum.classList.add("hidden"); return; }
         const { primary, secondary } = getLocationDisplayLines(loc);
         sum.innerHTML = `<div class="flex items-start justify-between gap-3">
-            <div class="min-w-0"><span class="text-slate-500 text-xs">Selected</span>
-            <div class="font-semibold text-slate-800 break-words">${escapeHtml(primary)}</div>
-            ${secondary ? `<div class="text-xs text-slate-600 mt-0.5">${escapeHtml(secondary)}</div>` : ""}</div>
+            <div class="min-w-0"><span class="text-primary-700 text-xs font-medium">Selected</span>
+            <div class="font-semibold text-ink break-words">${escapeHtml(primary)}</div>
+            ${secondary ? `<div class="text-xs text-muted mt-0.5">${escapeHtml(secondary)}</div>` : ""}</div>
             <button type="button" class="location-change shrink-0 text-primary-600 font-semibold text-xs pt-0.5" aria-label="Change enrollment center">Change</button>
         </div>`;
         sum.classList.remove("hidden");
-        updateReadinessChecklist();
+        updateReady();
     }
-
     async function fetchLocations() {
         const search = document.getElementById("location-search");
         const list = document.getElementById("location-list");
         try {
-            // Try our cached Lambda proxy first; fall back to CBP directly if it fails
             let locations;
             try {
                 const res = await fetch(`${API_BASE}/locations`);
@@ -1489,27 +816,71 @@
             document.getElementById("location").value = "";
             document.getElementById("location-summary").classList.add("hidden");
             document.getElementById("location-summary").innerHTML = "";
-            search.focus();
-            // Don't open the dropdown on load — only when the user starts typing.
         } catch {
             search.disabled = true;
-            search.placeholder = "Locations unavailable";
+            search.placeholder = "Centers unavailable";
             setLocationListExpanded(true);
-            list.innerHTML =
-                '<div class="px-3 py-4 text-sm text-red-600 text-center">Could not load enrollment centers. Refresh and try again.</div>';
+            list.innerHTML = '<div class="px-3 py-4 text-sm text-red-600 text-center">Could not load enrollment centers. Refresh and try again.</div>';
         }
     }
 
+    /* ---------- date ---------- */
     function setDefaultDate() {
         const dateInput = document.getElementById("date");
         const today = new Date();
         const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
-        const year = nextYear.getFullYear();
-        const month = String(nextYear.getMonth() + 1).padStart(2, "0");
-        const day = String(nextYear.getDate()).padStart(2, "0");
-        dateInput.value = `${year}-${month}-${day}`;
+        const y = nextYear.getFullYear();
+        const m = String(nextYear.getMonth() + 1).padStart(2, "0");
+        const d = String(nextYear.getDate()).padStart(2, "0");
+        dateInput.value = `${y}-${m}-${d}`;
     }
 
+    /* ---------- api meta ---------- */
+    async function loadApiMeta() {
+        let meta = { serverReady: false, vapidPublicKey: null, subscriberCount: null };
+        try {
+            const res = await fetch(`${API_BASE}/subscriptions`);
+            if (res.ok) {
+                const j = await res.json();
+                const vapid = j.vapidPublicKey ? String(j.vapidPublicKey).trim().replace(/\s+/g, "") : null;
+                meta = {
+                    serverReady: j.webPushEnabled === true && !!vapid,
+                    vapidPublicKey: vapid,
+                    subscriberCount: typeof j.subscriberCount === "number" ? j.subscriberCount : null,
+                };
+            }
+        } catch { /* ignore */ }
+        geaVapidPublicKey = meta.vapidPublicKey;
+        geaWebPushServerEnabled = meta.serverReady;
+        if (typeof meta.subscriberCount === "number" && meta.subscriberCount > 0) {
+            const el = document.getElementById("social-proof");
+            if (el) {
+                el.textContent = `${meta.subscriberCount.toLocaleString()} ${meta.subscriberCount === 1 ? "traveler" : "travelers"} currently watching for appointments`;
+                el.classList.remove("hidden");
+            }
+        }
+        renderNotify();
+        updateReady();
+    }
+
+    /* ---------- submit ---------- */
+    function onSubmit(token) {
+        document.getElementById("recaptcha_token").value = token;
+        submitForm();
+    }
+    function setFormStatus(message, type) {
+        const status = document.getElementById("status");
+        if (!status) return;
+        if (type === "success-html" || type === "error") {
+            status.innerHTML = message;
+            status.className = type === "error" ? "text-center font-medium text-sm mt-4 text-red-600" : "text-center text-sm mt-4";
+            status.setAttribute("role", type === "error" ? "alert" : "status");
+        } else {
+            status.textContent = message;
+            status.className = type === "success" ? "text-center font-medium text-sm mt-4 text-signal-700" : "text-center font-medium text-sm mt-4 text-red-600";
+            status.setAttribute("role", type === "success" ? "status" : "alert");
+        }
+    }
     async function submitForm() {
         const locationId = document.getElementById("location").value;
         const useNtfy = getActiveChannel() === "ntfy";
@@ -1521,74 +892,35 @@
         const recaptchaToken = document.getElementById("recaptcha_token").value;
         const submitButton = document.getElementById("submit-btn");
 
-        if (!locationId || !recaptchaToken) {
-            setFormStatus("Please select an enrollment center and complete verification.", "error");
-            return;
-        }
-        if (!useNtfy && !useWeb) {
-            setFormStatus("Select a notification method.", "error");
-            return;
-        }
-        if (action === "subscribe" && !date) {
-            setFormStatus("Please select a latest acceptable date.", "error");
-            return;
-        }
-        if (action === "subscribe" && useNtfy) {
-            if (!topic || !NTFY_TOPIC_PATTERN.test(topic)) {
-                setFormStatus("Enter a valid alert channel name.", "error");
-                return;
-            }
-        }
-        if (action === "unsubscribe" && useNtfy && !topic) {
-            setFormStatus("Enter your alert channel name to unsubscribe, or switch to install-as-app.", "error");
-            return;
-        }
-        if (action === "unsubscribe" && !useNtfy) {
-            const ep = localStorage.getItem(LS_WEB_PUSH);
-            if (!ep) {
-                setFormStatus("No saved device subscription found. Switch to ntfy app and enter your channel name.", "error");
-                return;
-            }
+        if (!locationId || !recaptchaToken) { setFormStatus("Please select an enrollment center and complete verification.", "error"); return; }
+        if (!useNtfy && !useWeb) { setFormStatus("Choose how you'd like to be notified.", "error"); return; }
+        if (action === "subscribe" && !date) { setFormStatus("Please select a latest acceptable date.", "error"); return; }
+        if (action === "subscribe" && useNtfy && (!topic || !NTFY_TOPIC_PATTERN.test(topic))) { setFormStatus("Enter a valid ntfy channel name.", "error"); return; }
+        if (action === "unsubscribe" && useNtfy && !topic) { setFormStatus("Enter your ntfy channel name to unsubscribe.", "error"); return; }
+        if (action === "unsubscribe" && !useNtfy && !localStorage.getItem(LS_WEB_PUSH)) {
+            setFormStatus("No saved device subscription found. Switch to ntfy and enter your channel name.", "error"); return;
         }
 
-        const selectedLocation = globalLocations.find(loc => loc.id === Number(locationId));
-        if (!selectedLocation) {
-            setFormStatus("Selected location not found.", "error");
-            return;
-        }
+        const selectedLocation = globalLocations.find((loc) => loc.id === Number(locationId));
+        if (!selectedLocation) { setFormStatus("Selected location not found.", "error"); return; }
 
         let webPushPayload = null;
         if (action === "subscribe" && useWeb) {
-            if (!geaWebPushServerEnabled || !geaVapidPublicKey) {
-                setFormStatus(WEB_PUSH_COPY.bannerInstallUnavailable, "error");
-                return;
-            }
-            if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-                setFormStatus(WEB_PUSH_COPY.bannerBrowserUnsupported, "error");
-                return;
-            }
+            if (!geaWebPushServerEnabled || !geaVapidPublicKey) { setFormStatus("Browser push is unavailable right now — use the ntfy app instead.", "error"); return; }
+            if (!pushCapable()) { setFormStatus("This browser doesn't support push — use the ntfy app instead.", "error"); return; }
             try {
                 const reg = await navigator.serviceWorker.ready;
-                const pushSub = await reg.pushManager.getSubscription();
-                if (!pushSub || !pushSub.endpoint) {
-                    setFormStatus(WEB_PUSH_COPY.submitTapAllowFirst, "error");
-                    return;
-                }
-                webPushPayload = pushSub.toJSON();
+                const sub = await reg.pushManager.getSubscription();
+                if (!sub || !sub.endpoint) { setFormStatus("Tap 'Turn on notifications' above, then submit again.", "error"); return; }
+                webPushPayload = sub.toJSON();
             } catch (e) {
                 console.error(e);
-                setFormStatus(WEB_PUSH_COPY.submitVerifyDevice, "error");
+                setFormStatus("Could not verify this device. Tap 'Turn on notifications' above, then try again.", "error");
                 return;
             }
         }
 
-        submitButton.innerHTML = `
-                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-            `;
+        submitButton.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing…';
         submitButton.disabled = true;
 
         const payload = {
@@ -1603,9 +935,7 @@
             payload.latestDate = date;
             if (webPushPayload) payload.webPush = webPushPayload;
         }
-        if (action === "unsubscribe" && !useNtfy) {
-            payload.webPushEndpoint = localStorage.getItem(LS_WEB_PUSH);
-        }
+        if (action === "unsubscribe" && !useNtfy) payload.webPushEndpoint = localStorage.getItem(LS_WEB_PUSH);
 
         try {
             const res = await fetch(`${API_BASE}/subscriptions`, {
@@ -1613,48 +943,32 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
-
             const text = await res.text();
             let msg = text;
-            try {
-                const j = JSON.parse(text);
-                if (j.message) msg = j.message;
-                else if (j.error) msg = j.error;
-            } catch { /* keep raw */ }
+            try { const j = JSON.parse(text); if (j.message) msg = j.message; else if (j.error) msg = j.error; } catch { /* raw */ }
+
             if (res.ok && action === "subscribe") {
-                setFormStatus(
-                    `<span class="text-green-700 font-semibold">✓ You're subscribed at ${escapeHtml(selectedLocation.name)}!</span><br><span class="text-slate-600 font-normal">Check your phone — we just sent a test notification to confirm it's working.</span>`,
-                    "success-html"
-                );
+                setFormStatus(`<span class="text-signal-700 font-semibold">✓ You're subscribed at ${escapeHtml(selectedLocation.name)}!</span><br><span class="text-muted font-normal">Check your phone — we just sent a test notification to confirm it's working.</span>`, "success-html");
             } else {
                 setFormStatus(msg || "Done.", res.ok ? "success" : "error");
             }
 
             if (res.ok && action === "subscribe" && webPushPayload && webPushPayload.endpoint) {
-                try {
-                    localStorage.setItem(LS_WEB_PUSH, webPushPayload.endpoint);
-                } catch { /* ignore */ }
+                try { localStorage.setItem(LS_WEB_PUSH, webPushPayload.endpoint); } catch { /* ignore */ }
             }
             if (res.ok && action === "unsubscribe") {
-                try {
-                    localStorage.removeItem(LS_WEB_PUSH);
-                } catch { /* ignore */ }
+                try { localStorage.removeItem(LS_WEB_PUSH); } catch { /* ignore */ }
             }
-
             if (res.ok && action === "subscribe") {
                 document.getElementById("location").value = "";
                 syncNtfyTopicUI();
                 const locSearch = document.getElementById("location-search");
                 if (locSearch) locSearch.value = "";
                 const locSum = document.getElementById("location-summary");
-                if (locSum) {
-                    locSum.classList.add("hidden");
-                    locSum.innerHTML = "";
-                }
+                if (locSum) { locSum.classList.add("hidden"); locSum.innerHTML = ""; }
                 renderLocationList();
                 document.getElementById("recaptcha_token").value = "";
                 setDefaultDate();
-                updateReadinessChecklist();
             }
         } catch {
             setFormStatus("Error submitting request.", "error");
@@ -1663,64 +977,107 @@
         }
     }
 
-    document.getElementById("alert-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        grecaptcha.execute("6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-", { action: "submit" }).then(function (token) {
-            onSubmit(token);
-        }).catch(function (error) {
-            console.error("reCAPTCHA Error:", error);
-            setFormStatus("Verification failed. Please try again.", "error");
+    /* ---------- service worker / notification tap ---------- */
+    function initNotificationNavigateListener() {
+        if (!("serviceWorker" in navigator)) return;
+        navigator.serviceWorker.addEventListener("message", (event) => {
+            if (event.data?.type !== "gea-notification-navigate") return;
+            const path = event.data.url;
+            if (typeof path !== "string" || !path.startsWith("/")) return;
+            window.location.assign(path);
         });
-    });
+    }
 
-    document.addEventListener("change", function (e) {
-        if (e.target.name === "notify-channel") {
-            syncChannelVisibility();
-            syncChannelUX();
-        }
-    });
-
+    /* ---------- PWA install sheet ---------- */
     let geaDeferredInstallPrompt = null;
     let geaPwaFocusReturn = null;
     let geaPwaFocusTrapHandler = null;
-
     function trapPwaFocus() {
         const banner = document.getElementById("pwa-install-banner");
         if (!banner) return;
         geaPwaFocusReturn = document.activeElement;
-        const focusables = banner.querySelectorAll(
-            'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusables.length) focusables[0].focus();
-        else banner.focus();
-
+        const focusables = banner.querySelectorAll('button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])');
+        if (focusables.length) focusables[0].focus(); else banner.focus();
         geaPwaFocusTrapHandler = (e) => {
             if (e.key !== "Tab" || focusables.length === 0) return;
-            const first = focusables[0];
-            const last = focusables[focusables.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
+            const first = focusables[0], last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
         };
         banner.addEventListener("keydown", geaPwaFocusTrapHandler);
     }
-
     function releasePwaFocus() {
         const banner = document.getElementById("pwa-install-banner");
-        if (banner && geaPwaFocusTrapHandler) {
-            banner.removeEventListener("keydown", geaPwaFocusTrapHandler);
-            geaPwaFocusTrapHandler = null;
-        }
-        if (geaPwaFocusReturn && typeof geaPwaFocusReturn.focus === "function") {
-            geaPwaFocusReturn.focus();
-        }
+        if (banner && geaPwaFocusTrapHandler) { banner.removeEventListener("keydown", geaPwaFocusTrapHandler); geaPwaFocusTrapHandler = null; }
+        if (geaPwaFocusReturn && typeof geaPwaFocusReturn.focus === "function") geaPwaFocusReturn.focus();
         geaPwaFocusReturn = null;
     }
+    function dismissPwaBanner() {
+        document.getElementById("pwa-install-banner")?.classList.add("hidden");
+        document.getElementById("pwa-backdrop")?.classList.add("hidden");
+        document.getElementById("pwa-backdrop")?.setAttribute("aria-hidden", "true");
+        sessionStorage.setItem("gea_pwa_banner_dismissed", "1");
+        releasePwaFocus();
+    }
+    function showPwaInstall() {
+        const banner = document.getElementById("pwa-install-banner");
+        const backdrop = document.getElementById("pwa-backdrop");
+        const iosSteps = document.getElementById("pwa-ios-steps");
+        const actionBtn = document.getElementById("pwa-action-btn");
+        if (!banner || isStandalonePWA()) return;
+        if (sessionStorage.getItem("gea_pwa_banner_dismissed")) return;
+        if (isIOS()) {
+            iosSteps?.classList.remove("hidden");
+            actionBtn?.classList.add("hidden");
+        } else if (geaDeferredInstallPrompt) {
+            iosSteps?.classList.add("hidden");
+            actionBtn?.classList.remove("hidden");
+        } else {
+            return;
+        }
+        banner.classList.remove("hidden");
+        backdrop?.classList.remove("hidden");
+        backdrop?.setAttribute("aria-hidden", "false");
+        trapPwaFocus();
+    }
+    function revealInstallButton() {
+        if (isStandalonePWA()) return;
+        document.getElementById("btn-install-app")?.classList.remove("hidden");
+    }
+    function hideInstallButton() {
+        document.getElementById("btn-install-app")?.classList.add("hidden");
+    }
+    async function triggerInstall() {
+        if (geaDeferredInstallPrompt) {
+            geaDeferredInstallPrompt.prompt();
+            const { outcome } = await geaDeferredInstallPrompt.userChoice;
+            geaDeferredInstallPrompt = null;
+            if (outcome === "accepted") hideInstallButton();
+            return;
+        }
+        if (isIOS() && !isStandalonePWA()) showPwaInstall();
+    }
+    function initPwaBanner() {
+        const actionBtn = document.getElementById("pwa-action-btn");
+        document.getElementById("btn-pwa-dismiss")?.addEventListener("click", dismissPwaBanner);
+        document.getElementById("btn-pwa-dismiss-x")?.addEventListener("click", dismissPwaBanner);
+        document.getElementById("pwa-backdrop")?.addEventListener("click", dismissPwaBanner);
+        document.addEventListener("keydown", (e) => {
+            const banner = document.getElementById("pwa-install-banner");
+            if (e.key === "Escape" && banner && !banner.classList.contains("hidden")) dismissPwaBanner();
+        });
 
+        // Capture the install prompt (Android / desktop Chrome) and expose a discreet "Install app" button.
+        window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); geaDeferredInstallPrompt = e; revealInstallButton(); });
+        window.addEventListener("appinstalled", () => { geaDeferredInstallPrompt = null; hideInstallButton(); dismissPwaBanner(); });
+        // iOS Safari never fires beforeinstallprompt — offer the Home Screen steps directly.
+        if (isIOS() && !isStandalonePWA()) revealInstallButton();
+
+        document.getElementById("btn-install-app")?.addEventListener("click", triggerInstall);
+        actionBtn?.addEventListener("click", triggerInstall);
+    }
+
+    /* ---------- external counts ---------- */
     async function fetchGitHubStars() {
         try {
             const r = await fetch("https://api.github.com/repos/arun0009/global-entry-appointment");
@@ -1730,9 +1087,8 @@
                 const span = document.getElementById("gh-star-count");
                 if (span) span.textContent = `★ ${data.stargazers_count}`;
             }
-        } catch {}
+        } catch { /* ignore */ }
     }
-
     async function fetchBMCSupporters() {
         try {
             const r = await fetch("https://app.buymeacoffee.com/api/creators/slug/arun0009");
@@ -1741,266 +1097,110 @@
             const count = data?.data?.attributes?.supporter_count;
             if (typeof count !== "number" || count <= 0) return;
             const el = document.getElementById("bmc-supporter-count");
-            if (!el) return;
-            el.textContent = `☕ ${count} ${count === 1 ? "supporter" : "supporters"} · thank you!`;
+            const num = document.getElementById("bmc-supporter-num");
+            if (!el || !num) return;
+            num.textContent = count.toLocaleString();
+            el.setAttribute("aria-label", `${count.toLocaleString()} ${count === 1 ? "supporter" : "supporters"}`);
             el.classList.remove("hidden");
-        } catch {}
+        } catch { /* ignore */ }
     }
 
-    function setFormStatus(message, type) {
-        const status = document.getElementById("status");
-        if (!status) return;
-        if (type === "error") {
-            status.innerHTML = message;
-            status.className = "text-center font-medium text-sm mt-4 text-red-600";
-            status.setAttribute("role", "alert");
-        } else if (type === "success-html") {
-            status.innerHTML = message;
-            status.className = "text-center text-sm mt-4";
-            status.setAttribute("role", "status");
-        } else {
-            status.textContent = message;
-            status.className = type === "success"
-                ? "text-center font-medium text-sm mt-4 text-green-600"
-                : "text-center font-medium text-sm mt-4 text-red-600";
-            status.setAttribute("role", type === "success" ? "status" : "alert");
-        }
-    }
-
-    function dismissPwaBanner() {
-        document.getElementById("pwa-install-banner")?.classList.add("hidden");
-        document.getElementById("pwa-backdrop")?.classList.add("hidden");
-        document.getElementById("pwa-backdrop")?.setAttribute("aria-hidden", "true");
-        sessionStorage.setItem("gea_pwa_banner_dismissed", "1");
-        releasePwaFocus();
-    }
-
-    /** Show install sheet only when user selects "Install as app" — not on page load (web.dev best practice). */
-    function maybeShowPwaBanner() {
-        const banner = document.getElementById("pwa-install-banner");
-        const backdrop = document.getElementById("pwa-backdrop");
-        const iosSteps = document.getElementById("pwa-ios-steps");
-        const actionBtn = document.getElementById("pwa-action-btn");
-        const webOn = document.getElementById("channel-web")?.checked;
-        if (!banner || !webOn || isStandalonePWA()) return;
-        if (sessionStorage.getItem("gea_pwa_banner_dismissed")) return;
-
-        if (isIOS()) {
-            iosSteps?.classList.remove("hidden");
-            actionBtn?.classList.add("hidden");
-            banner.classList.remove("hidden");
-            backdrop?.classList.remove("hidden");
-            backdrop?.setAttribute("aria-hidden", "false");
-            trapPwaFocus();
-        } else if (geaDeferredInstallPrompt) {
-            iosSteps?.classList.add("hidden");
-            actionBtn?.classList.remove("hidden");
-            banner.classList.remove("hidden");
-            backdrop?.classList.remove("hidden");
-            backdrop?.setAttribute("aria-hidden", "false");
-            trapPwaFocus();
-        }
-    }
-
-    function initPwaBanner() {
-        const actionBtn = document.getElementById("pwa-action-btn");
-        document.getElementById("btn-pwa-dismiss")?.addEventListener("click", dismissPwaBanner);
-        document.getElementById("btn-pwa-dismiss-x")?.addEventListener("click", dismissPwaBanner);
-        document.getElementById("pwa-backdrop")?.addEventListener("click", dismissPwaBanner);
-
-        document.addEventListener("keydown", (e) => {
-            const banner = document.getElementById("pwa-install-banner");
-            if (e.key === "Escape" && banner && !banner.classList.contains("hidden")) {
-                dismissPwaBanner();
-            }
-        });
-
-        window.addEventListener("beforeinstallprompt", (e) => {
-            e.preventDefault();
-            geaDeferredInstallPrompt = e;
-        });
-
-        window.addEventListener("appinstalled", () => {
-            geaDeferredInstallPrompt = null;
-            dismissPwaBanner();
-            updateWebPushStepState();
-        });
-
-        if (actionBtn) {
-            actionBtn.addEventListener("click", async () => {
-                if (!geaDeferredInstallPrompt) return;
-                geaDeferredInstallPrompt.prompt();
-                const { outcome } = await geaDeferredInstallPrompt.userChoice;
-                if (outcome === "accepted") dismissPwaBanner();
-                geaDeferredInstallPrompt = null;
-            });
-        }
-    }
+    /* ---------- wiring ---------- */
+    document.getElementById("alert-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        grecaptcha.execute("6LeFq3UrAAAAAA_0X0iVa-d-S6ZUsflfjJgL7vE-", { action: "submit" })
+            .then((token) => onSubmit(token))
+            .catch((err) => { console.error("reCAPTCHA Error:", err); setFormStatus("Verification failed. Please try again.", "error"); });
+    });
 
     window.addEventListener("DOMContentLoaded", () => {
         syncNtfyTopicUI();
 
-        if (isIOS() && !isStandalonePWA()) {
-            const web = document.getElementById("channel-web");
-            const ntfy = document.getElementById("channel-ntfy");
-            if (web && ntfy) {
-                ntfy.checked = true;
-                web.checked = false;
-            }
-        } else if (isStandalonePWA()) {
-            const web = document.getElementById("channel-web");
-            const ntfy = document.getElementById("channel-ntfy");
-            if (web && ntfy) {
-                web.checked = true;
-                ntfy.checked = false;
-            }
-        }
-        syncChannelVisibility();
-        enforceChannelForContext();
-        updateNotifyFieldsetHint();
-        updateSetupStepCompact();
-        window.addEventListener("resize", updateSetupStepCompact, { passive: true });
-
-        // Handle ?subscriptions=unsubscribe deep-link (e.g. from email notification)
         const params = new URLSearchParams(window.location.search);
-        if (params.get("subscriptions") === "unsubscribe") {
-            setFormMode("unsubscribe");
-        }
+        if (params.get("subscriptions") === "unsubscribe") setFormMode("unsubscribe");
 
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("/sw.js").catch(() => {});
             initNotificationNavigateListener();
         }
 
-        const switchChannelBtn = document.getElementById("btn-switch-channel");
-        if (switchChannelBtn) {
-            switchChannelBtn.addEventListener("click", () => {
-                const next = getActiveChannel() === "web" ? "ntfy" : "web";
-                if (next === "web" && document.getElementById("channel-web")?.disabled) return;
-                selectChannel(next);
+        // Desktop "or get alerts on this computer" → reveal push block
+        document.getElementById("btn-desktop-push")?.addEventListener("click", () => {
+            showNotifyBlock("push");
+            configurePushBlockForDevice();
+            setChannel("web");
+            scrollToEl(document.getElementById("btn-enable-push"));
+        });
+
+        document.getElementById("btn-enable-push")?.addEventListener("click", (e) => { e.preventDefault(); enableWebPushFromGesture(); });
+
+        // ntfy fallback
+        const details = document.getElementById("ntfy-details");
+        if (details) {
+            details.addEventListener("toggle", () => {
+                if (details.open) {
+                    showNotifyBlock(null);
+                    setChannel("ntfy");
+                } else if (isNtfyConfirmed()) {
+                    // Keep ntfy as the chosen method; don't resurface the push/QR block.
+                    showNotifyBlock(null);
+                } else {
+                    showPrimaryNotify();
+                    setChannel("web");
+                }
             });
         }
-
-        const confirmNtfyBtn = document.getElementById("btn-ntfy-confirm");
-        if (confirmNtfyBtn) {
-            confirmNtfyBtn.addEventListener("click", () => {
-                if (!isNtfySubscribed() && isNtfyCopied()) markNtfySubscribed();
-            });
-        }
-
-        document.getElementById("btn-ntfy-have-app")?.addEventListener("click", markNtfyInstallDone);
-        document.getElementById("ntfy-link-appstore")?.addEventListener("click", markNtfyInstallDone);
-        document.getElementById("ntfy-link-playstore")?.addEventListener("click", markNtfyInstallDone);
-
-        const dateInput = document.getElementById("date");
-        if (dateInput) {
-            dateInput.addEventListener("change", updateReadinessChecklist);
-            dateInput.addEventListener("input", updateReadinessChecklist);
-        }
-
-        // Manual setup: editable channel name
+        document.getElementById("btn-ntfy-confirm")?.addEventListener("click", () => { if (!isNtfyConfirmed()) markNtfyConfirmed(); });
+        document.getElementById("btn-copy-topic")?.addEventListener("click", copyNtfyTopic);
+        document.getElementById("btn-regenerate-topic")?.addEventListener("click", regenerateNtfyTopic);
         const topicInput = document.getElementById("ntfy-topic-input");
         if (topicInput) {
             topicInput.addEventListener("blur", applyNtfyTopicFromInput);
-            topicInput.addEventListener("input", () => {
-                document.getElementById("ntfy-topic-error")?.classList.add("hidden");
-                topicInput.removeAttribute("aria-invalid");
-            });
-            topicInput.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    topicInput.blur();
-                }
-            });
-        }
-        const regenBtn = document.getElementById("btn-regenerate-topic");
-        if (regenBtn) regenBtn.addEventListener("click", regenerateNtfyTopic);
-
-        // Copy channel name
-        document.getElementById("btn-copy-topic")?.addEventListener("click", copyNtfyTopic);
-
-        // Unsubscribe toggle link
-        const unsubToggle = document.getElementById("btn-toggle-unsub");
-        if (unsubToggle) {
-            unsubToggle.addEventListener("click", () => setFormMode("unsubscribe"));
-        }
-        const backSubscribeBtn = document.getElementById("btn-back-subscribe");
-        if (backSubscribeBtn) {
-            backSubscribeBtn.addEventListener("click", () => setFormMode("subscribe"));
+            topicInput.addEventListener("input", () => { document.getElementById("ntfy-topic-error")?.classList.add("hidden"); topicInput.removeAttribute("aria-invalid"); });
+            topicInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); topicInput.blur(); } });
         }
 
-        const enablePushBtn = document.getElementById("btn-enable-push");
-        if (enablePushBtn) {
-            enablePushBtn.addEventListener("click", (ev) => {
-                ev.preventDefault();
-                enableWebPushFromGesture();
-            });
-        }
+        // unsubscribe toggle
+        document.getElementById("btn-toggle-unsub")?.addEventListener("click", () => setFormMode("unsubscribe"));
+        document.getElementById("btn-back-subscribe")?.addEventListener("click", () => setFormMode("subscribe"));
+
+        // date
+        const dateInput = document.getElementById("date");
+        if (dateInput) { dateInput.addEventListener("change", updateReady); dateInput.addEventListener("input", updateReady); }
+
+        // location
         fetchLocations();
         const locList = document.getElementById("location-list");
-        if (locList) {
-            locList.addEventListener("click", (e) => {
-                const row = e.target.closest(".location-row");
-                if (!row) return;
-                selectLocationRow(row);
-            });
-        }
+        locList?.addEventListener("click", (e) => { const row = e.target.closest(".location-row"); if (row) selectLocationRow(row); });
         const locSum = document.getElementById("location-summary");
-        if (locSum) {
-            locSum.addEventListener("click", (e) => {
-                if (!e.target.closest(".location-change")) return;
-                document.getElementById("location").value = "";
-                locSum.classList.add("hidden");
-                locSum.innerHTML = "";
-                renderLocationList();
-                document.getElementById("location-search").focus();
-            });
-        }
+        locSum?.addEventListener("click", (e) => {
+            if (!e.target.closest(".location-change")) return;
+            document.getElementById("location").value = "";
+            locSum.classList.add("hidden"); locSum.innerHTML = "";
+            renderLocationList();
+            updateReady();
+            document.getElementById("location-search").focus();
+        });
         const locSearch = document.getElementById("location-search");
         if (locSearch) {
-            locSearch.addEventListener("focus", () => {
-                // Only open the dropdown when the user focuses the field (not on page load)
-                if (globalLocations.length > 0) renderLocationList();
-            });
+            locSearch.addEventListener("focus", () => { if (globalLocations.length > 0) renderLocationList(); });
             locSearch.addEventListener("input", () => {
                 const hid = document.getElementById("location");
-                if (hid.value) {
-                    hid.value = "";
-                    const s = document.getElementById("location-summary");
-                    if (s) {
-                        s.classList.add("hidden");
-                        s.innerHTML = "";
-                    }
-                }
+                if (hid.value) { hid.value = ""; const s = document.getElementById("location-summary"); if (s) { s.classList.add("hidden"); s.innerHTML = ""; } updateReady(); }
                 renderLocationList();
             });
             locSearch.addEventListener("keydown", (e) => {
                 const list = document.getElementById("location-list");
                 const options = list ? [...list.querySelectorAll(".location-row")] : [];
-                if (e.key === "ArrowDown") {
-                    if (!options.length) return;
-                    e.preventDefault();
-                    if (list?.classList.contains("hidden")) setLocationListExpanded(true);
-                    highlightLocationOption(locationActiveIndex + 1);
-                } else if (e.key === "ArrowUp") {
-                    if (!options.length) return;
-                    e.preventDefault();
-                    highlightLocationOption(locationActiveIndex <= 0 ? 0 : locationActiveIndex - 1);
-                } else if (e.key === "Enter") {
-                    if (locationActiveIndex >= 0 && options[locationActiveIndex]) {
-                        e.preventDefault();
-                        selectLocationRow(options[locationActiveIndex]);
-                    }
-                } else if (e.key === "Escape") {
-                    if (!list?.classList.contains("hidden")) {
-                        e.preventDefault();
-                        setLocationListExpanded(false);
-                    }
-                }
+                if (e.key === "ArrowDown") { if (!options.length) return; e.preventDefault(); if (list?.classList.contains("hidden")) setLocationListExpanded(true); highlightLocationOption(locationActiveIndex + 1); }
+                else if (e.key === "ArrowUp") { if (!options.length) return; e.preventDefault(); highlightLocationOption(locationActiveIndex <= 0 ? 0 : locationActiveIndex - 1); }
+                else if (e.key === "Enter") { if (locationActiveIndex >= 0 && options[locationActiveIndex]) { e.preventDefault(); selectLocationRow(options[locationActiveIndex]); } }
+                else if (e.key === "Escape") { if (!list?.classList.contains("hidden")) { e.preventDefault(); setLocationListExpanded(false); } }
             });
         }
+
         setDefaultDate();
-        updateReadinessChecklist();
+        updateReady();
         loadApiMeta();
         fetchGitHubStars();
         fetchBMCSupporters();
