@@ -29,6 +29,10 @@ import (
 
 const primarySiteOrigin = "https://getglobalentryalerts.com"
 
+// supportURL is included in end-of-subscription notices — the one moment users
+// are most grateful and most likely to support the project.
+const supportURL = "https://buymeacoffee.com/arun0009"
+
 // cbpLocationsURL is the upstream CBP scheduler API for Global Entry enrollment centers.
 const cbpLocationsURL = "https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry"
 
@@ -349,11 +353,14 @@ func validateWebPushSubscription(w *WebPushSubscription) error {
 	return nil
 }
 
-func (h *LambdaHandler) sendOneWebPush(ctx context.Context, docID bson.ObjectID, sub WebPushSubscription, title, body string) (int, error) {
+func (h *LambdaHandler) sendOneWebPush(ctx context.Context, docID bson.ObjectID, sub WebPushSubscription, title, body, clickURL string) (int, error) {
+	if clickURL == "" {
+		clickURL = "/"
+	}
 	payload, err := json.Marshal(map[string]string{
 		"title": title,
 		"body":  body,
-		"url":   "/",
+		"url":   clickURL,
 	})
 	if err != nil {
 		return 0, err
@@ -384,13 +391,14 @@ func (h *LambdaHandler) sendOneWebPush(ctx context.Context, docID bson.ObjectID,
 }
 
 // sendWebPushNotifications delivers to each stored browser subscription and drops dead endpoints (410/404).
-func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mongo.Collection, docID bson.ObjectID, title, body string, subs []WebPushSubscription) bool {
+// clickURL sets where tapping the notification navigates; empty means the site root.
+func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mongo.Collection, docID bson.ObjectID, title, body, clickURL string, subs []WebPushSubscription) bool {
 	if !h.webPushConfigured() || len(subs) == 0 {
 		return false
 	}
 	anyOK := false
 	for _, s := range subs {
-		status, err := h.sendOneWebPush(ctx, docID, s, title, body)
+		status, err := h.sendOneWebPush(ctx, docID, s, title, body, clickURL)
 		if err != nil {
 			slog.Warn("Web push send failed", "subscriptionId", docID.Hex(), "endpoint", s.Endpoint, "error", err)
 			continue
@@ -411,13 +419,13 @@ func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mong
 
 // notifySubscription sends the same title/message on ntfy (if topic is set) and Web Push for one stored row.
 // Used for lifecycle notices; not used for slot alerts, which need distinct ntfy error handling.
-func (h *LambdaHandler) notifySubscription(ctx context.Context, coll *mongo.Collection, sub *Subscription, title, message string) {
+func (h *LambdaHandler) notifySubscription(ctx context.Context, coll *mongo.Collection, sub *Subscription, title, message, clickURL string) {
 	if strings.TrimSpace(sub.NtfyTopic) != "" {
 		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message); err != nil {
 			slog.Error("Failed to send ntfy notification", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", err)
 		}
 	}
-	h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, sub.WebPushSubscriptions)
+	h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, clickURL, sub.WebPushSubscriptions)
 }
 
 // updateLastNotified updates the lastNotifiedAt timestamp and notificationCount for multiple subscriptions
@@ -553,16 +561,16 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 				}
 			}
 		}
-		webOK := h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, sub.WebPushSubscriptions)
+		webOK := h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, "", sub.WebPushSubscriptions)
 		if !ntfyOK && !webOK {
 			continue
 		}
 
 		// Check if subscription has exceeded max notification count after sending
 		if sub.NotificationCount+1 >= h.Config.MaxNotificationCount {
-			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment!", sub.ShortName, sub.NotificationCount+1)
+			expireMessage := fmt.Sprintf("Your Global Entry appointment subscription for %s has ended as we sent %d alerts. We hope you secured an appointment! If we helped, a coffee is always appreciated: %s", sub.ShortName, sub.NotificationCount+1, supportURL)
 			expireTitle := "Global Entry Subscription Ended"
-			h.notifySubscription(ctx, coll, &sub, expireTitle, expireMessage)
+			h.notifySubscription(ctx, coll, &sub, expireTitle, expireMessage, supportURL)
 			_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 			if err != nil {
 				slog.Error("Failed to delete subscription due to max notifications", "subscriptionId", sub.ID.Hex(), "error", err)
@@ -601,9 +609,9 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 
 // deleteExpiredSubscription deletes a single expired subscription
 func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mongo.Collection, sub Subscription) error {
-	message := fmt.Sprintf("Your Global Entry appointment subscription for %s has expired(30 days subscription) or the latest appointment date set (%s) has passed.", sub.ShortName, sub.LatestDate.Format("2006-01-02"))
+	message := fmt.Sprintf("Your Global Entry appointment subscription for %s has expired (30 day limit) or your latest acceptable date (%s) has passed. Thanks for using Global Entry Alerts — resubscribe anytime at getglobalentryalerts.com.", sub.ShortName, sub.LatestDate.Format("2006-01-02"))
 	title := "Global Entry Subscription Expired"
-	h.notifySubscription(ctx, coll, &sub, title, message)
+	h.notifySubscription(ctx, coll, &sub, title, message, "")
 
 	_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 	if err != nil {
@@ -763,7 +771,7 @@ func (h *LambdaHandler) subscribeSendConfirmations(ctx context.Context, coll *mo
 		}
 	}
 	if sendWeb && len(webSubs) > 0 {
-		if h.sendWebPushNotifications(ctx, coll, docID, title, message, webSubs) {
+		if h.sendWebPushNotifications(ctx, coll, docID, title, message, "", webSubs) {
 			confirmed = true
 		}
 	}

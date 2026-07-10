@@ -490,7 +490,7 @@ func TestHandleRequest_CloudWatchExpirationEvent(t *testing.T) {
 		json.NewDecoder(r.Body).Decode(&payload)
 		assert.Equal(t, "user1-sf", payload["topic"])
 		assert.Equal(t, "Global Entry Subscription Expired", payload["title"])
-		assert.Equal(t, fmt.Sprintf("Your Global Entry appointment subscription for SF Enrollment Center has expired(30 days subscription) or the latest appointment date set (%s) has passed.", expiredLatestDate.Format("2006-01-02")), payload["message"])
+		assert.Equal(t, fmt.Sprintf("Your Global Entry appointment subscription for SF Enrollment Center has expired (30 day limit) or your latest acceptable date (%s) has passed. Thanks for using Global Entry Alerts — resubscribe anytime at getglobalentryalerts.com.", expiredLatestDate.Format("2006-01-02")), payload["message"])
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ntfyServer.Close()

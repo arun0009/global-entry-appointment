@@ -193,22 +193,24 @@ body {
         @apply inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-muted transition-colors hover:border-primary-300 hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
     }
 
-    /* ---- Support: Buy Me a Coffee button — blue to match the site, yellow cup ---- */
+    /* ---- Support: Buy Me a Coffee button — official BMC yellow for instant recognition ---- */
     .coffee-link {
-        @apply inline-flex items-center gap-3 rounded-2xl py-2.5 pl-4 pr-2.5 text-sm font-bold text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
-        background-color: var(--color-primary-600);
-        box-shadow: 0 1px 2px rgba(27, 26, 23, 0.08), 0 10px 24px -12px rgba(52, 69, 210, 0.6);
+        @apply inline-flex items-center gap-3 rounded-2xl py-2.5 pl-4 pr-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+        background-color: #FFDD00;
+        color: #1B1A17;
+        box-shadow: 0 1px 2px rgba(27, 26, 23, 0.08), 0 10px 24px -12px rgba(255, 221, 0, 0.75);
     }
     .coffee-glyph {
         @apply h-6 w-6;
-        color: #FFDD00;
+        color: #1B1A17;
     }
     .coffee-label {
         @apply mr-1;
     }
     .coffee-count {
-        @apply inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-bold tabular-nums text-white;
-        background-color: rgba(255, 255, 255, 0.18);
+        @apply inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-bold tabular-nums;
+        color: #1B1A17;
+        background-color: rgba(27, 26, 23, 0.08);
     }
     .meta-icon {
         @apply text-faint transition-colors hover:text-ink focus-visible:outline-none focus-visible:text-ink;
@@ -329,7 +331,7 @@ body::before {
 .social-link:hover, .coffee-link:hover { transform: translateY(-1px); }
 .coffee-link:hover {
     filter: brightness(1.04);
-    box-shadow: 0 2px 4px rgba(27, 26, 23, 0.1), 0 16px 32px -14px rgba(52, 69, 210, 0.7);
+    box-shadow: 0 2px 4px rgba(27, 26, 23, 0.1), 0 16px 32px -14px rgba(255, 221, 0, 0.85);
 }
 .meta-icon:hover { transform: translateY(-2px); color: #3445d2; }
 
