@@ -33,6 +33,9 @@ const primarySiteOrigin = "https://getglobalentryalerts.com"
 // are most grateful and most likely to support the project.
 const supportURL = "https://buymeacoffee.com/arun0009"
 
+// bookingURL is where slot alerts deep-link so users can book immediately.
+const bookingURL = "https://ttp.dhs.gov/schedulerui/"
+
 // cbpLocationsURL is the upstream CBP scheduler API for Global Entry enrollment centers.
 const cbpLocationsURL = "https://ttp.cbp.dhs.gov/schedulerapi/locations/?temporary=false&inviteOnly=false&operational=true&serviceName=Global%20Entry"
 
@@ -289,8 +292,9 @@ func (h *LambdaHandler) fetchAppointments(ctx context.Context, location string) 
 	return appointments, nil
 }
 
-// sendNtfyNotification sends a notification to the specified ntfy topic
-func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, message string) error {
+// sendNtfyNotification sends a notification to the specified ntfy topic.
+// clickURL is optional; when set, tapping the notification opens that URL.
+func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, message, clickURL string) error {
 	if h.failedNtfyCount >= h.Config.MaxNtfyFailures {
 		return ErrMaxNtfyFailures
 	}
@@ -299,6 +303,9 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 		"topic":   topic,
 		"message": message,
 		"title":   title,
+	}
+	if strings.TrimSpace(clickURL) != "" {
+		payload["click"] = clickURL
 	}
 	payloadBytes, _ := json.Marshal(payload)
 
@@ -421,7 +428,7 @@ func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mong
 // Used for lifecycle notices; not used for slot alerts, which need distinct ntfy error handling.
 func (h *LambdaHandler) notifySubscription(ctx context.Context, coll *mongo.Collection, sub *Subscription, title, message, clickURL string) {
 	if strings.TrimSpace(sub.NtfyTopic) != "" {
-		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message); err != nil {
+		if err := h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message, clickURL); err != nil {
 			slog.Error("Failed to send ntfy notification", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", err)
 		}
 	}
@@ -542,16 +549,16 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 			continue
 		}
 
-		// Format time for notification
+		// Format time for notification — punchy copy + deep-link to CBP booking.
 		t, _ := time.ParseInLocation("2006-01-02T15:04", eligibleAppointment.StartTimestamp, loc)
-		formattedTime := t.Format("Mon, Jan 2, 2006 at 3:04 PM MST")
-		message := fmt.Sprintf("Appointment available at %s on %s", sub.ShortName, formattedTime)
-		title := "Global Entry Appointment Notification"
+		formattedTime := t.Format("Mon, Jan 2 at 3:04 PM MST")
+		title := fmt.Sprintf("%s slot open", sub.ShortName)
+		message := fmt.Sprintf("%s — book now", formattedTime)
 
 		ntfyOK := false
 		var ntfyErr error
 		if sub.NtfyTopic != "" {
-			ntfyErr = h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message)
+			ntfyErr = h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message, bookingURL)
 			if ntfyErr == nil {
 				ntfyOK = true
 			} else {
@@ -561,7 +568,7 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 				}
 			}
 		}
-		webOK := h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, "", sub.WebPushSubscriptions)
+		webOK := h.sendWebPushNotifications(ctx, coll, sub.ID, title, message, bookingURL, sub.WebPushSubscriptions)
 		if !ntfyOK && !webOK {
 			continue
 		}
@@ -764,7 +771,7 @@ func (h *LambdaHandler) subscribeSendConfirmations(ctx context.Context, coll *mo
 	title := "Global Entry Subscription Confirmation"
 	confirmed := false
 	if sendNtfy && strings.TrimSpace(req.NtfyTopic) != "" {
-		if err := h.sendNtfyNotification(ctx, req.NtfyTopic, title, message); err != nil {
+		if err := h.sendNtfyNotification(ctx, req.NtfyTopic, title, message, ""); err != nil {
 			slog.Error("Failed to send confirmation notification", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "error", err)
 		} else {
 			confirmed = true

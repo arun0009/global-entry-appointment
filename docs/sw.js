@@ -1,5 +1,5 @@
 /* global self, caches, clients */
-const CACHE = "gea-shell-v15";
+const CACHE = "gea-shell-v16";
 const SHELL = ["/", "/index.html", "/styles.css", "/favicon.png", "/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -69,6 +69,14 @@ self.addEventListener("notificationclick", (event) => {
 async function openNotificationTarget(rawUrl) {
   const urlToOpen = new URL(rawUrl, self.registration.scope);
   const targetHref = urlToOpen.href;
+  const sameOrigin = urlToOpen.origin === self.location.origin;
+
+  // Slot alerts deep-link to CBP — always open in a fresh window/tab.
+  if (!sameOrigin) {
+    if (self.clients.openWindow) return self.clients.openWindow(targetHref);
+    return;
+  }
+
   const targetPath = urlToOpen.pathname + urlToOpen.search + urlToOpen.hash;
   const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
 
