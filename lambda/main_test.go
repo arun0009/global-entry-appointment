@@ -134,7 +134,7 @@ func setupRecaptchaServer(t *testing.T, valid bool, score float64) *httptest.Ser
 			return
 		}
 
-		response := map[string]interface{}{
+		response := map[string]any{
 			"success": valid,
 			"score":   score,
 			"action":  "submit",
@@ -753,6 +753,73 @@ func TestHandleRequest_APIGatewaySubscribe_secondSubscribeMergesSameNtfyRow(t *t
 	assert.Equal(t, 1, ntfyCalls, "only first subscribe sends confirmation ntfy")
 }
 
+func TestDeleteChannelLessSubscriptions(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+	setupTest(t, coll)
+
+	now := time.Now().UTC()
+	// Orphan: no ntfy, no web push (the Richmond-style zombie)
+	zombieID := insertSubscription(t, ctx, coll, "14981", "Richmond, VA Enrollment Center", "America/New_York", "", now, now, now.Add(30*24*time.Hour), 27)
+	// Healthy ntfy-only row must survive
+	keepID := insertSubscription(t, ctx, coll, "5446", "SF Enrollment Center", "America/Los_Angeles", "keep-me", now, now, now.Add(30*24*time.Hour), 1)
+	// Web-push-only row must survive
+	webID := bson.NewObjectID()
+	_, err := coll.InsertOne(ctx, bson.M{
+		"_id":       webID,
+		"location":  "5001",
+		"shortName": "JFK",
+		"timezone":  "America/New_York",
+		"ntfyTopic": "",
+		"webPushSubscriptions": []bson.M{{
+			"endpoint": "https://push.example/endpoint",
+			"keys":     bson.M{"auth": "a", "p256dh": "b"},
+		}},
+		"createdAt":         now,
+		"lastNotifiedAt":    now,
+		"latestDate":        now.Add(30 * 24 * time.Hour),
+		"notificationCount": 0,
+	})
+	assert.NoError(t, err)
+
+	handler.deleteChannelLessSubscriptions(ctx, coll)
+
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": zombieID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count, "channel-less zombie should be deleted")
+
+	count, err = coll.CountDocuments(ctx, bson.M{"_id": keepID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count, "ntfy subscription should remain")
+
+	count, err = coll.CountDocuments(ctx, bson.M{"_id": webID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count, "web-push subscription should remain")
+}
+
+func TestDeleteIfChannelLess_onlyWhenEmpty(t *testing.T) {
+	handler, coll, cleanup := setupTestHandler(t)
+	defer cleanup()
+	ctx := context.Background()
+	setupTest(t, coll)
+
+	now := time.Now().UTC()
+	zombieID := insertSubscription(t, ctx, coll, "14981", "Richmond", "America/New_York", "", now, now, now.Add(24*time.Hour), 1)
+	keepID := insertSubscription(t, ctx, coll, "5446", "SF", "America/Los_Angeles", "still-here", now, now, now.Add(24*time.Hour), 1)
+
+	handler.deleteIfChannelLess(ctx, coll, zombieID)
+	handler.deleteIfChannelLess(ctx, coll, keepID)
+
+	count, err := coll.CountDocuments(ctx, bson.M{"_id": zombieID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), count)
+
+	count, err = coll.CountDocuments(ctx, bson.M{"_id": keepID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), count)
+}
+
 func TestHandleRequest_InvalidEvent(t *testing.T) {
 	handler, coll, cleanup := setupTestHandler(t)
 	defer cleanup()
@@ -762,7 +829,7 @@ func TestHandleRequest_InvalidEvent(t *testing.T) {
 	setupTest(t, coll)
 
 	// Create invalid event
-	event := map[string]interface{}{
+	event := map[string]any{
 		"invalid": "event",
 	}
 	eventJSON, _ := json.Marshal(event)

@@ -59,8 +59,8 @@ var allowedCORSOrigins = map[string]bool{
 // originFromEvent extracts the request Origin header from an API Gateway event.
 // HTTP API v2 lowercases header names; REST API v1 and SAM local don't, so we
 // check both common spellings.
-func originFromEvent(eventMap map[string]interface{}) string {
-	h, _ := eventMap["headers"].(map[string]interface{})
+func originFromEvent(eventMap map[string]any) string {
+	h, _ := eventMap["headers"].(map[string]any)
 	if v, _ := h["origin"].(string); v != "" {
 		return v
 	}
@@ -223,13 +223,13 @@ func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) 
 		strings.NewReader(form.Encode()),
 	)
 	if err != nil {
-		return false, 0, fmt.Errorf("failed to create reCAPTCHA verification request: %v", err)
+		return false, 0, fmt.Errorf("failed to create reCAPTCHA verification request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
-		return false, 0, fmt.Errorf("failed to verify reCAPTCHA token: %v", err)
+		return false, 0, fmt.Errorf("failed to verify reCAPTCHA token: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -239,7 +239,7 @@ func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) 
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, 0, fmt.Errorf("failed to read reCAPTCHA response body: %v", err)
+		return false, 0, fmt.Errorf("failed to read reCAPTCHA response body: %w", err)
 	}
 
 	var result struct {
@@ -249,7 +249,7 @@ func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) 
 		ErrorCodes []string `json:"error-codes"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return false, 0, fmt.Errorf("failed to unmarshal reCAPTCHA response: %v", err)
+		return false, 0, fmt.Errorf("failed to unmarshal reCAPTCHA response: %w", err)
 	}
 
 	slog.Info("reCAPTCHA parsed result", "success", result.Success, "score", result.Score, "action", result.Action, "error-codes", result.ErrorCodes)
@@ -265,13 +265,13 @@ func (h *LambdaHandler) verifyRecaptchaToken(ctx context.Context, token string) 
 func (h *LambdaHandler) fetchAppointments(ctx context.Context, location string) ([]Appointment, error) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(h.URL, location), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
 		slog.Warn("Failed to get appointment slots", "location", location, "error", err)
-		return nil, fmt.Errorf("failed to fetch appointments: %v", err)
+		return nil, fmt.Errorf("failed to fetch appointments: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -282,12 +282,12 @@ func (h *LambdaHandler) fetchAppointments(ctx context.Context, location string) 
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var appointments []Appointment
 	if err := json.Unmarshal(body, &appointments); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 	return appointments, nil
 }
@@ -312,22 +312,20 @@ func (h *LambdaHandler) sendNtfyNotification(ctx context.Context, topic, title, 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, h.Config.NtfyServer, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		h.failedNtfyCount++
-		return fmt.Errorf("failed to create ntfy request: %v", err)
+		return fmt.Errorf("failed to create ntfy request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := h.HTTPClient.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		if err != nil {
-			slog.Warn("Failed to send ntfy notification", "topic", topic, "error", err)
-		} else {
-			slog.Warn("Non-OK status from ntfy", "topic", topic, "status", resp.StatusCode)
-			resp.Body.Close()
-		}
+	if err != nil {
+		slog.Warn("Failed to send ntfy notification", "topic", topic, "error", err)
 		h.failedNtfyCount++
-		if err != nil {
-			return fmt.Errorf("failed to send ntfy notification: %v", err)
-		}
+		return fmt.Errorf("failed to send ntfy notification: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		slog.Warn("Non-OK status from ntfy", "topic", topic, "status", resp.StatusCode)
+		resp.Body.Close()
+		h.failedNtfyCount++
 		return fmt.Errorf("ntfy returned status %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
@@ -404,6 +402,7 @@ func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mong
 		return false
 	}
 	anyOK := false
+	pulled := false
 	for _, s := range subs {
 		status, err := h.sendOneWebPush(ctx, docID, s, title, body, clickURL)
 		if err != nil {
@@ -417,9 +416,15 @@ func (h *LambdaHandler) sendWebPushNotifications(ctx context.Context, coll *mong
 		if status == http.StatusGone || status == http.StatusNotFound {
 			if _, err := coll.UpdateOne(ctx, bson.M{"_id": docID}, bson.M{"$pull": bson.M{"webPushSubscriptions": bson.M{"endpoint": s.Endpoint}}}); err != nil {
 				slog.Warn("Failed to remove stale web push subscription", "subscriptionId", docID.Hex(), "error", err)
+				continue
 			}
+			pulled = true
 		}
 		// Other non-2xx statuses are already logged in sendOneWebPush with response body when available.
+	}
+	if pulled {
+		// Last endpoint gone and no ntfy → orphan row; drop it.
+		h.deleteIfChannelLess(ctx, coll, docID)
 	}
 	return anyOK
 }
@@ -444,7 +449,7 @@ func (h *LambdaHandler) updateLastNotified(ctx context.Context, coll *mongo.Coll
 	result, err := coll.BulkWrite(ctx, updates)
 	if err != nil {
 		slog.Error("Failed to update lastNotifiedAt and notificationCount", "error", err)
-		return fmt.Errorf("failed to update lastNotifiedAt and notificationCount: %v", err)
+		return fmt.Errorf("failed to update lastNotifiedAt and notificationCount: %w", err)
 	}
 	slog.Debug("Updated lastNotifiedAt and notificationCount", "modifiedCount", result.ModifiedCount)
 	return nil
@@ -470,7 +475,6 @@ func (h *LambdaHandler) fetchAppointmentsForLocations(ctx context.Context, subsc
 	g.SetLimit(maxLocationFetchConcurrency)
 
 	for loc := range uniqueLocations {
-		loc := loc
 		g.Go(func() error {
 			apps, err := h.fetchAppointments(gctx, loc)
 			if err != nil {
@@ -559,9 +563,8 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 		var ntfyErr error
 		if sub.NtfyTopic != "" {
 			ntfyErr = h.sendNtfyNotification(ctx, sub.NtfyTopic, title, message, bookingURL)
-			if ntfyErr == nil {
-				ntfyOK = true
-			} else {
+			ntfyOK = ntfyErr == nil
+			if ntfyErr != nil {
 				slog.Error("Failed to send appointment notification", "subscriptionId", sub.ID.Hex(), "topic", sub.NtfyTopic, "error", ntfyErr)
 				if errors.Is(ntfyErr, ErrMaxNtfyFailures) {
 					return globalNotifiedCount, ErrMaxNtfyFailures
@@ -603,15 +606,76 @@ func (h *LambdaHandler) checkAvailabilityAndNotify(ctx context.Context, subscrip
 	// Apply bulk updates only if there are valid updates
 	if len(bulkUpdates) > 0 {
 		if err := h.updateLastNotified(ctx, coll, bulkUpdates); err != nil {
-			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %v", err)
+			return globalNotifiedCount, fmt.Errorf("failed to update lastNotifiedAt: %w", err)
 		}
 	}
 
 	if len(appointments) == 0 && len(fetchErrors) > 0 {
-		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments for all locations: %v", errors.Join(fetchErrors...))
+		return globalNotifiedCount, fmt.Errorf("failed to fetch appointments for all locations: %w", errors.Join(fetchErrors...))
 	}
 
 	return globalNotifiedCount, nil
+}
+
+// channelLessFilter matches subscriptions that can no longer be notified
+// (no ntfy topic and no web push endpoints).
+func channelLessFilter() bson.M {
+	return bson.M{
+		"$and": []bson.M{
+			{"$or": []bson.M{
+				{"ntfyTopic": ""},
+				{"ntfyTopic": bson.M{"$exists": false}},
+			}},
+			{"webPushSubscriptions.0": bson.M{"$exists": false}},
+		},
+	}
+}
+
+// hasNotifyChannelFilter matches subscriptions that still have at least one
+// delivery channel (ntfy topic and/or a web push endpoint).
+func hasNotifyChannelFilter() bson.M {
+	return bson.M{
+		"$or": []bson.M{
+			{"ntfyTopic": bson.M{"$gt": ""}},
+			{"webPushSubscriptions.0": bson.M{"$exists": true}},
+		},
+	}
+}
+
+// deleteChannelLessSubscriptions removes orphan rows with no way to notify.
+func (h *LambdaHandler) deleteChannelLessSubscriptions(ctx context.Context, coll *mongo.Collection) {
+	res, err := coll.DeleteMany(ctx, channelLessFilter())
+	if err != nil {
+		slog.Warn("Failed to delete channel-less subscriptions", "error", err)
+		return
+	}
+	if res.DeletedCount == 0 {
+		return
+	}
+	slog.Info("Deleted channel-less subscriptions", "count", res.DeletedCount)
+}
+
+// deleteIfChannelLess deletes a single subscription when it has no remaining channels.
+func (h *LambdaHandler) deleteIfChannelLess(ctx context.Context, coll *mongo.Collection, docID bson.ObjectID) {
+	filter := bson.M{
+		"_id": docID,
+		"$and": []bson.M{
+			{"$or": []bson.M{
+				{"ntfyTopic": ""},
+				{"ntfyTopic": bson.M{"$exists": false}},
+			}},
+			{"webPushSubscriptions.0": bson.M{"$exists": false}},
+		},
+	}
+	res, err := coll.DeleteOne(ctx, filter)
+	if err != nil {
+		slog.Warn("Failed to delete channel-less subscription", "subscriptionId", docID.Hex(), "error", err)
+		return
+	}
+	if res.DeletedCount == 0 {
+		return
+	}
+	slog.Info("Deleted subscription with no remaining notify channels", "subscriptionId", docID.Hex())
 }
 
 // deleteExpiredSubscription deletes a single expired subscription
@@ -622,7 +686,7 @@ func (h *LambdaHandler) deleteExpiredSubscription(ctx context.Context, coll *mon
 
 	_, err := coll.DeleteOne(ctx, bson.M{"_id": sub.ID})
 	if err != nil {
-		return fmt.Errorf("failed to delete subscription %s: %v", sub.ID, err)
+		return fmt.Errorf("failed to delete subscription %s: %w", sub.ID, err)
 	}
 	slog.Info("Deleted expired subscription", "subscriptionId", sub.ID.Hex())
 	return nil
@@ -634,6 +698,9 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 	ttlThreshold := now.Add(-h.Config.SubscriptionTTL)
 	slog.Info("Checking for expiring subscriptions", "ttlThreshold", ttlThreshold, "currentDate", now)
 
+	// Also sweep orphans that lost every notify channel (e.g. all web push endpoints 410'd).
+	h.deleteChannelLessSubscriptions(ctx, coll)
+
 	cursor, err := coll.Find(ctx, bson.M{
 		"$or": []bson.M{
 			{"createdAt": bson.M{"$lte": ttlThreshold}},
@@ -641,13 +708,13 @@ func (h *LambdaHandler) handleExpiringSubscriptions(ctx context.Context, coll *m
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to find expired subscriptions: %v", err)
+		return fmt.Errorf("failed to find expired subscriptions: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var subscriptions []Subscription
 	if err := cursor.All(ctx, &subscriptions); err != nil {
-		return fmt.Errorf("failed to decode expired subscriptions: %v", err)
+		return fmt.Errorf("failed to decode expired subscriptions: %w", err)
 	}
 
 	for _, sub := range subscriptions {
@@ -771,11 +838,11 @@ func (h *LambdaHandler) subscribeSendConfirmations(ctx context.Context, coll *mo
 	title := "Global Entry Subscription Confirmation"
 	confirmed := false
 	if sendNtfy && strings.TrimSpace(req.NtfyTopic) != "" {
-		if err := h.sendNtfyNotification(ctx, req.NtfyTopic, title, message, ""); err != nil {
-			slog.Error("Failed to send confirmation notification", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "error", err)
-		} else {
-			confirmed = true
+		ntfyErr := h.sendNtfyNotification(ctx, req.NtfyTopic, title, message, "")
+		if ntfyErr != nil {
+			slog.Error("Failed to send confirmation notification", "subscriptionId", docID.Hex(), "topic", req.NtfyTopic, "error", ntfyErr)
 		}
+		confirmed = ntfyErr == nil
 	}
 	if sendWeb && len(webSubs) > 0 {
 		if h.sendWebPushNotifications(ctx, coll, docID, title, message, "", webSubs) {
@@ -802,7 +869,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 			StatusCode: 400,
 			Headers:    h.cors(),
 			Body:       `{"error": "invalid latestDate format"}`,
-		}, fmt.Errorf("failed to parse latestDate: %v", err)
+		}, fmt.Errorf("failed to parse latestDate: %w", err)
 	}
 
 	var dupOr []bson.M
@@ -848,7 +915,7 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 				StatusCode: 500,
 				Headers:    h.cors(),
 				Body:       `{"error": "failed to insert subscription"}`,
-			}, fmt.Errorf("failed to insert subscription: %v", err)
+			}, fmt.Errorf("failed to insert subscription: %w", err)
 		}
 		insertedID, _ := result.InsertedID.(bson.ObjectID)
 		slog.Info("Added subscription", "subscriptionId", insertedID.Hex(), "location", req.Location, "shortName", req.ShortName, "ntfyTopic", req.NtfyTopic, "latestDate", latestDate, "webPush", hasWeb)
@@ -931,11 +998,9 @@ func (h *LambdaHandler) handleSubscribe(ctx context.Context, coll *mongo.Collect
 
 // handleUnsubscribe processes unsubscription requests
 func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Collection, req SubscriptionRequest) (events.APIGatewayV2HTTPResponse, error) {
-	var filter bson.M
+	filter := bson.M{"location": req.Location, "webPushSubscriptions.endpoint": req.WebPushEndpoint}
 	if strings.TrimSpace(req.NtfyTopic) != "" {
 		filter = bson.M{"location": req.Location, "ntfyTopic": req.NtfyTopic}
-	} else {
-		filter = bson.M{"location": req.Location, "webPushSubscriptions.endpoint": req.WebPushEndpoint}
 	}
 	result, err := coll.DeleteOne(ctx, filter)
 	if err != nil {
@@ -943,7 +1008,7 @@ func (h *LambdaHandler) handleUnsubscribe(ctx context.Context, coll *mongo.Colle
 			StatusCode: 500,
 			Headers:    h.cors(),
 			Body:       `{"error": "failed to delete subscription"}`,
-		}, fmt.Errorf("failed to delete subscription: %v", err)
+		}, fmt.Errorf("failed to delete subscription: %w", err)
 	}
 	if result.DeletedCount == 0 {
 		return events.APIGatewayV2HTTPResponse{
@@ -1086,7 +1151,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 	h.requestCORS = nil
 	coll := h.Client.Database("global-entry-appointment-db").Collection("subscriptions")
 
-	var eventMap map[string]interface{}
+	var eventMap map[string]any
 	if err := json.Unmarshal(event, &eventMap); err != nil {
 		slog.Error("Failed to parse event as JSON", "error", err)
 		return events.APIGatewayV2HTTPResponse{
@@ -1104,12 +1169,10 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 			eventMap["rawPath"] = p
 		}
 	}
-	if reqCtx, ok := eventMap["requestContext"].(map[string]interface{}); ok {
-		var httpInfo map[string]interface{}
-		if h, ok := reqCtx["http"].(map[string]interface{}); ok {
-			httpInfo = h
-		} else {
-			httpInfo = make(map[string]interface{})
+	if reqCtx, ok := eventMap["requestContext"].(map[string]any); ok {
+		httpInfo, ok := reqCtx["http"].(map[string]any)
+		if !ok {
+			httpInfo = make(map[string]any)
 			reqCtx["http"] = httpInfo
 		}
 		if _, has := httpInfo["method"]; !has {
@@ -1120,8 +1183,8 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 	}
 
 	// Handle OPTIONS request
-	if req, ok := eventMap["requestContext"].(map[string]interface{}); ok {
-		if httpInfo, ok := req["http"].(map[string]interface{}); ok {
+	if req, ok := eventMap["requestContext"].(map[string]any); ok {
+		if httpInfo, ok := req["http"].(map[string]any); ok {
 			if method, ok := httpInfo["method"].(string); ok && method == "OPTIONS" {
 				return events.APIGatewayV2HTTPResponse{
 					StatusCode: 200,
@@ -1136,12 +1199,15 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 	if source, ok := eventMap["source"].(string); ok {
 		if source == "aws.events.availability" {
 			// Minute-by-minute availability check
+			h.deleteChannelLessSubscriptions(ctx, coll)
+
 			cooldownThreshold := time.Now().UTC().Add(-h.Config.NotificationCooldownTime)
 			slog.Debug("Cooldown threshold", "threshold", cooldownThreshold)
 			pipeline := mongo.Pipeline{
 				{{Key: "$match", Value: bson.M{
 					"lastNotifiedAt": bson.M{"$lte": cooldownThreshold},
 					"latestDate":     bson.M{"$gt": time.Now().UTC()},
+					"$or":            hasNotifyChannelFilter()["$or"],
 				}}},
 				{{Key: "$sort", Value: bson.M{
 					"lastNotifiedAt": 1,
@@ -1210,7 +1276,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 	// Handle API Gateway V2 HTTP event
 	if rawPath, ok := eventMap["rawPath"].(string); ok {
-		requestContext, ok := eventMap["requestContext"].(map[string]interface{})
+		requestContext, ok := eventMap["requestContext"].(map[string]any)
 		if !ok {
 			slog.Error("Missing requestContext in event")
 			return events.APIGatewayV2HTTPResponse{
@@ -1219,7 +1285,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 				Body:       `{"error": "invalid event format"}`,
 			}, nil
 		}
-		httpInfo, ok := requestContext["http"].(map[string]interface{})
+		httpInfo, ok := requestContext["http"].(map[string]any)
 		if !ok {
 			slog.Error("Missing http info in requestContext")
 			return events.APIGatewayV2HTTPResponse{
@@ -1246,7 +1312,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 
 		// GET / or GET /subscriptions: API info, Web Push config, and subscriber count
 		if method == "GET" && (rawPath == "/" || rawPath == "/subscriptions") {
-			info := map[string]interface{}{
+			info := map[string]any{
 				"message":        "Global Entry appointment notification API",
 				"subscriptions":  "POST /subscriptions",
 				"webPushEnabled": h.webPushConfigured(),
@@ -1302,7 +1368,7 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, event json.RawMessage
 					StatusCode: 500,
 					Headers:    h.cors(),
 					Body:       `{"error": "internal server error"}`,
-				}, fmt.Errorf("failed to handle subscription: %v", err)
+				}, fmt.Errorf("failed to handle subscription: %w", err)
 			}
 			slog.Debug("Returning response", "statusCode", resp.StatusCode, "body", resp.Body)
 			return resp, nil
