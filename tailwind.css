@@ -208,7 +208,7 @@ body {
         @apply mr-1;
     }
     .coffee-count {
-        @apply inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-bold tabular-nums;
+        @apply inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold tabular-nums whitespace-nowrap;
         color: #1B1A17;
         background-color: rgba(27, 26, 23, 0.08);
     }
