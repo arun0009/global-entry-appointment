@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 # Global Entry Appointment Alerts
@@ -46,7 +48,7 @@ git clone https://github.com/arun0009/global-entry-appointment.git && cd global-
 # export AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_ACCOUNT
 ```
 
-`env.json`: `MONGODB_PASSWORD`, `RECAPTCHA_SECRET_KEY`, optional VAPID keys (`npx web-push generate-vapid-keys`). `VAPID_SUBJECT` = bare email, not `mailto:…` (Apple 403 otherwise).
+`env.json` must wrap variables in a `Parameters` key (e.g., `{ "Parameters": { "MONGODB_PASSWORD": "...", "RECAPTCHA_SECRET_KEY": "..." } }`). Include optional VAPID keys (`npx web-push generate-vapid-keys`). `VAPID_SUBJECT` = bare email, not `mailto:…` (Apple 403 otherwise).
 
 <details>
 <summary>MongoDB indexes</summary>
